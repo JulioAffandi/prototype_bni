@@ -1,0 +1,160 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --background: 222 47% 5%;
+    --foreground: 210 40% 98%;
+    --card: 222 47% 8%;
+    --card-foreground: 210 40% 98%;
+    --popover: 222 47% 8%;
+    --popover-foreground: 210 40% 98%;
+    --primary: 174 72% 35%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 217 32% 17%;
+    --secondary-foreground: 210 40% 98%;
+    --muted: 217 32% 14%;
+    --muted-foreground: 215 20% 55%;
+    --accent: 38 92% 50%;
+    --accent-foreground: 222 47% 5%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 217 32% 17%;
+    --input: 217 32% 17%;
+    --ring: 174 72% 35%;
+    --radius: 0.75rem;
+
+    /* VALO brand */
+    --valo-teal: 174 72% 35%;
+    --valo-orange: 38 92% 50%;
+    --valo-dark: 222 47% 5%;
+    --valo-card: 222 47% 8%;
+    --valo-border: 217 32% 20%;
+  }
+}
+
+@layer base {
+  * {
+    border-color: hsl(var(--border));
+  }
+
+  body {
+    background-color: hsl(var(--background));
+    color: hsl(var(--foreground));
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+  }
+
+  /* Scrollbar styling */
+  ::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  ::-webkit-scrollbar-track {
+    background: hsl(var(--muted));
+  }
+  ::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted-foreground) / 0.3);
+    border-radius: 3px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.5);
+  }
+}
+
+/* ── Glassmorphism utility ── */
+.glass {
+  background: hsl(var(--card) / 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid hsl(var(--border) / 0.5);
+}
+
+/* ── Gradient text ── */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--valo-teal)), hsl(var(--valo-orange)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── NFC wave animation ── */
+@keyframes nfc-pulse {
+  0%   { transform: scale(1); opacity: 0.8; }
+  50%  { transform: scale(1.05); opacity: 1; }
+  100% { transform: scale(1); opacity: 0.8; }
+}
+
+@keyframes nfc-ripple {
+  0%   { transform: scale(0.8); opacity: 1; }
+  100% { transform: scale(2); opacity: 0; }
+}
+
+@keyframes nfc-wave-1 {
+  0%   { opacity: 0.8; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.6); }
+}
+@keyframes nfc-wave-2 {
+  0%   { opacity: 0.6; transform: scale(1); }
+  100% { opacity: 0; transform: scale(1.8); }
+}
+@keyframes nfc-wave-3 {
+  0%   { opacity: 0.4; transform: scale(1); }
+  100% { opacity: 0; transform: scale(2); }
+}
+
+.nfc-pulse { animation: nfc-pulse 2s ease-in-out infinite; }
+
+.nfc-wave-ring {
+  position: absolute;
+  border-radius: 50%;
+  border: 2px solid hsl(var(--valo-teal));
+}
+.nfc-wave-ring:nth-child(1) { animation: nfc-wave-1 2s ease-out infinite; }
+.nfc-wave-ring:nth-child(2) { animation: nfc-wave-2 2s ease-out 0.4s infinite; }
+.nfc-wave-ring:nth-child(3) { animation: nfc-wave-3 2s ease-out 0.8s infinite; }
+
+/* ── Shimmer skeleton ── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+.shimmer {
+  background: linear-gradient(
+    90deg,
+    hsl(var(--muted)) 25%,
+    hsl(var(--muted-foreground) / 0.1) 50%,
+    hsl(var(--muted)) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ── Status badge variants ── */
+.badge-settled   { background: hsl(174 72% 35% / 0.15); color: hsl(174 72% 55%); border: 1px solid hsl(174 72% 35% / 0.3); }
+.badge-paid      { background: hsl(174 72% 35% / 0.15); color: hsl(174 72% 55%); border: 1px solid hsl(174 72% 35% / 0.3); }
+.badge-failed    { background: hsl(0 84% 60% / 0.15); color: hsl(0 84% 70%); border: 1px solid hsl(0 84% 60% / 0.3); }
+.badge-overdue   { background: hsl(0 84% 60% / 0.2); color: hsl(0 84% 65%); border: 1px solid hsl(0 84% 60% / 0.4); }
+.badge-unpaid    { background: hsl(38 92% 50% / 0.15); color: hsl(38 92% 65%); border: 1px solid hsl(38 92% 50% / 0.3); }
+.badge-pending   { background: hsl(220 70% 60% / 0.15); color: hsl(220 70% 70%); border: 1px solid hsl(220 70% 60% / 0.3); }
+.badge-rejected  { background: hsl(0 84% 60% / 0.15); color: hsl(0 84% 70%); border: 1px solid hsl(0 84% 60% / 0.3); }
+.badge-offline   { background: hsl(38 92% 50% / 0.15); color: hsl(38 92% 65%); border: 1px solid hsl(38 92% 50% / 0.3); }
+
+/* ── Card hover glow ── */
+.card-hover {
+  transition: box-shadow 0.3s ease, transform 0.2s ease;
+}
+.card-hover:hover {
+  box-shadow: 0 0 24px hsl(var(--valo-teal) / 0.15);
+  transform: translateY(-2px);
+}
+
+/* ── Progress bar fill ── */
+.progress-fill {
+  background: linear-gradient(90deg, hsl(var(--valo-teal)), hsl(174 60% 55%));
+  transition: width 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* ── Chat bubble ── */
+.chat-user   { background: hsl(var(--valo-teal) / 0.15); border: 1px solid hsl(var(--valo-teal) / 0.25); }
+.chat-ai     { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
