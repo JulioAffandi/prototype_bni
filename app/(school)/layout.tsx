@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import SchoolSidebar from "@/components/school/SchoolSidebar";
+import type { ProfileRow, SchoolRow } from "@/types/database";
 
 export const metadata: Metadata = {
   title: {
@@ -21,17 +22,21 @@ export default async function SchoolLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, school_id")
     .eq("id", user.id)
     .single();
 
+  const profile = profileData as Pick<ProfileRow, "role" | "school_id"> | null;
+
   if (!profile || profile.role !== "school_admin") redirect("/login");
 
-  const { data: school } = profile.school_id
+  const { data: schoolData } = profile.school_id
     ? await supabase.from("schools").select("name, status").eq("id", profile.school_id).single()
     : { data: null };
+
+  const school = schoolData as Pick<SchoolRow, "name" | "status"> | null;
 
   return (
     <div className="min-h-screen bg-background flex">
