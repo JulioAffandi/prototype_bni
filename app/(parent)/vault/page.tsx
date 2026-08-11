@@ -1,4 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import VaultGoalCard from "@/components/parent/VaultGoalCard";
 import type { Metadata } from "next";
@@ -19,36 +21,44 @@ export default async function VaultPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("parent_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile?.parent_id) redirect("/login");
+  const parentId = await getOrResolveParentId(user);
+  let students: Array<{
+    id: string;
+    full_name: string;
+    student_vault: {
+      vault_balance: number;
+      savings_goal_name: string | null;
+      savings_goal_target: number | null;
+      updated_at: string;
+    } | null;
+  }> = [];
 
-  const { data: mappings } = await supabase
-    .from("guardian_student_map")
-    .select(`
-      student_id,
-      students (
-        id, full_name,
-        student_vault ( vault_balance, savings_goal_name, savings_goal_target, updated_at )
-      )
-    `)
-    .eq("parent_id", profile.parent_id);
+  if (parentId) {
+    const service = createServiceClient();
+    const { data: mappings } = await service
+      .from("guardian_student_map")
+      .select(`
+        student_id,
+        students (
+          id, full_name,
+          student_vault ( vault_balance, savings_goal_name, savings_goal_target, updated_at )
+        )
+      `)
+      .eq("parent_id", parentId);
 
-  const students = (mappings ?? [])
-    .map((m) => m.students)
-    .filter(Boolean) as {
-      id: string;
-      full_name: string;
-      student_vault: {
-        vault_balance: number;
-        savings_goal_name: string | null;
-        savings_goal_target: number | null;
-        updated_at: string;
-      } | null;
-    }[];
+    students = (mappings ?? [])
+      .map((m) => m.students)
+      .filter(Boolean) as Array<{
+        id: string;
+        full_name: string;
+        student_vault: {
+          vault_balance: number;
+          savings_goal_name: string | null;
+          savings_goal_target: number | null;
+          updated_at: string;
+        } | null;
+      }>;
+  }
 
   return (
     <div className="p-4 space-y-4">
@@ -58,7 +68,7 @@ export default async function VaultPage() {
           <Vault className="w-5 h-5 text-accent" />
         </div>
         <div>
-          <h1 className="text-xl font-bold">Student Goal Vault</h1>
+          <h1 className="text-xl font-bold text-foreground">Student Goal Vault</h1>
           <p className="text-sm text-muted-foreground">Tabungan otomatis dari sisa pagu harian</p>
         </div>
       </div>
@@ -75,12 +85,12 @@ export default async function VaultPage() {
             />
 
             {/* Withdrawal section */}
-            <div className="glass rounded-2xl p-4">
-              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
+            <div className="glass rounded-2xl p-4 border border-border/60">
+              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 text-foreground">
                 <ArrowDownToLine className="w-4 h-4 text-primary" />
                 Cairkan Tabungan
               </h3>
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-muted/50 mb-3">
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-muted/50 border border-border/50 mb-3">
                 <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                 <p className="text-xs text-muted-foreground">
                   Pencairan memerlukan konfirmasi dua pihak (Dual Control). Dana akan
@@ -90,7 +100,7 @@ export default async function VaultPage() {
               {vault && vault.vault_balance > 0 ? (
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-muted-foreground">Saldo tersedia</span>
-                  <span className="font-bold text-lg">{formatRupiah(vault.vault_balance)}</span>
+                  <span className="font-bold text-lg text-foreground">{formatRupiah(vault.vault_balance)}</span>
                 </div>
               ) : (
                 <p className="text-sm text-muted-foreground text-center py-2">
@@ -103,9 +113,9 @@ export default async function VaultPage() {
       })}
 
       {students.length === 0 && (
-        <div className="glass rounded-2xl p-8 text-center">
-          <Vault className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="font-medium">Belum ada siswa terdaftar</p>
+        <div className="glass rounded-2xl p-8 text-center border border-border/60">
+          <Vault className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
+          <p className="font-bold text-foreground">Belum Ada Siswa Terhubung</p>
         </div>
       )}
     </div>

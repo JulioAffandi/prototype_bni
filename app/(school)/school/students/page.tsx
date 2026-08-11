@@ -1,3 +1,4 @@
+import { createServiceClient } from "@/lib/supabase/service";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
@@ -11,22 +12,73 @@ export default async function SchoolStudentsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("school_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { school_id?: string | null } | null;
   if (!profile?.school_id) redirect("/login");
 
-  const { data: students } = await supabase
+  const service = createServiceClient();
+  const { data: students } = await service
     .from("students")
     .select(`
       id, full_name, nfc_uid_last4, card_status,
       daily_limit, daily_limit_used, emergency_approve,
-      emergency_overdraft_count_7d, created_at
+      emergency_overdraft_count_7d, created_at,
+      guardian_student_map (
+        parent_id, relationship, is_primary_guardian,
+        parents ( id, full_name, phone_number )
+      )
     `)
     .eq("school_id", profile.school_id)
     .order("full_name");
+
+  const rawList = (students ?? []) as unknown as Array<{
+    id: string;
+    full_name: string;
+    nfc_uid_last4: string | null;
+    card_status: string;
+    daily_limit: number;
+    daily_limit_used: number;
+    emergency_approve: boolean;
+    emergency_overdraft_count_7d: number;
+    created_at: string;
+    guardian_student_map?: Array<{
+      parent_id: string;
+      relationship: string;
+      is_primary_guardian: boolean;
+      parents: { id: string; full_name: string; phone_number: string } | null;
+    }>;
+  }>;
+
+  const formattedStudents = rawList.map((s) => {
+    const maps = s.guardian_student_map;
+    const primaryMap = maps?.[0];
+    const parentObj = primaryMap?.parents ?? null;
+
+    return {
+      id: s.id,
+      full_name: s.full_name,
+      nfc_uid_last4: s.nfc_uid_last4 ?? "????",
+      card_status: s.card_status as "active" | "lost_reported" | "blocked" | "graduated" | "transferred_out",
+      daily_limit: s.daily_limit,
+      daily_limit_used: s.daily_limit_used,
+      emergency_approve: s.emergency_approve,
+      emergency_overdraft_count_7d: s.emergency_overdraft_count_7d,
+      created_at: s.created_at,
+      parent: parentObj
+        ? {
+            id: parentObj.id,
+            full_name: parentObj.full_name,
+            phone_number: parentObj.phone_number,
+            relationship: primaryMap?.relationship ?? "orang_tua",
+          }
+        : null,
+    };
+  });
 
   return (
     <div className="space-y-6">
@@ -38,7 +90,7 @@ export default async function SchoolStudentsPage() {
           <div>
             <h1 className="text-2xl font-bold">Manajemen Siswa</h1>
             <p className="text-sm text-muted-foreground">
-              Daftar siswa, status kartu NFC, dan kendali pagu
+              Daftar siswa, status kartu NFC, kendali pagu, dan relasi orang tua
             </p>
           </div>
         </div>
@@ -46,17 +98,7 @@ export default async function SchoolStudentsPage() {
 
       <StudentManagementTable
         schoolId={profile.school_id}
-        students={(students ?? []).map((s) => ({
-          id: s.id,
-          full_name: s.full_name,
-          nfc_uid_last4: s.nfc_uid_last4 ?? "????",
-          card_status: s.card_status as "active" | "lost_reported" | "blocked" | "graduated" | "transferred_out",
-          daily_limit: s.daily_limit,
-          daily_limit_used: s.daily_limit_used,
-          emergency_approve: s.emergency_approve,
-          emergency_overdraft_count_7d: s.emergency_overdraft_count_7d,
-          created_at: s.created_at,
-        }))}
+        students={formattedStudents}
       />
     </div>
   );

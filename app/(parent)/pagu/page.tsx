@@ -1,4 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import PaguSlider from "@/components/parent/PaguSlider";
 import EmergencyToggle from "@/components/parent/EmergencyToggle";
@@ -12,37 +14,45 @@ export default async function PaguPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("parent_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile?.parent_id) redirect("/login");
+  const parentId = await getOrResolveParentId(user);
+  let students: Array<{
+    id: string;
+    full_name: string;
+    daily_limit: number;
+    daily_limit_used: number;
+    emergency_approve: boolean;
+    emergency_limit: number;
+    emergency_used_today: boolean;
+    emergency_overdraft_count_7d: number;
+  }> = [];
 
-  const { data: mappings } = await supabase
-    .from("guardian_student_map")
-    .select(`
-      student_id,
-      students (
-        id, full_name, daily_limit, daily_limit_used,
-        emergency_approve, emergency_limit,
-        emergency_used_today, emergency_overdraft_count_7d
-      )
-    `)
-    .eq("parent_id", profile.parent_id);
+  if (parentId) {
+    const service = createServiceClient();
+    const { data: mappings } = await service
+      .from("guardian_student_map")
+      .select(`
+        student_id,
+        students (
+          id, full_name, daily_limit, daily_limit_used,
+          emergency_approve, emergency_limit,
+          emergency_used_today, emergency_overdraft_count_7d
+        )
+      `)
+      .eq("parent_id", parentId);
 
-  const students = (mappings ?? [])
-    .map((m) => m.students)
-    .filter(Boolean) as {
-      id: string;
-      full_name: string;
-      daily_limit: number;
-      daily_limit_used: number;
-      emergency_approve: boolean;
-      emergency_limit: number;
-      emergency_used_today: boolean;
-      emergency_overdraft_count_7d: number;
-    }[];
+    students = (mappings ?? [])
+      .map((m) => m.students)
+      .filter(Boolean) as Array<{
+        id: string;
+        full_name: string;
+        daily_limit: number;
+        daily_limit_used: number;
+        emergency_approve: boolean;
+        emergency_limit: number;
+        emergency_used_today: boolean;
+        emergency_overdraft_count_7d: number;
+      }>;
+  }
 
   return (
     <div className="p-4 space-y-4">
@@ -52,7 +62,7 @@ export default async function PaguPage() {
           <SlidersHorizontal className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold">Atur Pagu Jajan</h1>
+          <h1 className="text-xl font-bold text-foreground">Atur Pagu Jajan</h1>
           <p className="text-sm text-muted-foreground">Kontrol pengeluaran harian anak Anda</p>
         </div>
       </div>
@@ -77,9 +87,9 @@ export default async function PaguPage() {
       ))}
 
       {students.length === 0 && (
-        <div className="glass rounded-2xl p-8 text-center">
-          <SlidersHorizontal className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="font-medium">Belum ada siswa terdaftar</p>
+        <div className="glass rounded-2xl p-8 text-center border border-border/60">
+          <SlidersHorizontal className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
+          <p className="font-bold text-foreground">Belum ada siswa terhubung</p>
           <p className="text-sm text-muted-foreground mt-1">
             Hubungi admin sekolah untuk menautkan akun anak Anda.
           </p>

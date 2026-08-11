@@ -49,7 +49,10 @@ export default function RootLayout({
       <head>
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
       </head>
-      <body className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}>
+      <body
+        suppressHydrationWarning
+        className={`${inter.variable} font-sans antialiased min-h-screen bg-background text-foreground`}
+      >
         {children}
       </body>
     </html>

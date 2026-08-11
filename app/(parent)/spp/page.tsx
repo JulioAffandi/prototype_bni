@@ -1,4 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import {
@@ -56,24 +58,25 @@ export default async function SPPPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("parent_id")
-    .eq("id", user.id)
-    .single();
-  if (!profile?.parent_id) redirect("/login");
+  const parentId = await getOrResolveParentId(user);
+  let studentIds: string[] = [];
+  let mappingsList: Array<{ student_id: string; students: { full_name?: string } | null }> = [];
 
-  // Get student IDs for this parent
-  const { data: mappings } = await supabase
-    .from("guardian_student_map")
-    .select("student_id, students(full_name)")
-    .eq("parent_id", profile.parent_id);
+  if (parentId) {
+    const service = createServiceClient();
+    const { data: mappings } = await service
+      .from("guardian_student_map")
+      .select("student_id, students(full_name)")
+      .eq("parent_id", parentId);
 
-  const studentIds = (mappings ?? []).map((m) => m.student_id);
+    mappingsList = (mappings ?? []) as unknown as Array<{ student_id: string; students: { full_name?: string } | null }>;
+    studentIds = mappingsList.map((m) => m.student_id);
+  }
 
   // Fetch all SPP invoices
+  const service = createServiceClient();
   const { data: invoices } = studentIds.length > 0
-    ? await supabase
+    ? await service
         .from("spp_invoices")
         .select("id, student_id, period, amount, status, due_date, paid_at, retry_count")
         .in("student_id", studentIds)
@@ -89,8 +92,8 @@ export default async function SPPPage() {
   const periods = Array.from(periodMap.keys()).sort((a, b) => b.localeCompare(a));
 
   function getStudentName(studentId: string) {
-    const m = (mappings ?? []).find((x) => x.student_id === studentId);
-    return (m?.students as { full_name?: string } | null)?.full_name ?? "Siswa";
+    const m = mappingsList.find((x) => x.student_id === studentId);
+    return m?.students?.full_name ?? "Siswa";
   }
 
   return (
@@ -101,15 +104,15 @@ export default async function SPPPage() {
           <FileText className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-xl font-bold">Status SPP</h1>
+          <h1 className="text-xl font-bold text-foreground">Status SPP</h1>
           <p className="text-sm text-muted-foreground">Riwayat pembayaran uang sekolah</p>
         </div>
       </div>
 
       {periods.length === 0 && (
-        <div className="glass rounded-2xl p-8 text-center">
-          <FileText className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
-          <p className="font-medium">Belum ada tagihan SPP</p>
+        <div className="glass rounded-2xl p-8 text-center border border-border/60">
+          <FileText className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
+          <p className="font-bold text-foreground">Belum ada tagihan SPP</p>
           <p className="text-sm text-muted-foreground mt-1">
             Tagihan akan muncul setiap awal bulan secara otomatis.
           </p>
@@ -121,16 +124,16 @@ export default async function SPPPage() {
         const allPaid = periodInvoices.every((i) => i.status === "PAID");
 
         return (
-          <div key={period} className="glass rounded-2xl p-4">
+          <div key={period} className="glass rounded-2xl p-4 border border-border/60">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="font-semibold text-sm">
+              <h2 className="font-bold text-sm text-foreground">
                 SPP {new Date(period + "-01").toLocaleDateString("id-ID", {
                   month: "long",
                   year: "numeric",
                 })}
               </h2>
               {allPaid && (
-                <span className="text-xs badge-paid px-2 py-0.5 rounded-full flex items-center gap-1">
+                <span className="text-xs badge-paid px-2.5 py-0.5 rounded-full flex items-center gap-1 font-semibold">
                   <CheckCircle2 className="w-3 h-3" />
                   Semua Lunas
                 </span>
@@ -151,22 +154,22 @@ export default async function SPPPage() {
                         <Icon className={`w-4 h-4 ${cfg.iconClass}`} />
                       </div>
                       <div>
-                        <p className="text-sm font-medium">{getStudentName(inv.student_id)}</p>
+                        <p className="text-sm font-semibold text-foreground">{getStudentName(inv.student_id)}</p>
                         <p className="text-xs text-muted-foreground">
                           {inv.paid_at
                             ? `Lunas ${new Date(inv.paid_at).toLocaleDateString("id-ID")}`
                             : `Jatuh tempo ${new Date(inv.due_date).toLocaleDateString("id-ID")}`}
                         </p>
                         {inv.retry_count > 0 && inv.status !== "PAID" && (
-                          <p className="text-xs text-accent">
+                          <p className="text-xs text-accent font-medium">
                             Percobaan ulang ke-{inv.retry_count}
                           </p>
                         )}
                       </div>
                     </div>
                     <div className="text-right">
-                      <p className="text-sm font-bold">{formatRupiah(inv.amount)}</p>
-                      <span className={`text-xs px-2 py-0.5 rounded-full ${cfg.badgeClass}`}>
+                      <p className="text-sm font-bold text-foreground">{formatRupiah(inv.amount)}</p>
+                      <span className={`text-xs px-2 py-0.5 rounded-full inline-block mt-0.5 ${cfg.badgeClass}`}>
                         {cfg.label}
                       </span>
                     </div>

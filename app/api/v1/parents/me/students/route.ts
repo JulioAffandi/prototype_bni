@@ -1,4 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
+import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { NextResponse } from "next/server";
 
 /**
@@ -18,19 +20,15 @@ export async function GET() {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  // Get parent profile
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("parent_id, role")
-    .eq("id", user.id)
-    .single();
-
-  if (!profile || profile.role !== "parent" || !profile.parent_id) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+  // Resolve parent_id with fallback auto-binding
+  const parentId = await getOrResolveParentId(user);
+  if (!parentId) {
+    return NextResponse.json({ error: "NO_PARENT_PROFILE", students: [] }, { status: 200 });
   }
 
-  // Fetch students via guardian map — RLS enforced
-  const { data: mappings, error } = await supabase
+  const service = createServiceClient();
+  // Fetch students via guardian map
+  const { data: mappings, error } = await service
     .from("guardian_student_map")
     .select(`
       student_id,
@@ -50,17 +48,26 @@ export async function GET() {
         schools (name)
       )
     `)
-    .eq("parent_id", profile.parent_id);
+    .eq("parent_id", parentId);
 
   if (error) {
     return NextResponse.json({ error: "FETCH_FAILED", detail: error.message }, { status: 500 });
   }
 
-  const students = (mappings ?? []).map((m) => ({
-    ...m.students,
-    relationship: m.relationship,
-    is_primary_guardian: m.is_primary_guardian,
-  }));
+  const rawMappings = (mappings ?? []) as unknown as Array<{
+    student_id: string;
+    relationship: string;
+    is_primary_guardian: boolean;
+    students: Record<string, unknown> | null;
+  }>;
+
+  const students = rawMappings
+    .filter((m) => !!m.students)
+    .map((m) => ({
+      ...m.students,
+      relationship: m.relationship,
+      is_primary_guardian: m.is_primary_guardian,
+    }));
 
   return NextResponse.json({ students });
 }
