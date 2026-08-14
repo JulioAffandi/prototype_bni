@@ -349,9 +349,7 @@ async function main() {
           account_type: "student_vault",
           normal_balance: "CREDIT",
           currency_code: "IDR",
-          owner_school_id: schoolId,
           owner_student_id: studentId,
-          owner_parent_id: parentId,
           balance: initialVaultBalance,
           is_active: true,
         })

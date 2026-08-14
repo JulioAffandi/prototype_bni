@@ -152,9 +152,9 @@ BEGIN
   ON CONFLICT DO NOTHING;
 
   -- 8. LEDGER ACCOUNTS & STUDENT VAULT
-  INSERT INTO public.ledger_accounts (id, account_type, normal_balance, currency_code, owner_school_id, owner_student_id, owner_parent_id, balance, is_active)
-  VALUES (v_ledger_vault_1, 'student_vault', 'CREDIT', 'IDR', v_school_id, v_student_1_id, v_parent_id, 150000, true),
-         (v_ledger_vault_2, 'student_vault', 'CREDIT', 'IDR', v_school_id, v_student_2_id, v_parent_id, 85000, true)
+  INSERT INTO public.ledger_accounts (id, account_type, normal_balance, currency_code, owner_student_id, balance, is_active)
+  VALUES (v_ledger_vault_1, 'student_vault', 'CREDIT', 'IDR', v_student_1_id, 150000, true),
+         (v_ledger_vault_2, 'student_vault', 'CREDIT', 'IDR', v_student_2_id, 85000, true)
   ON CONFLICT (id) DO UPDATE SET balance = EXCLUDED.balance;
 
   INSERT INTO public.student_vault (student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target)
