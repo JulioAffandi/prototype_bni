@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, HeartHandshake } from "lucide-react";
+import { Users, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, HeartHandshake, Zap } from "lucide-react";
 
 export default function ParentLoginPage() {
   const [email, setEmail] = useState("");
@@ -75,6 +75,11 @@ export default function ParentLoginPage() {
     }
   }
 
+  function handleQuickFill() {
+    setEmail("parent.demo@gmail.com");
+    setPassword("Demo1234!");
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Emerald ambient background */}
@@ -112,7 +117,28 @@ export default function ParentLoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="glass rounded-2xl p-6 border border-emerald-500/20 shadow-2xl">
+        <div className="glass rounded-2xl p-6 border border-emerald-500/20 shadow-2xl space-y-4">
+          {/* Quick Fill Demo Credentials Banner */}
+          <button
+            type="button"
+            onClick={handleQuickFill}
+            id="parent-quick-fill-btn"
+            className="w-full p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-emerald-400">Gunakan Akun Demo Orang Tua</p>
+                <p className="text-[11px] text-muted-foreground">Hendra Wijaya · parent.demo@gmail.com</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+              Isi Otomatis
+            </span>
+          </button>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-foreground/90">
@@ -174,7 +200,7 @@ export default function ParentLoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-border/50 text-center">
+          <div className="pt-4 border-t border-border/50 text-center">
             <Link
               href="/login"
               className="text-xs text-muted-foreground hover:text-emerald-400 font-medium transition-colors"

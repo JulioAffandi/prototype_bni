@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Building2, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, Landmark } from "lucide-react";
+import { Building2, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, Landmark, Zap } from "lucide-react";
 
 export default function SchoolLoginPage() {
   const [email, setEmail] = useState("");
@@ -85,6 +85,11 @@ export default function SchoolLoginPage() {
     }
   }
 
+  function handleQuickFill() {
+    setEmail("admin.demo@sekolah.sch.id");
+    setPassword("Demo1234!");
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
       {/* Deep blue & amber ambient background */}
@@ -122,7 +127,28 @@ export default function SchoolLoginPage() {
         </div>
 
         {/* Login Card */}
-        <div className="glass rounded-2xl p-6 border border-blue-500/20 shadow-2xl">
+        <div className="glass rounded-2xl p-6 border border-blue-500/20 shadow-2xl space-y-4">
+          {/* Quick Fill Demo Credentials Banner */}
+          <button
+            type="button"
+            onClick={handleQuickFill}
+            id="school-quick-fill-btn"
+            className="w-full p-3 rounded-xl bg-blue-500/10 hover:bg-blue-500/20 border border-blue-500/30 text-left transition-all group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-7 h-7 rounded-lg bg-blue-500/20 flex items-center justify-center text-blue-400 group-hover:scale-105 transition-transform shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-blue-400">Gunakan Akun Demo Admin Sekolah</p>
+                <p className="text-[11px] text-muted-foreground">SMA BNI Harapan Bangsa · admin.demo@sekolah.sch.id</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-blue-500/20 text-blue-400 border border-blue-500/30 shrink-0">
+              Isi Otomatis
+            </span>
+          </button>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-foreground/90">
@@ -184,7 +210,7 @@ export default function SchoolLoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-border/50 text-center">
+          <div className="pt-4 border-t border-border/50 text-center">
             <Link
               href="/login"
               className="text-xs text-muted-foreground hover:text-blue-400 font-medium transition-colors"

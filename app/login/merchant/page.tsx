@@ -85,6 +85,11 @@ export default function MerchantLoginPage() {
     }
   }
 
+  function handleQuickFill() {
+    setEmail("kantin.demo@merchant.valo.id");
+    setPassword("Demo1234!");
+  }
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50 p-4 relative overflow-hidden font-sans">
       {/* Energetic orange & cyan ambient kiosk background */}
@@ -122,7 +127,28 @@ export default function MerchantLoginPage() {
         </div>
 
         {/* POS Kiosk Login Card */}
-        <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-2xl shadow-black/80">
+        <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-2xl shadow-black/80 space-y-4">
+          {/* Quick Fill Demo Credentials Banner */}
+          <button
+            type="button"
+            onClick={handleQuickFill}
+            id="merchant-quick-fill-btn"
+            className="w-full p-3.5 rounded-2xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-left transition-all group flex items-center justify-between"
+          >
+            <div className="flex items-center gap-2.5">
+              <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:scale-105 transition-transform shrink-0">
+                <Zap className="w-4 h-4" />
+              </div>
+              <div>
+                <p className="text-xs font-bold text-orange-400">Gunakan Akun Demo Kasir Kantin</p>
+                <p className="text-[11px] text-slate-400">Kantin Bu Nur · kantin.demo@merchant.valo.id</p>
+              </div>
+            </div>
+            <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/30 shrink-0">
+              Isi Otomatis
+            </span>
+          </button>
+
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-slate-300">
@@ -184,7 +210,7 @@ export default function MerchantLoginPage() {
             </button>
           </form>
 
-          <div className="mt-5 pt-4 border-t border-slate-800 text-center">
+          <div className="pt-4 border-t border-slate-800 text-center">
             <Link
               href="/login"
               className="text-xs text-slate-400 hover:text-orange-400 font-medium transition-colors"
