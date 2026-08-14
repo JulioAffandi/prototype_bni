@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import { Users, CheckCircle2, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 import AIChatDrawer from "@/components/canteen/AIChatDrawer";
@@ -19,14 +20,21 @@ export default async function SchoolDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("school_id")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userSchoolIds: string[] = Array.isArray(appMetadata.school_ids) ? appMetadata.school_ids : [];
 
-  const profile = profileData as { school_id: string | null } | null;
-  const schoolId = profile?.school_id;
+  const service = createServiceClient();
+  let schoolId: string | null = userSchoolIds[0] || null;
+
+  if (!schoolId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("school_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+    schoolId = roles?.[0]?.school_id || null;
+  }
+
   if (!schoolId) redirect("/login");
 
   // Current month period
@@ -34,49 +42,33 @@ export default async function SchoolDashboardPage() {
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   // SPP stats
-  const { data: sppStatsData } = await supabase
+  const { data: sppStats } = await service
     .from("spp_invoices")
-    .select("status, amount")
+    .select("status, amount, amount_paid")
     .eq("school_id", schoolId)
     .eq("period", period);
-
-  const sppStats = sppStatsData as Array<{
-    status: string;
-    amount: number;
-  }> | null;
 
   const totalInvoices = sppStats?.length ?? 0;
   const paidInvoices = sppStats?.filter((s) => s.status === "PAID").length ?? 0;
   const failedInvoices = sppStats?.filter((s) => s.status === "FAILED" || s.status === "OVERDUE").length ?? 0;
   const totalAmount = sppStats?.reduce((sum, s) => sum + s.amount, 0) ?? 0;
-  const paidAmount = sppStats?.filter((s) => s.status === "PAID").reduce((sum, s) => sum + s.amount, 0) ?? 0;
+  const paidAmount = sppStats?.filter((s) => s.status === "PAID").reduce((sum, s) => sum + (s.amount_paid || s.amount), 0) ?? 0;
   const collectionRate = totalInvoices > 0 ? Math.round((paidInvoices / totalInvoices) * 100) : 0;
 
-  // Student count
-  const { count: studentCount } = await supabase
+  // Student count (Schema v3)
+  const { count: studentCount } = await service
     .from("students")
     .select("id", { count: "exact", head: true })
     .eq("school_id", schoolId)
-    .eq("card_status", "active");
+    .eq("status", "active");
 
-  // Recent canteen transactions
-  const studentListQuery = await supabase.from("students").select("id").eq("school_id", schoolId);
-  const studentListData = studentListQuery.data as Array<{ id: string }> | null;
-  const studentIds = studentListData?.map((s) => s.id) ?? [];
-
-  const { data: recentTxData } = await supabase
+  // Recent canteen transactions using denormalized school_id (Schema v3)
+  const { data: recentTx } = await service
     .from("canteen_transactions")
     .select("id, amount, status, created_at")
-    .in("student_id", studentIds)
+    .eq("school_id", schoolId)
     .order("created_at", { ascending: false })
     .limit(5);
-
-  const recentTx = recentTxData as Array<{
-    id: string;
-    amount: number;
-    status: string;
-    created_at: string;
-  }> | null;
 
   const stats = [
     {
@@ -168,14 +160,14 @@ export default async function SchoolDashboardPage() {
             {recentTx.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between py-1.5 border-b border-border/50 last:border-0">
                 <div className="flex items-center gap-2">
-                  <div className={`w-2 h-2 rounded-full ${tx.status === "SETTLED" || tx.status === "COMPLETED" ? "bg-primary" : "bg-destructive"}`} />
+                  <div className={`w-2 h-2 rounded-full ${tx.status === "SETTLED" ? "bg-primary" : "bg-destructive"}`} />
                   <span className="text-sm text-muted-foreground">
                     {new Date(tx.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                   </span>
                 </div>
                 <div className="flex items-center gap-3">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    tx.status === "SETTLED" || tx.status === "COMPLETED" ? "badge-settled" :
+                    tx.status === "SETTLED" ? "badge-settled" :
                     tx.status === "REJECTED_OVERLIMIT" ? "badge-rejected" : "badge-offline"
                   }`}>
                     {tx.status}

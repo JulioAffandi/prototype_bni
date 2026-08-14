@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import SchoolSidebar from "@/components/school/SchoolSidebar";
-import type { ProfileRow, SchoolRow } from "@/types/database";
 
 export const metadata: Metadata = {
   title: {
@@ -22,21 +22,35 @@ export default async function SchoolLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role, school_id")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
+  const userSchoolIds: string[] = Array.isArray(appMetadata.school_ids) ? appMetadata.school_ids : [];
 
-  const profile = profileData as Pick<ProfileRow, "role" | "school_id"> | null;
+  const service = createServiceClient();
+  let schoolId: string | null = userSchoolIds[0] || null;
+  let isSchoolStaff = userRoles.includes("school_admin") || userRoles.includes("school_treasurer") || userRoles.includes("platform_admin");
 
-  if (!profile || profile.role !== "school_admin") redirect("/login");
+  if (!isSchoolStaff || !schoolId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role, school_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
 
-  const { data: schoolData } = profile.school_id
-    ? await supabase.from("schools").select("name, status").eq("id", profile.school_id).single()
+    const activeRole = roles?.find(
+      (r) => r.role === "school_admin" || r.role === "school_treasurer",
+    );
+    if (activeRole) {
+      isSchoolStaff = true;
+      schoolId = activeRole.school_id;
+    }
+  }
+
+  if (!isSchoolStaff) redirect("/login");
+
+  const { data: school } = schoolId
+    ? await service.from("schools").select("name, status").eq("id", schoolId).maybeSingle()
     : { data: null };
-
-  const school = schoolData as Pick<SchoolRow, "name" | "status"> | null;
 
   return (
     <div className="min-h-screen bg-background flex">

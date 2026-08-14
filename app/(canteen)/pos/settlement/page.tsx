@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { BarChart3, CheckCircle2, Clock, TrendingUp, Banknote } from "lucide-react";
@@ -18,35 +19,34 @@ export default async function SettlementPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("merchant_id")
-    .eq("id", user.id)
-    .single();
-  const profile = profileData as { merchant_id: string | null } | null;
-  if (!profile?.merchant_id) redirect("/login");
+  const appMetadata = user.app_metadata || {};
+  const userMerchantIds: string[] = Array.isArray(appMetadata.merchant_ids) ? appMetadata.merchant_ids : [];
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const service = createServiceClient();
+  let merchantId: string | null = userMerchantIds[0] || null;
 
-  const { data: txTodayData } = await supabase
+  if (!merchantId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("merchant_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+    merchantId = roles?.[0]?.merchant_id || null;
+  }
+
+  if (!merchantId) redirect("/login");
+
+  const todayStr = new Date().toISOString().split("T")[0];
+
+  const { data: txToday } = await service
     .from("canteen_transactions")
-    .select("id, amount, status, is_emergency, created_at")
-    .eq("merchant_id", profile.merchant_id)
-    .gte("created_at", today.toISOString())
+    .select("id, amount, status, is_emergency, created_at, business_date")
+    .eq("merchant_id", merchantId)
+    .eq("business_date", todayStr)
     .order("created_at", { ascending: false });
 
-  const txToday = txTodayData as Array<{
-    id: string;
-    amount: number;
-    status: string;
-    is_emergency: boolean;
-    created_at: string;
-  }> | null;
-
-  const settled = (txToday ?? []).filter((t) =>
-    ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"].includes(t.status)
-  );
+  const list = txToday ?? [];
+  const settled = list.filter((t) => t.status === "SETTLED");
   const totalRevenue = settled.reduce((s, t) => s + t.amount, 0);
   const emergencyCount = settled.filter((t) => t.is_emergency).length;
   const txCount = settled.length;
@@ -61,7 +61,7 @@ export default async function SettlementPage() {
         <div>
           <h1 className="text-xl font-bold">Settlement H+0</h1>
           <p className="text-sm text-muted-foreground">
-            {today.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
+            {new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" })}
           </p>
         </div>
       </div>
@@ -107,17 +107,17 @@ export default async function SettlementPage() {
       {/* Transaction list */}
       <div className="glass rounded-2xl p-4">
         <h2 className="font-semibold text-sm mb-3">Riwayat Transaksi Hari Ini</h2>
-        {txToday && txToday.length > 0 ? (
+        {list.length > 0 ? (
           <div className="space-y-2">
-            {txToday.map((tx) => (
+            {list.map((tx) => (
               <div key={tx.id} className="flex items-center justify-between py-2 border-b border-border/40 last:border-0">
                 <div className="flex items-center gap-2.5">
                   <div className={`w-2 h-2 rounded-full ${
-                    ["SETTLED","SETTLED_OVERDRAFT","COMPLETED"].includes(tx.status) ? "bg-primary" : "bg-destructive"
+                    tx.status === "SETTLED" ? "bg-primary" : "bg-destructive"
                   }`} />
                   <div>
                     <p className="text-xs text-muted-foreground">
-                      {new Date(tx.created_at).toLocaleTimeString("id-ID", {hour:"2-digit",minute:"2-digit"})}
+                      {new Date(tx.created_at).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" })}
                     </p>
                     {tx.is_emergency && (
                       <p className="text-xs text-accent">Mode Darurat</p>
@@ -126,7 +126,7 @@ export default async function SettlementPage() {
                 </div>
                 <div className="flex items-center gap-2">
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
-                    ["SETTLED","SETTLED_OVERDRAFT","COMPLETED"].includes(tx.status) ? "badge-settled" : "badge-rejected"
+                    tx.status === "SETTLED" ? "badge-settled" : "badge-rejected"
                   }`}>
                     {tx.status}
                   </span>

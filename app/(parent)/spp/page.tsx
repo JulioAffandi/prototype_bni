@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import type { invoice_status_t } from "@/types/database";
 import {
   FileText,
   CheckCircle2,
@@ -21,10 +22,8 @@ function formatRupiah(amount: number) {
   }).format(amount);
 }
 
-type SPPStatus = "UNPAID" | "PAID" | "FAILED" | "OVERDUE";
-
 const STATUS_CONFIG: Record<
-  SPPStatus,
+  string,
   { icon: typeof CheckCircle2; label: string; badgeClass: string; iconClass: string }
 > = {
   PAID: {
@@ -51,6 +50,18 @@ const STATUS_CONFIG: Record<
     badgeClass: "badge-overdue",
     iconClass: "text-destructive",
   },
+  DRAFT: {
+    icon: Clock,
+    label: "Draft",
+    badgeClass: "badge-unpaid",
+    iconClass: "text-muted-foreground",
+  },
+  CANCELLED: {
+    icon: XCircle,
+    label: "Batal",
+    badgeClass: "badge-failed",
+    iconClass: "text-muted-foreground",
+  },
 };
 
 export default async function SPPPage() {
@@ -62,20 +73,20 @@ export default async function SPPPage() {
   let studentIds: string[] = [];
   let mappingsList: Array<{ student_id: string; students: { full_name?: string } | null }> = [];
 
+  const service = createServiceClient();
   if (parentId) {
-    const service = createServiceClient();
     const { data: mappings } = await service
       .from("guardian_student_map")
       .select("student_id, students(full_name)")
-      .eq("parent_id", parentId);
+      .eq("parent_id", parentId)
+      .eq("status", "active");
 
     mappingsList = (mappings ?? []) as unknown as Array<{ student_id: string; students: { full_name?: string } | null }>;
     studentIds = mappingsList.map((m) => m.student_id);
   }
 
   // Fetch all SPP invoices
-  const service = createServiceClient();
-  const { data: invoicesData } = studentIds.length > 0
+  const { data: invoices } = studentIds.length > 0
     ? await service
         .from("spp_invoices")
         .select("id, student_id, period, amount, status, due_date, paid_at, retry_count")
@@ -83,20 +94,11 @@ export default async function SPPPage() {
         .order("period", { ascending: false })
     : { data: [] };
 
-  const invoices = invoicesData as Array<{
-    id: string;
-    student_id: string;
-    period: string;
-    amount: number;
-    status: string;
-    due_date: string;
-    paid_at: string | null;
-    retry_count: number;
-  }> | null;
+  const list = invoices ?? [];
 
   // Group by period
-  const periodMap = new Map<string, typeof invoices>();
-  for (const inv of invoices ?? []) {
+  const periodMap = new Map<string, typeof list>();
+  for (const inv of list) {
     if (!periodMap.has(inv.period)) periodMap.set(inv.period, []);
     periodMap.get(inv.period)!.push(inv);
   }
@@ -116,7 +118,7 @@ export default async function SPPPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">Status SPP</h1>
-          <p className="text-sm text-muted-foreground">Riwayat pembayaran uang sekolah</p>
+          <p className="text-sm text-muted-foreground">Riwayat pembayaran uang sekolah (Schema v3)</p>
         </div>
       </div>
 
@@ -153,7 +155,7 @@ export default async function SPPPage() {
 
             <div className="space-y-3">
               {periodInvoices.map((inv) => {
-                const cfg = STATUS_CONFIG[inv.status as SPPStatus] ?? STATUS_CONFIG.UNPAID;
+                const cfg = STATUS_CONFIG[inv.status] ?? STATUS_CONFIG.UNPAID;
                 const Icon = cfg.icon;
                 return (
                   <div

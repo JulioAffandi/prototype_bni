@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import CanteenHeader from "@/components/canteen/CanteenHeader";
-import type { ProfileRow, MerchantRow } from "@/types/database";
 
 export const metadata: Metadata = {
   title: {
@@ -22,21 +22,35 @@ export default async function CanteenLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role, merchant_id")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
+  const userMerchantIds: string[] = Array.isArray(appMetadata.merchant_ids) ? appMetadata.merchant_ids : [];
 
-  const profile = profileData as Pick<ProfileRow, "role" | "merchant_id"> | null;
+  const service = createServiceClient();
+  let merchantId: string | null = userMerchantIds[0] || null;
+  let isMerchantUser = userRoles.includes("merchant_staff") || userRoles.includes("merchant_owner") || userRoles.includes("platform_admin");
 
-  if (!profile || profile.role !== "merchant_staff") redirect("/login");
+  if (!isMerchantUser || !merchantId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role, merchant_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
 
-  const { data: merchantData } = profile.merchant_id
-    ? await supabase.from("merchants").select("name, status").eq("id", profile.merchant_id).single()
+    const activeRole = roles?.find(
+      (r) => r.role === "merchant_staff" || r.role === "merchant_owner",
+    );
+    if (activeRole) {
+      isMerchantUser = true;
+      merchantId = activeRole.merchant_id;
+    }
+  }
+
+  if (!isMerchantUser) redirect("/login");
+
+  const { data: merchant } = merchantId
+    ? await service.from("merchants").select("name, status").eq("id", merchantId).maybeSingle()
     : { data: null };
-
-  const merchant = merchantData as Pick<MerchantRow, "name" | "status"> | null;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

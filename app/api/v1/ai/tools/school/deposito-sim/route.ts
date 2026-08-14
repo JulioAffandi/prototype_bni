@@ -1,32 +1,40 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/v1/ai/tools/school/deposito-sim
  * Simulates BNI Deposito yield for idle school funds.
- * Reference: PRODUCT_SPECIFICATION_v2.md §10.2
- * Rates are illustrative — must be replaced with live BNI API rates in production.
+ * Reference: Schema v3 app_metadata roles & user_roles
  */
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("school_id, role")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
+  const userSchoolIds: string[] = Array.isArray(appMetadata.school_ids) ? appMetadata.school_ids : [];
 
-  const profile = profileData as { school_id: string | null; role: string } | null;
+  const targetSchoolId = request.nextUrl.searchParams.get("school_id") || userSchoolIds[0];
 
-  if (!profile || profile.role !== "school_admin") {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  }
+  const service = createServiceClient();
+  const isAuthorized = (userRoles.includes("school_admin") || userRoles.includes("school_treasurer") || userRoles.includes("platform_admin")) &&
+    (userSchoolIds.includes(targetSchoolId || "") || userRoles.includes("platform_admin"));
 
-  const schoolId = request.nextUrl.searchParams.get("school_id");
-  if (schoolId !== profile.school_id) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!isAuthorized && targetSchoolId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role, school_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+
+    const hasAccess = roles?.some(
+      (r) => (r.role === "school_admin" || r.role === "school_treasurer") && r.school_id === targetSchoolId,
+    );
+    if (!hasAccess) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
   }
 
   const amount = parseFloat(request.nextUrl.searchParams.get("amount") ?? "0");
@@ -36,7 +44,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_PAYLOAD", message: "Amount harus lebih dari 0" }, { status: 400 });
   }
 
-  // Illustrative BNI Deposito rates (% per annum) — replace with live API
   const RATE_TABLE: Record<number, number> = {
     1: 3.25,
     3: 3.50,

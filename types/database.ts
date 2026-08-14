@@ -1,30 +1,83 @@
 // =============================================================
-// VALO EDUCATION ECOSYSTEM — Full Database Type Definitions
-// Source: PRODUCT_SPECIFICATION_v2.md §6.2 (all 16 tables)
-// TypeScript strict mode — zero any types
+// VALO EDUCATION ECOSYSTEM — Schema v3.0 Database Type Definitions
+// Source: docs/schema_v3.sql & schema_v3.sql specification
+// TypeScript strict mode — 100% type safety
 // Compatible with Supabase JS client type inference
 // =============================================================
 
-export type SchoolStatus = "active" | "suspended" | "offboarded";
-export type UserRole = "parent" | "school_admin" | "merchant_staff" | "platform_admin";
-export type MerchantStatus = "active" | "suspended";
-export type CardStatus = "active" | "lost_reported" | "blocked" | "graduated" | "transferred_out";
-export type TransactionStatus =
-  | "INITIATED"
-  | "SETTLED"
-  | "SETTLED_OVERDRAFT"
-  | "REJECTED_OVERLIMIT"
-  | "OFFLINE_QUEUED"
-  | "PENDING_SYNC"
-  | "REJECTED_POST_HOC"
-  | "COMPLETED";
-export type SPPStatus = "UNPAID" | "PAID" | "FAILED" | "OVERDUE";
-export type AccountType = "parent" | "student_vault" | "merchant" | "school_escrow";
-export type EntryType = "DEBIT" | "CREDIT";
-export type IdempotencyStatus = "PROCESSING" | "COMPLETED" | "FAILED";
-export type SyncStatus = "PENDING" | "SYNCED" | "CONFLICT" | "DISCARDED";
-export type CardEventType = "issued" | "lost_reported" | "blocked" | "reissued" | "offboarded";
-export type PersonaType = "merchant_ai" | "school_treasury_ai" | "parent_ai";
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[];
+
+// ─── Native Enum Types (schema_v3.sql §1) ───────────────────────
+export type user_role_t =
+  | "parent"
+  | "school_admin"
+  | "school_treasurer"
+  | "merchant_owner"
+  | "merchant_staff"
+  | "platform_admin"
+  | "platform_support";
+
+export type school_status_t = "active" | "suspended" | "offboarded";
+export type merchant_status_t = "pending" | "active" | "suspended" | "terminated";
+export type student_status_t = "active" | "suspended" | "graduated" | "transferred_out" | "archived";
+export type card_status_t = "pending_activation" | "active" | "lost_reported" | "blocked" | "replaced" | "retired";
+export type guardian_relationship_t = "ayah" | "ibu" | "wali" | "kakek_nenek" | "saudara" | "institusi" | "lainnya";
+export type guardian_link_status_t = "pending" | "active" | "revoked";
+export type txn_status_t = "PENDING" | "SETTLED" | "REJECTED_OVERLIMIT" | "REJECTED_CARD_BLOCKED" | "REJECTED_POST_HOC" | "REVERSED";
+export type settlement_status_t = "UNSETTLED" | "BATCHED" | "DISBURSED" | "FAILED";
+export type txn_channel_t = "ONLINE_TAP" | "OFFLINE_SYNC" | "MANUAL_ADJUSTMENT";
+export type invoice_status_t = "DRAFT" | "UNPAID" | "PROCESSING" | "PAID" | "FAILED" | "OVERDUE" | "WAIVED" | "CANCELLED";
+
+export type ledger_account_t =
+  | "parent_funding"
+  | "student_pagu"
+  | "student_vault"
+  | "student_advance"
+  | "merchant_payable"
+  | "school_escrow"
+  | "platform_clearing"
+  | "platform_revenue";
+
+export type ledger_normal_balance_t = "DEBIT" | "CREDIT";
+
+export type ledger_source_t =
+  | "CANTEEN_TAP"
+  | "CANTEEN_REVERSAL"
+  | "SPP_DEBIT"
+  | "VAULT_ROLLOVER"
+  | "VAULT_WITHDRAWAL"
+  | "ADVANCE_REPAYMENT"
+  | "MERCHANT_DISBURSEMENT"
+  | "TOPUP"
+  | "MANUAL_ADJUSTMENT"
+  | "OFFBOARDING_PAYOUT";
+
+export type card_event_t = "issued" | "activated" | "lost_reported" | "blocked" | "unblocked" | "reissued" | "retired" | "offboarded";
+export type consent_type_t = "DATA_PROCESSING_MINOR" | "MARKETING" | "AI_ANALYTICS" | "BIOMETRIC_NONE";
+export type sync_status_t = "PENDING" | "SYNCED" | "CONFLICT" | "DISCARDED";
+export type idempotency_status_t = "PROCESSING" | "COMPLETED" | "FAILED";
+export type ai_persona_t = "merchant_ai" | "school_treasury_ai" | "parent_ai";
+
+// Legacy type alias mappings for backward compatibility
+export type UserRole = user_role_t;
+export type SchoolStatus = school_status_t;
+export type MerchantStatus = merchant_status_t;
+export type StudentStatus = student_status_t;
+export type CardStatus = card_status_t;
+export type TransactionStatus = txn_status_t;
+export type SPPStatus = invoice_status_t;
+export type AccountType = ledger_account_t;
+export type EntryType = ledger_normal_balance_t;
+export type IdempotencyStatus = idempotency_status_t;
+export type SyncStatus = sync_status_t;
+export type CardEventType = card_event_t;
+export type PersonaType = ai_persona_t;
 
 export interface TransactionItem {
   menu: string;
@@ -32,10 +85,22 @@ export interface TransactionItem {
   price: number;
 }
 
-// ─── Supabase-compatible Database Schema Type ─────────────────
-// The shape required for Supabase JS client type inference:
-// Each table entry needs Row, Insert, Update, Relationships
+// ─── RPC Return Type ──────────────────────────────────────────
+export interface CanteenTapRpcResult {
+  transaction_id?: string;
+  status?: string;
+  is_emergency?: boolean;
+  emergency_amount?: number;
+  sisa_pagu?: number;
+  business_date?: string;
+  settled_at?: string;
+  http_status?: number;
+  error?: string;
+  replayed?: boolean;
+  [key: string]: unknown;
+}
 
+// ─── Supabase Database Interface ───────────────────────────────
 export interface Database {
   public: {
     Tables: {
@@ -46,49 +111,19 @@ export interface Database {
           npsn: string | null;
           bni_giro_account: string;
           address: string | null;
-          status: SchoolStatus;
+          timezone: string;
+          default_daily_limit: number;
+          default_emergency_limit: number;
+          status: school_status_t;
           created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["schools"]["Row"]> & {
           name: string;
           bni_giro_account: string;
         };
         Update: Partial<Database["public"]["Tables"]["schools"]["Row"]>;
-        Relationships: [];
-      };
-      parents: {
-        Row: {
-          id: string;
-          auth_user_id: string | null;
-          full_name: string;
-          phone_number: string;
-          phone_verified: boolean;
-          email: string | null;
-          bni_account_number: string;
-          created_at: string;
-        };
-        Insert: Partial<Database["public"]["Tables"]["parents"]["Row"]> & {
-          full_name: string;
-          phone_number: string;
-          bni_account_number: string;
-        };
-        Update: Partial<Database["public"]["Tables"]["parents"]["Row"]>;
-        Relationships: [];
-      };
-      profiles: {
-        Row: {
-          id: string;
-          role: UserRole;
-          school_id: string | null;
-          parent_id: string | null;
-          merchant_id: string | null;
-          created_at: string;
-        };
-        Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
-          id: string;
-          role: UserRole;
-        };
-        Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
         Relationships: [];
       };
       merchants: {
@@ -98,8 +133,10 @@ export interface Database {
           name: string;
           pic_name: string | null;
           bni_merchant_account: string;
-          status: MerchantStatus;
+          status: merchant_status_t;
           created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["merchants"]["Row"]> & {
           school_id: string;
@@ -107,149 +144,537 @@ export interface Database {
           bni_merchant_account: string;
         };
         Update: Partial<Database["public"]["Tables"]["merchants"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "merchants_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parents: {
+        Row: {
+          id: string;
+          full_name: string;
+          phone_number: string;
+          phone_verified_at: string | null;
+          email: string | null;
+          bni_account_number: string | null;
+          bni_link_status: string;
+          created_at: string;
+          updated_at: string;
+          deleted_at: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["parents"]["Row"]> & {
+          full_name: string;
+          phone_number: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["parents"]["Row"]>;
         Relationships: [];
+      };
+      profiles: {
+        Row: {
+          id: string;
+          display_name: string;
+          parent_id: string | null;
+          locale: string;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["profiles"]["Row"]> & {
+          id: string;
+          display_name: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["profiles"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "profiles_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "parents";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      user_roles: {
+        Row: {
+          id: string;
+          user_id: string;
+          role: user_role_t;
+          school_id: string | null;
+          merchant_id: string | null;
+          granted_by: string | null;
+          granted_at: string;
+          revoked_at: string | null;
+        };
+        Insert: Partial<Database["public"]["Tables"]["user_roles"]["Row"]> & {
+          user_id: string;
+          role: user_role_t;
+        };
+        Update: Partial<Database["public"]["Tables"]["user_roles"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "user_roles_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_roles_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "user_roles_merchant_id_fkey";
+            columns: ["merchant_id"];
+            isOneToOne: false;
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       students: {
         Row: {
           id: string;
-          full_name: string;
           school_id: string;
-          nfc_uid_hash: string;
-          nfc_uid_last4: string | null;
+          full_name: string;
+          student_number: string | null;
+          class_label: string | null;
+          date_of_birth: string | null;
+          status: student_status_t;
           daily_limit: number;
-          daily_limit_used: number;
-          daily_limit_reset_at: string;
           emergency_approve: boolean;
           emergency_limit: number;
-          emergency_used_today: boolean;
-          emergency_overdraft_count_7d: number;
-          card_status: CardStatus;
           created_at: string;
+          updated_at: string;
+          offboarded_at: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["students"]["Row"]> & {
-          full_name: string;
           school_id: string;
-          nfc_uid_hash: string;
+          full_name: string;
         };
         Update: Partial<Database["public"]["Tables"]["students"]["Row"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "students_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      student_cards: {
+        Row: {
+          id: string;
+          student_id: string;
+          school_id: string;
+          uid_hash: string;
+          uid_last4: string | null;
+          status: card_status_t;
+          issued_at: string;
+          activated_at: string | null;
+          retired_at: string | null;
+          replaced_by_card_id: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["student_cards"]["Row"]> & {
+          student_id: string;
+          school_id: string;
+          uid_hash: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["student_cards"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "student_cards_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_cards_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       guardian_student_map: {
         Row: {
           id: string;
           parent_id: string;
           student_id: string;
-          relationship: string | null;
+          school_id: string;
+          relationship: guardian_relationship_t;
           is_primary_guardian: boolean;
+          status: guardian_link_status_t;
+          can_view_activity: boolean;
+          can_manage_pagu: boolean;
+          can_fund: boolean;
+          can_approve_vault: boolean;
+          can_report_card_lost: boolean;
+          valid_from: string;
+          valid_until: string | null;
+          revoked_at: string | null;
+          revoked_reason: string | null;
+          created_by: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["guardian_student_map"]["Row"]> & {
           parent_id: string;
           student_id: string;
+          school_id: string;
         };
         Update: Partial<Database["public"]["Tables"]["guardian_student_map"]["Row"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "guardian_student_map_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "parents";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "guardian_student_map_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "guardian_student_map_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
       };
-      student_vault: {
+      student_daily_counters: {
         Row: {
-          id: string;
           student_id: string;
-          vault_balance: number;
-          savings_goal_name: string | null;
-          savings_goal_target: number | null;
+          business_date: string;
+          school_id: string;
+          limit_snapshot: number;
+          spent_amount: number;
+          overdraft_amount: number;
+          overdraft_count: number;
+          txn_count: number;
+          rolled_over_at: string | null;
+          rolled_over_amount: number | null;
+          created_at: string;
           updated_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["student_vault"]["Row"]> & {
+        Insert: Partial<Database["public"]["Tables"]["student_daily_counters"]["Row"]> & {
           student_id: string;
+          business_date: string;
+          school_id: string;
+          limit_snapshot: number;
         };
-        Update: Partial<Database["public"]["Tables"]["student_vault"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["student_daily_counters"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "student_daily_counters_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ledger_accounts: {
+        Row: {
+          id: string;
+          account_type: ledger_account_t;
+          normal_balance: ledger_normal_balance_t;
+          currency_code: string;
+          owner_school_id: string | null;
+          owner_parent_id: string | null;
+          owner_student_id: string | null;
+          owner_merchant_id: string | null;
+          balance: number;
+          last_entry_seq: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ledger_accounts"]["Row"]> & {
+          account_type: ledger_account_t;
+          normal_balance: ledger_normal_balance_t;
+        };
+        Update: Partial<Database["public"]["Tables"]["ledger_accounts"]["Row"]>;
         Relationships: [];
+      };
+      ledger_transactions: {
+        Row: {
+          id: string;
+          source: ledger_source_t;
+          source_table: string;
+          source_id: string;
+          school_id: string | null;
+          business_date: string;
+          currency_code: string;
+          description: string | null;
+          reverses_id: string | null;
+          posted_by: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ledger_transactions"]["Row"]> & {
+          source: ledger_source_t;
+          source_table: string;
+          source_id: string;
+          business_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ledger_transactions"]["Row"]>;
+        Relationships: [];
+      };
+      ledger_entries: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          account_id: string;
+          signed_amount: number;
+          entry_seq: number;
+          balance_after: number;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ledger_entries"]["Row"]> & {
+          transaction_id: string;
+          account_id: string;
+          signed_amount: number;
+          entry_seq: number;
+          balance_after: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["ledger_entries"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "ledger_entries_account_id_fkey";
+            columns: ["account_id"];
+            isOneToOne: false;
+            referencedRelation: "ledger_accounts";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "ledger_entries_transaction_id_fkey";
+            columns: ["transaction_id"];
+            isOneToOne: false;
+            referencedRelation: "ledger_transactions";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       canteen_transactions: {
         Row: {
           id: string;
+          school_id: string;
           student_id: string;
           merchant_id: string;
+          card_id: string | null;
           amount: number;
-          status: TransactionStatus;
+          status: txn_status_t;
+          settlement_status: settlement_status_t;
+          channel: txn_channel_t;
           is_emergency: boolean;
+          emergency_amount: number;
           idempotency_key: string;
           client_local_tx_uuid: string | null;
           settlement_batch_id: string | null;
-          items: TransactionItem[] | null;
+          ledger_transaction_id: string | null;
+          reversal_of_id: string | null;
+          items: Json;
+          rejection_reason: string | null;
           created_at: string;
+          business_date: string;
         };
         Insert: Partial<Database["public"]["Tables"]["canteen_transactions"]["Row"]> & {
+          school_id: string;
           student_id: string;
           merchant_id: string;
           amount: number;
-          status: TransactionStatus;
           idempotency_key: string;
         };
         Update: Partial<Database["public"]["Tables"]["canteen_transactions"]["Row"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "canteen_transactions_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "canteen_transactions_merchant_id_fkey";
+            columns: ["merchant_id"];
+            isOneToOne: false;
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "canteen_transactions_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       spp_invoices: {
         Row: {
           id: string;
-          student_id: string;
           school_id: string;
+          student_id: string;
+          billed_parent_id: string | null;
           period: string;
+          period_start: string;
           amount: number;
-          status: SPPStatus;
+          amount_paid: number;
+          status: invoice_status_t;
           retry_count: number;
+          next_retry_at: string | null;
           due_date: string;
           paid_at: string | null;
           bni_h2h_reference: string | null;
+          ledger_transaction_id: string | null;
           created_at: string;
+          updated_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["spp_invoices"]["Row"]> & {
-          student_id: string;
           school_id: string;
+          student_id: string;
           period: string;
           amount: number;
+          due_date: string;
         };
         Update: Partial<Database["public"]["Tables"]["spp_invoices"]["Row"]>;
-        Relationships: [];
+        Relationships: [
+          {
+            foreignKeyName: "spp_invoices_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "spp_invoices_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "spp_invoices_billed_parent_id_fkey";
+            columns: ["billed_parent_id"];
+            isOneToOne: false;
+            referencedRelation: "parents";
+            referencedColumns: ["id"];
+          },
+        ];
       };
-      wallet_ledger: {
+      student_vault: {
+        Row: {
+          student_id: string;
+          school_id: string;
+          ledger_account_id: string;
+          savings_goal_name: string | null;
+          savings_goal_target: number | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["student_vault"]["Row"]> & {
+          student_id: string;
+          school_id: string;
+          ledger_account_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["student_vault"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "student_vault_student_id_fkey";
+            columns: ["student_id"];
+            isOneToOne: false;
+            referencedRelation: "students";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "student_vault_ledger_account_id_fkey";
+            columns: ["ledger_account_id"];
+            isOneToOne: false;
+            referencedRelation: "ledger_accounts";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      vault_withdrawal_requests: {
         Row: {
           id: string;
-          account_type: AccountType;
-          account_ref_id: string;
-          entry_type: EntryType;
+          student_id: string;
+          requested_by: string;
+          approved_by: string | null;
           amount: number;
-          balance_after: number;
-          reference_table: string;
-          reference_id: string;
+          status: string;
+          destination_account: string | null;
+          ledger_transaction_id: string | null;
+          requested_at: string;
+          resolved_at: string | null;
+          expires_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["vault_withdrawal_requests"]["Row"]> & {
+          student_id: string;
+          requested_by: string;
+          amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["vault_withdrawal_requests"]["Row"]>;
+        Relationships: [];
+      };
+      student_advances: {
+        Row: {
+          id: string;
+          student_id: string;
+          school_id: string;
+          origin_txn_id: string;
+          principal_amount: number;
+          outstanding_amount: number;
+          status: string;
+          incurred_on: string;
+          repaid_at: string | null;
           created_at: string;
         };
-        Insert: Partial<Database["public"]["Tables"]["wallet_ledger"]["Row"]> & {
-          account_type: AccountType;
-          account_ref_id: string;
-          entry_type: EntryType;
-          amount: number;
-          balance_after: number;
-          reference_table: string;
-          reference_id: string;
+        Insert: Partial<Database["public"]["Tables"]["student_advances"]["Row"]> & {
+          student_id: string;
+          school_id: string;
+          origin_txn_id: string;
+          principal_amount: number;
+          outstanding_amount: number;
+          incurred_on: string;
         };
-        Update: Partial<Database["public"]["Tables"]["wallet_ledger"]["Row"]>;
+        Update: Partial<Database["public"]["Tables"]["student_advances"]["Row"]>;
         Relationships: [];
       };
       idempotency_keys: {
         Row: {
-          id: string;
           key: string;
           endpoint: string;
-          response_snapshot: Record<string, unknown> | null;
-          status: IdempotencyStatus;
+          actor_user_id: string | null;
+          request_fingerprint: string;
+          response_snapshot: Json | null;
+          response_status: number | null;
+          status: idempotency_status_t;
           created_at: string;
+          completed_at: string | null;
           expires_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["idempotency_keys"]["Row"]> & {
           key: string;
           endpoint: string;
-          status: IdempotencyStatus;
+          request_fingerprint: string;
         };
         Update: Partial<Database["public"]["Tables"]["idempotency_keys"]["Row"]>;
         Relationships: [];
@@ -258,17 +683,22 @@ export interface Database {
         Row: {
           id: string;
           merchant_id: string;
+          school_id: string;
           local_tx_uuid: string;
-          payload: Record<string, unknown>;
-          sync_status: SyncStatus;
-          created_at: string;
+          payload: Json;
+          sync_status: sync_status_t;
+          conflict_reason: string | null;
+          resulting_txn_id: string | null;
+          device_captured_at: string;
+          received_at: string;
           synced_at: string | null;
         };
         Insert: Partial<Database["public"]["Tables"]["offline_sync_queue"]["Row"]> & {
           merchant_id: string;
+          school_id: string;
           local_tx_uuid: string;
-          payload: Record<string, unknown>;
-          sync_status: SyncStatus;
+          payload: Json;
+          device_captured_at: string;
         };
         Update: Partial<Database["public"]["Tables"]["offline_sync_queue"]["Row"]>;
         Relationships: [];
@@ -277,14 +707,18 @@ export interface Database {
         Row: {
           id: string;
           student_id: string;
-          event_type: CardEventType;
+          card_id: string | null;
+          school_id: string;
+          event_type: card_event_t;
           notes: string | null;
-          actor_profile_id: string | null;
+          actor_user_id: string | null;
+          actor_role_snapshot: user_role_t | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["card_lifecycle_events"]["Row"]> & {
           student_id: string;
-          event_type: CardEventType;
+          school_id: string;
+          event_type: card_event_t;
         };
         Update: Partial<Database["public"]["Tables"]["card_lifecycle_events"]["Row"]>;
         Relationships: [];
@@ -294,16 +728,20 @@ export interface Database {
           id: string;
           parent_id: string;
           student_id: string;
-          consent_type: string;
+          school_id: string;
+          consent_type: consent_type_t;
+          consent_version: string;
           consent_token: string;
           granted_at: string | null;
           revoked_at: string | null;
+          evidence_ip: string | null;
+          evidence_user_agent: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["parental_consent"]["Row"]> & {
           parent_id: string;
           student_id: string;
-          consent_type: string;
+          school_id: string;
           consent_token: string;
         };
         Update: Partial<Database["public"]["Tables"]["parental_consent"]["Row"]>;
@@ -312,13 +750,16 @@ export interface Database {
       audit_log: {
         Row: {
           id: string;
-          actor_profile_id: string | null;
+          school_id: string | null;
+          actor_user_id: string | null;
+          actor_role_snapshot: user_role_t | null;
           action: string;
           entity_type: string;
           entity_id: string | null;
-          metadata: Record<string, unknown> | null;
+          metadata: Json;
           flag: string | null;
           ip_address: string | null;
+          request_id: string | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["audit_log"]["Row"]> & {
@@ -331,15 +772,18 @@ export interface Database {
       ai_chat_logs: {
         Row: {
           id: string;
-          persona_type: PersonaType;
-          actor_profile_id: string | null;
+          persona_type: ai_persona_t;
+          actor_user_id: string | null;
+          school_id: string | null;
           prompt: string;
           response: string;
-          function_calls: Record<string, unknown> | null;
+          function_calls: Json | null;
+          model: string | null;
+          latency_ms: number | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["ai_chat_logs"]["Row"]> & {
-          persona_type: PersonaType;
+          persona_type: ai_persona_t;
           prompt: string;
           response: string;
         };
@@ -348,8 +792,42 @@ export interface Database {
       };
     };
     Views: Record<string, never>;
-    Functions: Record<string, never>;
-    Enums: Record<string, never>;
+    Functions: {
+      fn_process_canteen_tap: {
+        Args: {
+          p_idempotency_key: string;
+          p_card_uid_hash: string;
+          p_merchant_id: string;
+          p_amount: number;
+          p_items?: Json;
+          p_client_local_tx_uuid?: string | null;
+          p_channel?: txn_channel_t;
+          p_occurred_at?: string;
+        };
+        Returns: CanteenTapRpcResult;
+      };
+    };
+    Enums: {
+      user_role_t: user_role_t;
+      school_status_t: school_status_t;
+      merchant_status_t: merchant_status_t;
+      student_status_t: student_status_t;
+      card_status_t: card_status_t;
+      guardian_relationship_t: guardian_relationship_t;
+      guardian_link_status_t: guardian_link_status_t;
+      txn_status_t: txn_status_t;
+      settlement_status_t: settlement_status_t;
+      txn_channel_t: txn_channel_t;
+      invoice_status_t: invoice_status_t;
+      ledger_account_t: ledger_account_t;
+      ledger_normal_balance_t: ledger_normal_balance_t;
+      ledger_source_t: ledger_source_t;
+      card_event_t: card_event_t;
+      consent_type_t: consent_type_t;
+      sync_status_t: sync_status_t;
+      idempotency_status_t: idempotency_status_t;
+      ai_persona_t: ai_persona_t;
+    };
     CompositeTypes: Record<string, never>;
   };
 }
@@ -358,13 +836,18 @@ export interface Database {
 export type SchoolRow = Database["public"]["Tables"]["schools"]["Row"];
 export type ParentRow = Database["public"]["Tables"]["parents"]["Row"];
 export type ProfileRow = Database["public"]["Tables"]["profiles"]["Row"];
+export type UserRoleRow = Database["public"]["Tables"]["user_roles"]["Row"];
 export type MerchantRow = Database["public"]["Tables"]["merchants"]["Row"];
 export type StudentRow = Database["public"]["Tables"]["students"]["Row"];
+export type StudentCardRow = Database["public"]["Tables"]["student_cards"]["Row"];
 export type GuardianStudentMapRow = Database["public"]["Tables"]["guardian_student_map"]["Row"];
+export type StudentDailyCounterRow = Database["public"]["Tables"]["student_daily_counters"]["Row"];
+export type LedgerAccountRow = Database["public"]["Tables"]["ledger_accounts"]["Row"];
+export type LedgerTransactionRow = Database["public"]["Tables"]["ledger_transactions"]["Row"];
+export type LedgerEntryRow = Database["public"]["Tables"]["ledger_entries"]["Row"];
 export type StudentVaultRow = Database["public"]["Tables"]["student_vault"]["Row"];
 export type CanteenTransactionRow = Database["public"]["Tables"]["canteen_transactions"]["Row"];
 export type SPPInvoiceRow = Database["public"]["Tables"]["spp_invoices"]["Row"];
-export type WalletLedgerRow = Database["public"]["Tables"]["wallet_ledger"]["Row"];
 export type IdempotencyKeyRow = Database["public"]["Tables"]["idempotency_keys"]["Row"];
 export type OfflineSyncQueueRow = Database["public"]["Tables"]["offline_sync_queue"]["Row"];
 export type CardLifecycleEventRow = Database["public"]["Tables"]["card_lifecycle_events"]["Row"];
@@ -372,8 +855,7 @@ export type ParentalConsentRow = Database["public"]["Tables"]["parental_consent"
 export type AuditLogRow = Database["public"]["Tables"]["audit_log"]["Row"];
 export type AIChatLogRow = Database["public"]["Tables"]["ai_chat_logs"]["Row"];
 
-// ─── API types ───────────────────────────────────────────────
-
+// ─── API Types ───────────────────────────────────────────────
 export interface CanteenTransactionRequest {
   nfc_uid_hash: string;
   merchant_id: string;
@@ -383,7 +865,7 @@ export interface CanteenTransactionRequest {
 
 export interface CanteenTransactionResponse {
   transaction_id: string;
-  status: TransactionStatus;
+  status: txn_status_t;
   is_emergency: boolean;
   sisa_pagu: number;
   settled_at: string;
@@ -401,6 +883,6 @@ export interface OfflineQueuePayload {
 
 export interface OfflineQueueSyncResult {
   local_tx_uuid: string;
-  status: TransactionStatus | "CONFLICT" | "DISCARDED";
+  status: txn_status_t | "CONFLICT" | "DISCARDED";
   transaction_id?: string;
 }

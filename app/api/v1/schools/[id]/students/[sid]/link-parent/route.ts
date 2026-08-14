@@ -2,18 +2,19 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
+import type { guardian_relationship_t } from "@/types/database";
 
 const LinkParentSchema = z.object({
   parent_id: z.string().uuid().optional(),
   parent_phone: z.string().optional(),
   parent_full_name: z.string().optional(),
-  parent_bni_account: z.string().optional(),
-  relationship: z.string().default("orang_tua"),
+  parent_email: z.string().email().optional(),
+  relationship: z.enum(["ayah", "ibu", "wali", "kakek_nenek", "saudara", "institusi", "lainnya"]).default("wali"),
 });
 
 /**
  * POST /api/v1/schools/[id]/students/[sid]/link-parent
- * Binds or re-assigns a parent guardian to a student.
+ * Binds or re-assigns a parent guardian to a student (Schema v3).
  */
 export async function POST(
   request: NextRequest,
@@ -27,16 +28,28 @@ export async function POST(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role, school_id")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
+  const userSchoolIds: string[] = Array.isArray(appMetadata.school_ids) ? appMetadata.school_ids : [];
 
-  const profile = profileData as { role?: string; school_id?: string | null } | null;
+  const isSchoolAdmin = (userRoles.includes("school_admin") || userRoles.includes("platform_admin")) &&
+    (userSchoolIds.includes(schoolId) || userRoles.includes("platform_admin"));
 
-  if (!profile || profile.role !== "school_admin" || profile.school_id !== schoolId) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+  const service = createServiceClient();
+
+  if (!isSchoolAdmin) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role, school_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+
+    const hasAccess = roles?.some(
+      (r) => r.role === "school_admin" && r.school_id === schoolId,
+    );
+    if (!hasAccess) {
+      return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+    }
   }
 
   const body = await request.json() as unknown;
@@ -45,8 +58,7 @@ export async function POST(
     return NextResponse.json({ error: "INVALID_PAYLOAD", detail: parsed.error.flatten() }, { status: 400 });
   }
 
-  const { parent_id, parent_phone, parent_full_name, parent_bni_account, relationship } = parsed.data;
-  const service = createServiceClient();
+  const { parent_id, parent_phone, parent_full_name, parent_email, relationship } = parsed.data;
 
   // Verify student exists in this school
   const { data: student } = await service
@@ -77,8 +89,6 @@ export async function POST(
     if (existingParent) {
       targetParentId = existingParent.id;
     } else {
-      // Auto-provision new parent
-      const defaultBniAcc = parent_bni_account?.trim() || `888${Math.floor(100000000 + Math.random() * 900000000)}`;
       const parentName = parent_full_name?.trim() || `Wali dari ${student.full_name}`;
 
       const { data: newParent, error: parentErr } = await service
@@ -86,8 +96,9 @@ export async function POST(
         .insert({
           full_name: parentName,
           phone_number: cleanPhone,
-          phone_verified: true,
-          bni_account_number: defaultBniAcc,
+          email: parent_email?.trim() || null,
+          bni_account_number: null,
+          bni_link_status: "PENDING_BANK_LINK",
         })
         .select("id, full_name, phone_number")
         .single();
@@ -100,20 +111,29 @@ export async function POST(
     }
   }
 
-  // Delete existing mapping for this student if any (primary guardian replace)
+  // Update existing mappings for this student to revoked
+  const now = new Date().toISOString();
   await service
     .from("guardian_student_map")
-    .delete()
+    .update({ status: "revoked", revoked_at: now, revoked_reason: "Reassigned by school admin" })
     .eq("student_id", studentId);
 
-  // Insert guardian_student_map
+  // Insert active guardian_student_map
+  const rel = relationship as guardian_relationship_t;
   const { data: mapResult, error: mapError } = await service
     .from("guardian_student_map")
     .insert({
       parent_id: targetParentId,
       student_id: studentId,
-      relationship,
+      school_id: schoolId,
+      relationship: rel,
       is_primary_guardian: true,
+      status: "active",
+      can_view_activity: true,
+      can_manage_pagu: true,
+      can_fund: true,
+      can_approve_vault: true,
+      can_report_card_lost: true,
     })
     .select("id, parent_id, student_id, relationship, is_primary_guardian")
     .single();
@@ -122,19 +142,20 @@ export async function POST(
     return NextResponse.json({ error: "LINK_FAILED", detail: mapError.message }, { status: 500 });
   }
 
-  // Fetch full parent info to return
   const { data: parentObj } = await service
     .from("parents")
-    .select("id, full_name, phone_number, email, bni_account_number")
+    .select("id, full_name, phone_number, email, bni_account_number, bni_link_status")
     .eq("id", targetParentId)
     .single();
 
   await service.from("audit_log").insert({
-    actor_profile_id: user.id,
+    school_id: schoolId,
+    actor_user_id: user.id,
+    actor_role_snapshot: "school_admin",
     action: "STUDENT_PARENT_LINKED",
     entity_type: "guardian_student_map",
     entity_id: mapResult.id,
-    metadata: { student_id: studentId, parent_id: targetParentId },
+    metadata: { school_id: schoolId, student_id: studentId, parent_id: targetParentId },
   });
 
   return NextResponse.json({
@@ -146,7 +167,7 @@ export async function POST(
 
 /**
  * DELETE /api/v1/schools/[id]/students/[sid]/link-parent
- * Unbinds a parent from a student.
+ * Unbinds a parent from a student (Schema v3 soft revocation).
  */
 export async function DELETE(
   _request: NextRequest,
@@ -160,31 +181,23 @@ export async function DELETE(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role, school_id")
-    .eq("id", user.id)
-    .single();
-
-  const profile = profileData as { role?: string; school_id?: string | null } | null;
-
-  if (!profile || profile.role !== "school_admin" || profile.school_id !== schoolId) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
-  }
-
   const service = createServiceClient();
+  const now = new Date().toISOString();
 
   const { error } = await service
     .from("guardian_student_map")
-    .delete()
-    .eq("student_id", studentId);
+    .update({ status: "revoked", revoked_at: now, revoked_reason: "Unlinked by school admin" })
+    .eq("student_id", studentId)
+    .eq("school_id", schoolId);
 
   if (error) {
     return NextResponse.json({ error: "UNLINK_FAILED", detail: error.message }, { status: 500 });
   }
 
   await service.from("audit_log").insert({
-    actor_profile_id: user.id,
+    school_id: schoolId,
+    actor_user_id: user.id,
+    actor_role_snapshot: "school_admin",
     action: "STUDENT_PARENT_UNLINKED",
     entity_type: "students",
     entity_id: studentId,

@@ -1,148 +1,156 @@
-"use client";
+import Link from "next/link";
+import { GraduationCap, Users, Building2, Store, ArrowRight, ShieldCheck, CreditCard, Sparkles } from "lucide-react";
+import type { Metadata } from "next";
 
-import { createClient } from "@/lib/supabase/client";
-import { useState, useMemo } from "react";
-import { useRouter } from "next/navigation";
-import { GraduationCap, Mail, Lock, Loader2, AlertCircle } from "lucide-react";
+export const metadata: Metadata = {
+  title: "Pilih Portal Masuk | VALO",
+  description: "Portal Akses Terpadu VALO — Pilih persona login Anda.",
+};
 
-export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const router = useRouter();
-  const supabase = useMemo(() => createClient(), []);
-
-  async function handleLogin(e: React.FormEvent) {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
-
-    try {
-      const { error: signInError } = await supabase.auth.signInWithPassword({
-        email,
-        password,
-      });
-
-      if (signInError) {
-        setError(signInError.message);
-        setLoading(false);
-        return;
-      }
-
-      router.refresh();
-      router.push("/");
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan saat masuk.");
-      setLoading(false);
-    }
-  }
+export default function LoginGatewayPage() {
+  const portals = [
+    {
+      id: "parent",
+      title: "Orang Tua",
+      tag: "Parent Hub",
+      subtitle: "Kontrol Pagu & Tabungan Siswa",
+      description: "Pantau pengeluaran jajan harian, alokasi tabungan vault otomatis, dan tagihan SPP anak Anda secara real-time.",
+      href: "/login/parent",
+      icon: Users,
+      badge: "Mobile App",
+      gradient: "from-emerald-500/20 via-teal-500/10 to-transparent",
+      borderColor: "hover:border-emerald-500/50",
+      accentBg: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+      btnClass: "bg-emerald-600 hover:bg-emerald-500 text-white shadow-emerald-950/40",
+      badgeColor: "bg-emerald-500/10 text-emerald-400 border-emerald-500/20",
+    },
+    {
+      id: "school",
+      title: "Sekolah",
+      tag: "B2B Portal",
+      subtitle: "Institutional & Treasury Management",
+      description: "Kelola data siswa, eksekusi auto-debit SPP H2H BNI, dan optimalkan tata kelola treasury sekolah dengan AI Advisor.",
+      href: "/login/school",
+      icon: Building2,
+      badge: "B2B Dashboard",
+      gradient: "from-blue-600/20 via-amber-500/10 to-transparent",
+      borderColor: "hover:border-blue-500/50",
+      accentBg: "bg-blue-500/15 text-blue-400 border-blue-500/30",
+      btnClass: "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-950/40",
+      badgeColor: "bg-amber-500/10 text-amber-400 border-amber-500/20",
+    },
+    {
+      id: "merchant",
+      title: "Kasir Kantin",
+      tag: "POS Merchant",
+      subtitle: "Terminal Kasir Kantin Digital",
+      description: "Terminal kasir cepat untuk memproses transaksi tap-and-pay NFC siswa, antrean sync offline, dan rekomendasi menu.",
+      href: "/login/merchant",
+      icon: Store,
+      badge: "POS Terminal",
+      gradient: "from-orange-500/20 via-cyan-500/10 to-transparent",
+      borderColor: "hover:border-orange-500/50",
+      accentBg: "bg-orange-500/15 text-orange-400 border-orange-500/30",
+      btnClass: "bg-orange-600 hover:bg-orange-500 text-white shadow-orange-950/40",
+      badgeColor: "bg-orange-500/10 text-orange-400 border-orange-500/20",
+    },
+  ];
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4">
-      {/* Background decorative gradient */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute -top-40 -right-40 w-96 h-96 rounded-full bg-primary/5 blur-3xl" />
-        <div className="absolute -bottom-40 -left-40 w-96 h-96 rounded-full bg-accent/5 blur-3xl" />
+    <div className="min-h-screen flex flex-col items-center justify-center bg-background p-4 relative overflow-hidden">
+      {/* Background ambient lighting effects */}
+      <div className="absolute inset-0 pointer-events-none overflow-hidden">
+        <div className="absolute -top-40 left-1/2 -translate-x-1/2 w-[700px] h-[500px] rounded-full bg-primary/10 blur-[120px]" />
+        <div className="absolute -bottom-40 left-1/4 w-[450px] h-[450px] rounded-full bg-emerald-500/10 blur-[120px]" />
+        <div className="absolute top-1/3 -right-20 w-[450px] h-[450px] rounded-full bg-amber-500/10 blur-[120px]" />
       </div>
 
-      <div className="relative w-full max-w-sm">
-        {/* Logo */}
-        <div className="flex flex-col items-center mb-8">
-          <div className="w-16 h-16 rounded-2xl bg-primary/15 border border-primary/25 flex items-center justify-center mb-4">
-            <GraduationCap className="w-8 h-8 text-primary" />
+      <div className="relative w-full max-w-5xl z-10 py-8">
+        {/* Brand Header */}
+        <div className="flex flex-col items-center text-center mb-10">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-semibold mb-4">
+            <Sparkles className="w-3.5 h-3.5" />
+            <span>Ekosistem Closed-Loop Banking Sekolah</span>
           </div>
-          <h1 className="text-2xl font-bold gradient-text">VALO Education</h1>
-          <p className="text-sm text-muted-foreground mt-1">Closed-Loop Institutional Banking</p>
-        </div>
-
-        {/* Login card */}
-        <div className="glass rounded-2xl p-6">
-          <h2 className="text-lg font-semibold mb-1">Masuk ke Akun Anda</h2>
-          <p className="text-sm text-muted-foreground mb-6">
-            Akses portal sesuai peran Anda
+          
+          <div className="flex items-center gap-3 mb-3">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent p-0.5 shadow-lg shadow-primary/20">
+              <div className="w-full h-full bg-background rounded-[14px] flex items-center justify-center">
+                <GraduationCap className="w-7 h-7 text-primary" />
+              </div>
+            </div>
+            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
+              VALO <span className="gradient-text">Gateway</span>
+            </h1>
+          </div>
+          <p className="text-muted-foreground text-sm sm:text-base max-w-lg">
+            Pilih portal masuk yang sesuai dengan peran Anda dalam ekosistem perbankan dan transaksi sekolah.
           </p>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label htmlFor="email" className="block text-sm font-medium mb-1.5">
-                Email
-              </label>
-              <div className="relative">
-                <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="email@sekolah.ac.id"
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                />
-              </div>
-            </div>
-
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium mb-1.5">
-                Kata Sandi
-              </label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
-                />
-              </div>
-            </div>
-
-            {error && (
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/10 border border-destructive/25">
-                <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                <p className="text-sm text-destructive">{error}</p>
-              </div>
-            )}
-
-            <button
-              type="submit"
-              disabled={loading}
-              id="login-btn"
-              className="w-full py-2.5 px-4 rounded-xl bg-primary text-primary-foreground text-sm font-semibold hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
-            >
-              {loading ? (
-                <>
-                  <Loader2 className="w-4 h-4 animate-spin" />
-                  Masuk...
-                </>
-              ) : (
-                "Masuk"
-              )}
-            </button>
-          </form>
-
-          <div className="mt-4 pt-4 border-t border-border">
-            <p className="text-xs text-muted-foreground text-center">
-              Platform ini hanya untuk pengguna terdaftar. Hubungi admin sekolah Anda untuk mendapatkan akses.
-            </p>
-          </div>
         </div>
 
-        {/* Portal labels */}
-        <div className="mt-6 grid grid-cols-3 gap-2 text-center">
-          {[
-            { label: "Orang Tua", desc: "Kontrol Pagu" },
-            { label: "Kasir Kantin", desc: "POS Terminal" },
-            { label: "Sekolah", desc: "B2B Portal" },
-          ].map((p) => (
-            <div key={p.label} className="rounded-xl border border-border/50 py-2 px-1">
-              <p className="text-xs font-medium text-foreground/70">{p.label}</p>
-              <p className="text-xs text-muted-foreground mt-0.5">{p.desc}</p>
-            </div>
-          ))}
+        {/* 3 Persona Cards Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          {portals.map((portal) => {
+            const Icon = portal.icon;
+            return (
+              <div
+                key={portal.id}
+                className={`group relative glass rounded-2xl p-6 border border-border/80 transition-all duration-300 ${portal.borderColor} hover:shadow-2xl hover:-translate-y-1 flex flex-col justify-between overflow-hidden`}
+              >
+                {/* Subtle internal gradient glow */}
+                <div className={`absolute inset-0 bg-gradient-to-b ${portal.gradient} opacity-40 group-hover:opacity-100 transition-opacity pointer-events-none`} />
+
+                <div className="relative z-10">
+                  {/* Top Header */}
+                  <div className="flex items-center justify-between mb-4">
+                    <div className={`w-12 h-12 rounded-xl border flex items-center justify-center ${portal.accentBg}`}>
+                      <Icon className="w-6 h-6" />
+                    </div>
+                    <span className={`text-[11px] font-semibold px-2.5 py-1 rounded-full border ${portal.badgeColor}`}>
+                      {portal.badge}
+                    </span>
+                  </div>
+
+                  {/* Title & Description */}
+                  <div className="mb-6">
+                    <div className="flex items-center gap-2 mb-1">
+                      <h2 className="text-xl font-bold text-foreground">{portal.title}</h2>
+                      <span className="text-xs text-muted-foreground font-mono">({portal.tag})</span>
+                    </div>
+                    <p className="text-xs font-semibold text-primary/90 mb-2">{portal.subtitle}</p>
+                    <p className="text-xs text-muted-foreground leading-relaxed">
+                      {portal.description}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Action Link Button */}
+                <div className="relative z-10 pt-4 border-t border-border/40">
+                  <Link
+                    href={portal.href}
+                    id={`login-portal-${portal.id}`}
+                    className={`w-full py-2.5 px-4 rounded-xl text-sm font-semibold flex items-center justify-center gap-2 shadow-lg transition-all active:scale-[0.98] ${portal.btnClass}`}
+                  >
+                    <span>Masuk Portal</span>
+                    <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                  </Link>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Footer Guarantee */}
+        <div className="mt-12 flex flex-col sm:flex-row items-center justify-center gap-6 text-xs text-muted-foreground border-t border-border/50 pt-6">
+          <div className="flex items-center gap-2">
+            <ShieldCheck className="w-4 h-4 text-emerald-400" />
+            <span>Keamanan Terenkripsi Supabase Auth &amp; JWT Claims</span>
+          </div>
+          <div className="hidden sm:block text-border">•</div>
+          <div className="flex items-center gap-2">
+            <CreditCard className="w-4 h-4 text-blue-400" />
+            <span>Integrasi H2H BNI Auto-Debit &amp; Ledger Multi-Tenant</span>
+          </div>
         </div>
       </div>
     </div>

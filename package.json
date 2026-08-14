@@ -6,7 +6,8 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed:demo": "npx tsx scripts/seed-demo-accounts.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.24",
@@ -33,6 +34,7 @@
     "@types/react-dom": "^19",
     "eslint": "^9",
     "eslint-config-next": "15.3.4",
+    "supabase": "^2.114.0",
     "tailwindcss": "^4",
     "typescript": "^5"
   }

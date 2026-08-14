@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import ParentBottomNav from "@/components/parent/ParentBottomNav";
-import type { ProfileRow } from "@/types/database";
 
 export const metadata: Metadata = {
   title: "Parent Control App",
@@ -19,15 +19,23 @@ export default async function ParentLayout({
 
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
 
-  const profile = profileData as Pick<ProfileRow, "role"> | null;
+  let isParent = userRoles.includes("parent") || userRoles.includes("platform_admin");
 
-  if (!profile || profile.role !== "parent") redirect("/login");
+  if (!isParent) {
+    const service = createServiceClient();
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+
+    isParent = roles?.some((r) => r.role === "parent") ?? false;
+  }
+
+  if (!isParent) redirect("/login");
 
   return (
     <div className="min-h-screen bg-background flex flex-col">

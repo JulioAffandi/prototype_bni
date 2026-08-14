@@ -14,7 +14,7 @@ import {
   Clock,
   UserCheck,
 } from "lucide-react";
-import type { StudentRow, StudentVaultRow, SPPInvoiceRow } from "@/types/database";
+import type { StudentRow, StudentVaultRow, SPPInvoiceRow, txn_status_t } from "@/types/database";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -39,7 +39,6 @@ function getSPPStatusIcon(status: SPPInvoiceRow["status"]) {
     case "PAID":
       return <CheckCircle2 className="w-4 h-4 text-primary" />;
     case "OVERDUE":
-      return <AlertTriangle className="w-4 h-4 text-destructive" />;
     case "FAILED":
       return <AlertTriangle className="w-4 h-4 text-destructive" />;
     default:
@@ -47,8 +46,10 @@ function getSPPStatusIcon(status: SPPInvoiceRow["status"]) {
   }
 }
 
-interface StudentWithVault extends StudentRow {
-  student_vault: StudentVaultRow | null;
+interface DisplayStudent extends StudentRow {
+  daily_limit_used: number;
+  card_status: string;
+  student_vault: (StudentVaultRow & { vault_balance: number }) | null;
   spp_invoices: SPPInvoiceRow[];
 }
 
@@ -57,46 +58,66 @@ export default async function ParentDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  // Automatically resolve or auto-bind parent_id
   const parentId = await getOrResolveParentId(user);
+  let students: DisplayStudent[] = [];
 
-  let students: StudentWithVault[] = [];
+  const service = createServiceClient();
+  const todayStr = new Date().toISOString().slice(0, 10);
 
   if (parentId) {
-    const service = createServiceClient();
-    const { data: mappingsData } = await service
+    const { data: mappings } = await service
       .from("guardian_student_map")
       .select(`
         student_id, is_primary_guardian,
         students (
-          id, full_name, daily_limit, daily_limit_used,
-          emergency_approve, emergency_limit, emergency_used_today, card_status,
-          student_vault ( vault_balance, savings_goal_name, savings_goal_target ),
-          spp_invoices ( id, period, status, amount, due_date )
+          id, school_id, full_name, student_number, class_label, date_of_birth, status,
+          daily_limit, emergency_approve, emergency_limit, created_at, updated_at, offboarded_at,
+          student_cards ( id, uid_last4, status ),
+          student_vault ( student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at, ledger_accounts ( balance ) ),
+          spp_invoices ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
         )
       `)
-      .eq("parent_id", parentId);
+      .eq("parent_id", parentId)
+      .eq("status", "active");
 
-    const mappings = mappingsData as Array<{
-      student_id: string;
-      is_primary_guardian: boolean;
-      students: StudentWithVault | null;
-    }> | null;
+    const rawList = (mappings ?? []).map((m) => m.students).filter(Boolean);
 
-    students = (mappings ?? [])
-      .map((m) => m.students as StudentWithVault | null)
-      .filter(Boolean) as StudentWithVault[];
+    students = await Promise.all(
+      rawList.map(async (st: any) => {
+        const cards = st.student_cards || [];
+        const activeCard = cards.find((c: any) => c.status === "active") || cards[0];
+
+        // Fetch daily counter for spent_amount
+        const { data: counter } = await service
+          .from("student_daily_counters")
+          .select("spent_amount")
+          .eq("student_id", st.id)
+          .eq("business_date", todayStr)
+          .maybeSingle();
+
+        const vaultObj = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
+        const ledgerObj = vaultObj?.ledger_accounts as { balance?: number } | null;
+        const vaultBalance = ledgerObj?.balance ?? 0;
+
+        return {
+          ...st,
+          daily_limit_used: counter?.spent_amount ?? 0,
+          card_status: activeCard?.status ?? "pending_activation",
+          student_vault: vaultObj ? { ...vaultObj, vault_balance: vaultBalance } : null,
+          spp_invoices: st.spp_invoices || [],
+        };
+      }),
+    );
   }
 
-  // Recent canteen transactions for all linked children
+  // Recent canteen transactions for linked children
   const studentIds = students.map((s) => s.id);
-  const service = createServiceClient();
   const { data: recentTx } = studentIds.length > 0
     ? await service
         .from("canteen_transactions")
         .select("id, student_id, amount, status, is_emergency, created_at, items")
         .in("student_id", studentIds)
-        .in("status", ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"])
+        .eq("status", "SETTLED")
         .order("created_at", { ascending: false })
         .limit(5)
     : { data: [] };
@@ -123,7 +144,7 @@ export default async function ParentDashboardPage() {
       {/* Student cards */}
       {students.map((student) => {
         const paguPct = getPaguPercentage(student.daily_limit_used, student.daily_limit);
-        const sisaPagu = student.daily_limit - student.daily_limit_used;
+        const sisaPagu = Math.max(0, student.daily_limit - student.daily_limit_used);
         const vaultProgress = student.student_vault?.savings_goal_target
           ? Math.min(100, ((student.student_vault.vault_balance ?? 0) / student.student_vault.savings_goal_target) * 100)
           : 0;

@@ -10,8 +10,8 @@ const PaguSchema = z.object({
 /**
  * PATCH /api/v1/students/[id]/pagu
  * Updates the student's daily spending limit.
- * Only the parent guardian of this student can perform this action.
- * Reference: PRODUCT_SPECIFICATION_v2.md §9.2
+ * Only guardians with can_manage_pagu capability can perform this action.
+ * Reference: Schema v3 RLS & guardianship capabilities
  */
 export async function PATCH(
   request: NextRequest,
@@ -25,28 +25,36 @@ export async function PATCH(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("parent_id, role")
-    .eq("id", user.id)
-    .single();
+  // Read app_metadata.parent_id or profile parent_id
+  const parentId = user.app_metadata?.parent_id as string | undefined;
 
-  const profile = profileData as { parent_id: string | null; role: string } | null;
+  const service = createServiceClient();
+  let resolvedParentId = parentId;
 
-  if (!profile || profile.role !== "parent" || !profile.parent_id) {
+  if (!resolvedParentId) {
+    const { data: profile } = await service
+      .from("profiles")
+      .select("parent_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    resolvedParentId = profile?.parent_id || undefined;
+  }
+
+  if (!resolvedParentId) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
   }
 
-  // Verify this parent is actually a guardian of this student
-  const { data: guardianship } = await supabase
+  // Verify parent has guardianship with can_manage_pagu
+  const { data: guardianship } = await service
     .from("guardian_student_map")
-    .select("id")
-    .eq("parent_id", profile.parent_id)
+    .select("id, can_manage_pagu")
+    .eq("parent_id", resolvedParentId)
     .eq("student_id", studentId)
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
-  if (!guardianship) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+  if (!guardianship || !guardianship.can_manage_pagu) {
+    return NextResponse.json({ error: "RLS_FORBIDDEN", message: "Akses ditolak: Tidak memiliki hak kelola pagu." }, { status: 403 });
   }
 
   const body = await request.json() as unknown;
@@ -58,13 +66,11 @@ export async function PATCH(
     );
   }
 
-  // Use service client for write — RLS bypass (write integrity via server validation above)
-  const service = createServiceClient();
   const { data, error } = await service
     .from("students")
     .update({ daily_limit: parsed.data.daily_limit })
     .eq("id", studentId)
-    .select("id, daily_limit, daily_limit_used")
+    .select("id, daily_limit")
     .single();
 
   if (error) {
@@ -73,7 +79,8 @@ export async function PATCH(
 
   // Audit log
   await service.from("audit_log").insert({
-    actor_profile_id: user.id,
+    actor_user_id: user.id,
+    actor_role_snapshot: "parent",
     action: "PAGU_UPDATED",
     entity_type: "students",
     entity_id: studentId,
@@ -82,7 +89,6 @@ export async function PATCH(
 
   return NextResponse.json({
     daily_limit: data.daily_limit,
-    daily_limit_used: data.daily_limit_used,
     updated_at: new Date().toISOString(),
   });
 }

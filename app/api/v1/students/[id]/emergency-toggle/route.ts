@@ -10,7 +10,7 @@ const EmergencyToggleSchema = z.object({
 /**
  * PATCH /api/v1/students/[id]/emergency-toggle
  * Activates or deactivates Emergency Auto-Approval for a student.
- * Reference: PRODUCT_SPECIFICATION_v2.md §2.4, §9.2
+ * Reference: Schema v3 RLS & guardianship capabilities
  */
 export async function PATCH(
   request: NextRequest,
@@ -24,27 +24,34 @@ export async function PATCH(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("parent_id, role")
-    .eq("id", user.id)
-    .single();
+  const parentId = user.app_metadata?.parent_id as string | undefined;
 
-  const profile = profileData as { parent_id: string | null; role: string } | null;
+  const service = createServiceClient();
+  let resolvedParentId = parentId;
 
-  if (!profile || profile.role !== "parent" || !profile.parent_id) {
+  if (!resolvedParentId) {
+    const { data: profile } = await service
+      .from("profiles")
+      .select("parent_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    resolvedParentId = profile?.parent_id || undefined;
+  }
+
+  if (!resolvedParentId) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
   }
 
-  // Verify guardianship
-  const { data: guardianship } = await supabase
+  // Verify guardianship with can_manage_pagu capability
+  const { data: guardianship } = await service
     .from("guardian_student_map")
-    .select("id")
-    .eq("parent_id", profile.parent_id)
+    .select("id, can_manage_pagu")
+    .eq("parent_id", resolvedParentId)
     .eq("student_id", studentId)
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
-  if (!guardianship) {
+  if (!guardianship || !guardianship.can_manage_pagu) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
   }
 
@@ -57,7 +64,6 @@ export async function PATCH(
     );
   }
 
-  const service = createServiceClient();
   const { data, error } = await service
     .from("students")
     .update({ emergency_approve: parsed.data.emergency_approve })
@@ -70,7 +76,8 @@ export async function PATCH(
   }
 
   await service.from("audit_log").insert({
-    actor_profile_id: user.id,
+    actor_user_id: user.id,
+    actor_role_snapshot: "parent",
     action: parsed.data.emergency_approve ? "EMERGENCY_TOGGLE_ON" : "EMERGENCY_TOGGLE_OFF",
     entity_type: "students",
     entity_id: studentId,

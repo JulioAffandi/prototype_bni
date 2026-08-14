@@ -35,43 +35,41 @@ export default async function VaultPage() {
 
   if (parentId) {
     const service = createServiceClient();
-    const { data: mappingsData } = await service
+    const { data: mappings } = await service
       .from("guardian_student_map")
       .select(`
         student_id,
         students (
           id, full_name,
-          student_vault ( vault_balance, savings_goal_name, savings_goal_target, updated_at )
+          student_vault (
+            student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at,
+            ledger_accounts ( balance )
+          )
         )
       `)
-      .eq("parent_id", parentId);
+      .eq("parent_id", parentId)
+      .eq("status", "active");
 
-    const mappings = mappingsData as Array<{
-      student_id: string;
-      students: {
-        id: string;
-        full_name: string;
-        student_vault: {
-          vault_balance: number;
-          savings_goal_name: string | null;
-          savings_goal_target: number | null;
-          updated_at: string;
-        } | null;
-      } | null;
-    }> | null;
+    const rawStudents = (mappings ?? []).map((m) => m.students).filter(Boolean);
 
-    students = (mappings ?? [])
-      .map((m) => m.students)
-      .filter(Boolean) as Array<{
-        id: string;
-        full_name: string;
-        student_vault: {
-          vault_balance: number;
-          savings_goal_name: string | null;
-          savings_goal_target: number | null;
-          updated_at: string;
-        } | null;
-      }>;
+    students = rawStudents.map((st: any) => {
+      const vArr = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
+      const ledgerObj = vArr?.ledger_accounts as { balance?: number } | null;
+      const balance = ledgerObj?.balance ?? 0;
+
+      return {
+        id: st.id,
+        full_name: st.full_name,
+        student_vault: vArr
+          ? {
+              vault_balance: balance,
+              savings_goal_name: vArr.savings_goal_name,
+              savings_goal_target: vArr.savings_goal_target,
+              updated_at: vArr.updated_at,
+            }
+          : null,
+      };
+    });
   }
 
   return (
@@ -83,7 +81,7 @@ export default async function VaultPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">Student Goal Vault</h1>
-          <p className="text-sm text-muted-foreground">Tabungan otomatis dari sisa pagu harian</p>
+          <p className="text-sm text-muted-foreground">Tabungan otomatis dari sisa pagu harian (Schema v3)</p>
         </div>
       </div>
 

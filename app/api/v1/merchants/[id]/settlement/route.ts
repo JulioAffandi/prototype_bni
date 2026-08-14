@@ -1,10 +1,11 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/v1/merchants/[id]/settlement
- * Returns daily settlement summary for a merchant.
- * Reference: PRODUCT_SPECIFICATION_v2.md §4.2 Stage 3, §9.2
+ * Returns daily settlement summary for a merchant (Schema v3).
+ * Reference: Schema v3 §8 (canteen_transactions business_date)
  */
 export async function GET(
   request: NextRequest,
@@ -18,43 +19,45 @@ export async function GET(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("role, merchant_id")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
+  const userMerchantIds: string[] = Array.isArray(appMetadata.merchant_ids) ? appMetadata.merchant_ids : [];
 
-  const profile = profileData as { role: string; merchant_id: string | null } | null;
+  const service = createServiceClient();
 
-  if (!profile || profile.role !== "merchant_staff" || profile.merchant_id !== merchantId) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+  const isMerchantUser = (userRoles.includes("merchant_staff") || userRoles.includes("merchant_owner") || userRoles.includes("platform_admin")) &&
+    (userMerchantIds.includes(merchantId) || userRoles.includes("platform_admin"));
+
+  if (!isMerchantUser) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role, merchant_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+
+    const hasAccess = roles?.some(
+      (r) => (r.role === "merchant_staff" || r.role === "merchant_owner") && r.merchant_id === merchantId,
+    );
+    if (!hasAccess) {
+      return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+    }
   }
 
-  const date = request.nextUrl.searchParams.get("date") ??
-    new Date().toISOString().split("T")[0];
+  const today = new Date().toISOString().split("T")[0];
+  const date = request.nextUrl.searchParams.get("date") ?? today;
 
-  const { data: txListData } = await supabase
+  const { data: txList } = await service
     .from("canteen_transactions")
-    .select("id, amount, status, is_emergency, created_at")
+    .select("id, amount, status, is_emergency, settlement_status, created_at, business_date")
     .eq("merchant_id", merchantId)
-    .gte("created_at", `${date}T00:00:00`)
-    .lte("created_at", `${date}T23:59:59`);
+    .eq("business_date", date);
 
-  const txList = txListData as Array<{
-    id: string;
-    amount: number;
-    status: string;
-    is_emergency: boolean;
-    created_at: string;
-  }> | null;
-
-  const settled = (txList ?? []).filter((t) =>
-    ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"].includes(t.status)
+  const list = txList || [];
+  const settled = list.filter((t) => t.status === "SETTLED");
+  const rejected = list.filter((t) =>
+    t.status === "REJECTED_OVERLIMIT" || t.status === "REJECTED_CARD_BLOCKED" || t.status === "REJECTED_POST_HOC",
   );
-  const offlineQueued = (txList ?? []).filter((t) => t.status === "OFFLINE_QUEUED");
-  const rejected = (txList ?? []).filter((t) =>
-    ["REJECTED_OVERLIMIT", "REJECTED_POST_HOC"].includes(t.status)
-  );
+  const pending = list.filter((t) => t.status === "PENDING");
 
   return NextResponse.json({
     date,
@@ -63,9 +66,9 @@ export async function GET(
       total_revenue: settled.reduce((s, t) => s + t.amount, 0),
       settled_count: settled.length,
       rejected_count: rejected.length,
-      offline_queued_count: offlineQueued.length,
+      pending_count: pending.length,
       emergency_count: settled.filter((t) => t.is_emergency).length,
     },
-    transactions: txList ?? [],
+    transactions: list,
   });
 }

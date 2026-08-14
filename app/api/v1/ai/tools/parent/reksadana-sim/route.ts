@@ -1,27 +1,33 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/v1/ai/tools/parent/reksadana-sim
- * Simulates projected value of BNI Reksa Dana / wondr Growth allocation.
- * Reference: PRODUCT_SPECIFICATION_v2.md §10.3
- * Rates are illustrative — must include disclaimer.
+ * Simulates projected value of BNI Reksa Dana / wondr Growth allocation (Schema v3).
  */
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("parent_id, role")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
 
-  const profile = profileData as { parent_id: string | null; role: string } | null;
+  const service = createServiceClient();
+  const isParentUser = userRoles.includes("parent") || userRoles.includes("platform_admin");
 
-  if (!profile || profile.role !== "parent") {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!isParentUser) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+
+    const hasAccess = roles?.some((r) => r.role === "parent");
+    if (!hasAccess) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
   }
 
   const amount = parseFloat(request.nextUrl.searchParams.get("amount") ?? "0");
@@ -29,8 +35,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "INVALID_PAYLOAD" }, { status: 400 });
   }
 
-  // Illustrative wondr Growth / BNI Reksa Dana Pasar Uang return (% per annum)
-  // In production: fetch from BNI Open API mutual fund NAV endpoint
   const SCENARIOS = [
     { name: "Konservatif (BNI Dana Pasar Uang)", annual_return_pct: 4.5, horizon_months: 12 },
     { name: "Moderat (BNI Dana Pendapatan Tetap)", annual_return_pct: 7.0, horizon_months: 12 },

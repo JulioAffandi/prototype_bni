@@ -1,55 +1,58 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
 
 /**
  * GET /api/v1/ai/tools/merchant/sales-summary
- * Tool data endpoint for Merchant AI — daily sales summary.
- * Reference: PRODUCT_SPECIFICATION_v2.md §10.1
+ * Tool data endpoint for Merchant AI — daily sales summary (Schema v3).
  */
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("merchant_id, role")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
+  const userMerchantIds: string[] = Array.isArray(appMetadata.merchant_ids) ? appMetadata.merchant_ids : [];
 
-  const profile = profileData as { merchant_id: string | null; role: string } | null;
+  const service = createServiceClient();
+  const targetMerchantId = request.nextUrl.searchParams.get("merchant_id") || userMerchantIds[0] || "";
 
-  if (!profile || profile.role !== "merchant_staff") {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  const isMerchantUser = (userRoles.includes("merchant_staff") || userRoles.includes("merchant_owner") || userRoles.includes("platform_admin")) &&
+    (userMerchantIds.includes(targetMerchantId) || userRoles.includes("platform_admin"));
+
+  if (!isMerchantUser && targetMerchantId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("role, merchant_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+
+    const hasAccess = roles?.some(
+      (r) => (r.role === "merchant_staff" || r.role === "merchant_owner") && r.merchant_id === targetMerchantId,
+    );
+    if (!hasAccess) {
+      return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+    }
   }
 
+  const todayStr = new Date().toISOString().split("T")[0];
   const params = request.nextUrl.searchParams;
-  const merchantId = params.get("merchant_id") ?? profile.merchant_id ?? "";
   const dateFrom = params.get("date_from") ?? new Date(Date.now() - 7 * 86400000).toISOString().split("T")[0];
-  const dateTo = params.get("date_to") ?? new Date().toISOString().split("T")[0];
+  const dateTo = params.get("date_to") ?? todayStr;
 
-  if (merchantId !== profile.merchant_id) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
-  }
-
-  const { data: transactionsData } = await supabase
+  const { data: transactions } = await service
     .from("canteen_transactions")
-    .select("amount, status, is_emergency, created_at")
-    .eq("merchant_id", merchantId)
-    .gte("created_at", `${dateFrom}T00:00:00`)
-    .lte("created_at", `${dateTo}T23:59:59`)
-    .in("status", ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"]);
+    .select("amount, status, is_emergency, business_date")
+    .eq("merchant_id", targetMerchantId)
+    .gte("business_date", dateFrom)
+    .lte("business_date", dateTo)
+    .eq("status", "SETTLED");
 
-  const transactions = transactionsData as Array<{
-    amount: number;
-    status: string;
-    is_emergency: boolean;
-    created_at: string;
-  }> | null;
-
-  const totalRevenue = (transactions ?? []).reduce((s, t) => s + t.amount, 0);
-  const txCount = (transactions ?? []).length;
-  const emergencyCount = (transactions ?? []).filter((t) => t.is_emergency).length;
+  const list = transactions ?? [];
+  const totalRevenue = list.reduce((s, t) => s + t.amount, 0);
+  const txCount = list.length;
+  const emergencyCount = list.filter((t) => t.is_emergency).length;
 
   return NextResponse.json({
     period: { from: dateFrom, to: dateTo },

@@ -1,67 +1,68 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
+import type { TransactionItem } from "@/types/database";
 
 /**
  * GET /api/v1/ai/tools/parent/spending
- * Parent AI tool: child spending breakdown by food category.
- * Reference: PRODUCT_SPECIFICATION_v2.md §10.3
+ * Parent AI tool: child spending breakdown by food category (Schema v3).
  */
 export async function GET(request: NextRequest) {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("parent_id, role")
-    .eq("id", user.id)
-    .single();
+  const service = createServiceClient();
 
-  const profile = profileData as { parent_id: string | null; role: string } | null;
+  const parentId = user.app_metadata?.parent_id as string | undefined;
+  let resolvedParentId = parentId;
 
-  if (!profile || profile.role !== "parent" || !profile.parent_id) {
-    return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+  if (!resolvedParentId) {
+    const { data: profile } = await service
+      .from("profiles")
+      .select("parent_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    resolvedParentId = profile?.parent_id || undefined;
   }
 
+  if (!resolvedParentId) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
+
   const studentId = request.nextUrl.searchParams.get("student_id");
-  const dateFrom = request.nextUrl.searchParams.get("date_from");
-  const dateTo = request.nextUrl.searchParams.get("date_to");
+  const dateFrom = request.nextUrl.searchParams.get("date_from") || "2026-01-01";
+  const dateTo = request.nextUrl.searchParams.get("date_to") || new Date().toISOString().slice(0, 10);
 
   // Verify guardianship
-  const { data: guardian } = await supabase
+  const { data: guardian } = await service
     .from("guardian_student_map")
     .select("id")
-    .eq("parent_id", profile.parent_id)
+    .eq("parent_id", resolvedParentId)
     .eq("student_id", studentId ?? "")
-    .single();
+    .eq("status", "active")
+    .maybeSingle();
 
   if (!guardian) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
-  const { data: transactionsData } = await supabase
+  const { data: transactions } = await service
     .from("canteen_transactions")
-    .select("amount, items, created_at, is_emergency")
+    .select("amount, items, created_at, is_emergency, business_date")
     .eq("student_id", studentId ?? "")
-    .gte("created_at", `${dateFrom}T00:00:00`)
-    .lte("created_at", `${dateTo}T23:59:59`)
-    .in("status", ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"]);
+    .gte("business_date", dateFrom)
+    .lte("business_date", dateTo)
+    .eq("status", "SETTLED");
 
-  const transactions = transactionsData as Array<{
-    amount: number;
-    items: Array<{ menu: string; qty: number; price: number }> | null;
-    created_at: string;
-    is_emergency: boolean;
-  }> | null;
+  const list = transactions ?? [];
 
-  // Aggregate by category (based on item names — would be enriched by menu category in production)
+  // Aggregate by category
   const categoryMap = new Map<string, { count: number; total: number }>();
   let totalSpent = 0;
 
-  for (const tx of transactions ?? []) {
+  for (const tx of list) {
     totalSpent += tx.amount;
-    const items = tx.items as { menu: string; qty: number; price: number }[] | null;
-    if (items) {
+    const items = tx.items as unknown as TransactionItem[] | null;
+    if (Array.isArray(items)) {
       for (const item of items) {
         const cat = categorizeMenu(item.menu);
         const existing = categoryMap.get(cat) ?? { count: 0, total: 0 };
@@ -84,14 +85,13 @@ export async function GET(request: NextRequest) {
     student_id: studentId,
     period: { from: dateFrom, to: dateTo },
     total_spent_idr: totalSpent,
-    transaction_count: (transactions ?? []).length,
-    emergency_count: (transactions ?? []).filter((t) => t.is_emergency).length,
+    transaction_count: list.length,
+    emergency_count: list.filter((t) => t.is_emergency).length,
     spending_breakdown: breakdown,
     disclaimer: "Kategori menu bersifat estimasi. Konsultasikan pola makan dengan ahli gizi.",
   });
 }
 
-/** Simple heuristic categorizer — in production, enriched from menu master data */
 function categorizeMenu(menuName: string): string {
   const name = menuName.toLowerCase();
   if (name.includes("nasi") || name.includes("mie") || name.includes("bakso") || name.includes("soto")) return "Makanan Berat";

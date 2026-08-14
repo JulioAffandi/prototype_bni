@@ -28,44 +28,42 @@ export default async function PaguPage() {
 
   if (parentId) {
     const service = createServiceClient();
-    const { data: mappingsData } = await service
+    const todayStr = new Date().toISOString().slice(0, 10);
+
+    const { data: mappings } = await service
       .from("guardian_student_map")
       .select(`
         student_id,
         students (
-          id, full_name, daily_limit, daily_limit_used,
-          emergency_approve, emergency_limit,
-          emergency_used_today, emergency_overdraft_count_7d
+          id, full_name, daily_limit, emergency_approve, emergency_limit
         )
       `)
-      .eq("parent_id", parentId);
+      .eq("parent_id", parentId)
+      .eq("status", "active");
 
-    const mappings = mappingsData as Array<{
-      student_id: string;
-      students: {
-        id: string;
-        full_name: string;
-        daily_limit: number;
-        daily_limit_used: number;
-        emergency_approve: boolean;
-        emergency_limit: number;
-        emergency_used_today: boolean;
-        emergency_overdraft_count_7d: number;
-      } | null;
-    }> | null;
+    const rawStudents = (mappings ?? []).map((m) => m.students).filter(Boolean);
 
-    students = (mappings ?? [])
-      .map((m) => m.students)
-      .filter(Boolean) as Array<{
-        id: string;
-        full_name: string;
-        daily_limit: number;
-        daily_limit_used: number;
-        emergency_approve: boolean;
-        emergency_limit: number;
-        emergency_used_today: boolean;
-        emergency_overdraft_count_7d: number;
-      }>;
+    students = await Promise.all(
+      rawStudents.map(async (st: any) => {
+        const { data: counter } = await service
+          .from("student_daily_counters")
+          .select("spent_amount, overdraft_amount, overdraft_count")
+          .eq("student_id", st.id)
+          .eq("business_date", todayStr)
+          .maybeSingle();
+
+        return {
+          id: st.id,
+          full_name: st.full_name,
+          daily_limit: st.daily_limit,
+          daily_limit_used: counter?.spent_amount ?? 0,
+          emergency_approve: st.emergency_approve,
+          emergency_limit: st.emergency_limit,
+          emergency_used_today: (counter?.overdraft_count ?? 0) > 0,
+          emergency_overdraft_count_7d: counter?.overdraft_count ?? 0,
+        };
+      }),
+    );
   }
 
   return (
@@ -77,7 +75,7 @@ export default async function PaguPage() {
         </div>
         <div>
           <h1 className="text-xl font-bold text-foreground">Atur Pagu Jajan</h1>
-          <p className="text-sm text-muted-foreground">Kontrol pengeluaran harian anak Anda</p>
+          <p className="text-sm text-muted-foreground">Kontrol pengeluaran harian anak Anda (Schema v3)</p>
         </div>
       </div>
 

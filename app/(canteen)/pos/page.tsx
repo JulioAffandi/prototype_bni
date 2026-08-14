@@ -1,4 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
+import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import POSCatalog from "@/components/canteen/POSCatalog";
 import AIChatDrawer from "@/components/canteen/AIChatDrawer";
@@ -24,18 +25,24 @@ export default async function CanteenPOSPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("merchant_id")
-    .eq("id", user.id)
-    .single();
+  const appMetadata = user.app_metadata || {};
+  const userMerchantIds: string[] = Array.isArray(appMetadata.merchant_ids) ? appMetadata.merchant_ids : [];
 
-  const profile = profileData as { merchant_id: string | null } | null;
-  const merchantId = profile?.merchant_id ?? "demo-merchant-id";
+  const service = createServiceClient();
+  let merchantId: string | null = userMerchantIds[0] || null;
+
+  if (!merchantId) {
+    const { data: roles } = await service
+      .from("user_roles")
+      .select("merchant_id")
+      .eq("user_id", user.id)
+      .is("revoked_at", null);
+    merchantId = roles?.[0]?.merchant_id || null;
+  }
 
   return (
     <div className="max-w-2xl mx-auto">
-      <POSCatalog merchantId={merchantId} menuItems={DEMO_MENU} />
+      <POSCatalog merchantId={merchantId ?? "demo-merchant-id"} menuItems={DEMO_MENU} />
 
       {/* Floating AI advisor button */}
       <div className="fixed bottom-6 right-4 z-30">

@@ -5,8 +5,8 @@ import { NextRequest, NextResponse } from "next/server";
 /**
  * POST /api/v1/students/[id]/card/report-lost
  * Parent reports a lost/stolen NFC card.
- * Immediately blocks all future transactions on this card.
- * Reference: PRODUCT_SPECIFICATION_v2.md §12.1, §9.2
+ * Updates public.student_cards status to 'lost_reported' and logs lifecycle event.
+ * Reference: Schema v3 §3 (student_cards), §13 (card_lifecycle_events)
  */
 export async function POST(
   _request: NextRequest,
@@ -20,57 +20,79 @@ export async function POST(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profileData } = await supabase
-    .from("profiles")
-    .select("parent_id, role")
-    .eq("id", user.id)
-    .single();
-
-  const profile = profileData as { parent_id: string | null; role: string } | null;
-
-  if (!profile || profile.role !== "parent" || !profile.parent_id) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
-  }
-
-  // Verify guardianship
-  const { data: guardianship } = await supabase
-    .from("guardian_student_map")
-    .select("id")
-    .eq("parent_id", profile.parent_id)
-    .eq("student_id", studentId)
-    .single();
-
-  if (!guardianship) {
-    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
-  }
+  const parentId = user.app_metadata?.parent_id as string | undefined;
 
   const service = createServiceClient();
+  let resolvedParentId = parentId;
 
-  // Block card — immediate effect
-  const { error } = await service
-    .from("students")
-    .update({ card_status: "lost_reported" })
-    .eq("id", studentId);
-
-  if (error) {
-    return NextResponse.json({ error: "UPDATE_FAILED", detail: error.message }, { status: 500 });
+  if (!resolvedParentId) {
+    const { data: profile } = await service
+      .from("profiles")
+      .select("parent_id")
+      .eq("id", user.id)
+      .maybeSingle();
+    resolvedParentId = profile?.parent_id || undefined;
   }
 
-  // Record lifecycle event (§12.1)
+  if (!resolvedParentId) {
+    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+  }
+
+  // Verify guardianship with can_report_card_lost capability
+  const { data: guardianship } = await service
+    .from("guardian_student_map")
+    .select("id, school_id, can_report_card_lost")
+    .eq("parent_id", resolvedParentId)
+    .eq("student_id", studentId)
+    .eq("status", "active")
+    .maybeSingle();
+
+  if (!guardianship || !guardianship.can_report_card_lost) {
+    return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
+  }
+
+  // Find active card in student_cards
+  const { data: activeCard } = await service
+    .from("student_cards")
+    .select("id, school_id")
+    .eq("student_id", studentId)
+    .in("status", ["active", "pending_activation"])
+    .maybeSingle();
+
+  if (!activeCard) {
+    return NextResponse.json({ error: "CARD_NOT_FOUND", message: "Tidak ada kartu aktif untuk siswa ini." }, { status: 404 });
+  }
+
+  // Block card in student_cards
+  const { error: cardUpdateError } = await service
+    .from("student_cards")
+    .update({ status: "lost_reported" })
+    .eq("id", activeCard.id);
+
+  if (cardUpdateError) {
+    return NextResponse.json({ error: "UPDATE_FAILED", detail: cardUpdateError.message }, { status: 500 });
+  }
+
+  // Record lifecycle event
   await service.from("card_lifecycle_events").insert({
     student_id: studentId,
+    card_id: activeCard.id,
+    school_id: activeCard.school_id || guardianship.school_id,
     event_type: "lost_reported",
-    notes: "Dilaporkan oleh orang tua via Parent App",
-    actor_profile_id: user.id,
+    notes: "Dilaporkan hilang oleh orang tua via Parent App",
+    actor_user_id: user.id,
+    actor_role_snapshot: "parent",
   });
 
   await service.from("audit_log").insert({
-    actor_profile_id: user.id,
+    school_id: activeCard.school_id || guardianship.school_id,
+    actor_user_id: user.id,
+    actor_role_snapshot: "parent",
     action: "CARD_LOST_REPORTED",
-    entity_type: "students",
-    entity_id: studentId,
-    metadata: { reported_by: "parent", timestamp: new Date().toISOString() },
+    entity_type: "student_cards",
+    entity_id: activeCard.id,
+    metadata: { student_id: studentId, reported_by: "parent", timestamp: new Date().toISOString() },
   });
 
-  return NextResponse.json({ card_status: "lost_reported" });
+  return NextResponse.json({ status: "lost_reported", card_id: activeCard.id });
 }

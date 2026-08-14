@@ -3,38 +3,29 @@ import type { User } from "@supabase/supabase-js";
 
 /**
  * Resolves the parent_id for an authenticated Supabase user.
- * 1. Checks profiles.parent_id
- * 2. If null, searches parents by auth_user_id, phone, or email
- * 3. Auto-binds profiles.parent_id and parents.auth_user_id if found
+ * Schema v3: Single source of truth is profiles.parent_id or user.app_metadata.parent_id.
+ * 1. Checks user.app_metadata.parent_id
+ * 2. Checks profiles.parent_id
+ * 3. If null, searches parents by phone or email and binds profiles.parent_id
  */
 export async function getOrResolveParentId(user: User): Promise<string | null> {
+  // 1. Check JWT app_metadata
+  const metaParentId = user.app_metadata?.parent_id as string | undefined;
+  if (metaParentId) {
+    return metaParentId;
+  }
+
   const service = createServiceClient();
 
-  // 1. Check existing profile
-  const { data: profileData } = await service
+  // 2. Check existing profile
+  const { data: profile } = await service
     .from("profiles")
     .select("parent_id")
     .eq("id", user.id)
     .maybeSingle();
 
-  const profile = profileData as { parent_id: string | null } | null;
-
   if (profile?.parent_id) {
     return profile.parent_id;
-  }
-
-  // 2. Search parents by auth_user_id
-  const { data: byAuth } = await service
-    .from("parents")
-    .select("id")
-    .eq("auth_user_id", user.id)
-    .maybeSingle();
-
-  if (byAuth) {
-    await service
-      .from("profiles")
-      .upsert({ id: user.id, role: "parent", parent_id: byAuth.id });
-    return byAuth.id;
   }
 
   // 3. Search parents by phone number (user.phone or metadata.phone_number)
@@ -48,8 +39,11 @@ export async function getOrResolveParentId(user: User): Promise<string | null> {
       .maybeSingle();
 
     if (byPhone) {
-      await service.from("parents").update({ auth_user_id: user.id }).eq("id", byPhone.id);
-      await service.from("profiles").upsert({ id: user.id, role: "parent", parent_id: byPhone.id });
+      await service.from("profiles").upsert({
+        id: user.id,
+        display_name: user.user_metadata?.full_name || user.email || "Parent",
+        parent_id: byPhone.id,
+      });
       return byPhone.id;
     }
   }
@@ -64,8 +58,11 @@ export async function getOrResolveParentId(user: User): Promise<string | null> {
       .maybeSingle();
 
     if (byEmail) {
-      await service.from("parents").update({ auth_user_id: user.id }).eq("id", byEmail.id);
-      await service.from("profiles").upsert({ id: user.id, role: "parent", parent_id: byEmail.id });
+      await service.from("profiles").upsert({
+        id: user.id,
+        display_name: user.user_metadata?.full_name || user.email || "Parent",
+        parent_id: byEmail.id,
+      });
       return byEmail.id;
     }
   }

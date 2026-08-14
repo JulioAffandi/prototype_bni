@@ -6,7 +6,9 @@ import {
   RefreshCw, ChevronDown, Search, Filter,
 } from "lucide-react";
 
-type SPPStatus = "PAID" | "UNPAID" | "FAILED" | "OVERDUE";
+import type { invoice_status_t } from "@/types/database";
+
+type SPPStatus = invoice_status_t;
 
 interface Invoice {
   id: string;
@@ -36,11 +38,13 @@ function formatRupiah(amount: number) {
   }).format(amount);
 }
 
-const STATUS_CONFIG: Record<SPPStatus, { icon: typeof CheckCircle2; label: string; class: string }> = {
-  PAID:    { icon: CheckCircle2, label: "Lunas",       class: "badge-paid" },
-  UNPAID:  { icon: Clock,        label: "Belum Bayar", class: "badge-unpaid" },
-  FAILED:  { icon: XCircle,      label: "Gagal",       class: "badge-failed" },
-  OVERDUE: { icon: AlertTriangle, label: "Jatuh Tempo", class: "badge-overdue" },
+const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string; class: string }> = {
+  PAID:      { icon: CheckCircle2,  label: "Lunas",       class: "badge-paid" },
+  UNPAID:    { icon: Clock,         label: "Belum Bayar", class: "badge-unpaid" },
+  FAILED:    { icon: XCircle,       label: "Gagal",       class: "badge-failed" },
+  OVERDUE:   { icon: AlertTriangle, label: "Jatuh Tempo", class: "badge-overdue" },
+  DRAFT:     { icon: Clock,         label: "Draft",       class: "badge-unpaid" },
+  CANCELLED: { icon: XCircle,       label: "Batal",       class: "badge-failed" },
 };
 
 export default function SPPReconciliationTable({
