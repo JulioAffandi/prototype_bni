@@ -18,11 +18,13 @@ export async function GET(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, school_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { role: string; school_id: string | null } | null;
 
   if (!profile || profile.role !== "school_admin" || profile.school_id !== schoolId) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
@@ -33,7 +35,7 @@ export async function GET(
     return NextResponse.json({ error: "INVALID_PAYLOAD", message: "period query param required (YYYY-MM)" }, { status: 400 });
   }
 
-  const { data: invoices, error } = await supabase
+  const { data: invoicesData, error } = await supabase
     .from("spp_invoices")
     .select(`
       id, student_id, period, amount, status, due_date, paid_at,
@@ -43,6 +45,19 @@ export async function GET(
     .eq("school_id", schoolId)
     .eq("period", period)
     .order("status");
+
+  const invoices = invoicesData as Array<{
+    id: string;
+    student_id: string;
+    period: string;
+    amount: number;
+    status: string;
+    due_date: string;
+    paid_at: string | null;
+    retry_count: number;
+    bni_h2h_reference: string | null;
+    students: { full_name: string } | null;
+  }> | null;
 
   if (error) {
     return NextResponse.json({ error: "FETCH_FAILED" }, { status: 500 });

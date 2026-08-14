@@ -75,13 +75,24 @@ export default async function SPPPage() {
 
   // Fetch all SPP invoices
   const service = createServiceClient();
-  const { data: invoices } = studentIds.length > 0
+  const { data: invoicesData } = studentIds.length > 0
     ? await service
         .from("spp_invoices")
         .select("id, student_id, period, amount, status, due_date, paid_at, retry_count")
         .in("student_id", studentIds)
         .order("period", { ascending: false })
     : { data: [] };
+
+  const invoices = invoicesData as Array<{
+    id: string;
+    student_id: string;
+    period: string;
+    amount: number;
+    status: string;
+    due_date: string;
+    paid_at: string | null;
+    retry_count: number;
+  }> | null;
 
   // Group by period
   const periodMap = new Map<string, typeof invoices>();

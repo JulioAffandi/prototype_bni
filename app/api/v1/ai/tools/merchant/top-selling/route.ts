@@ -10,11 +10,13 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("merchant_id, role")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { merchant_id: string | null; role: string } | null;
 
   if (!profile || profile.role !== "merchant_staff") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
@@ -23,12 +25,17 @@ export async function GET(request: NextRequest) {
   const days = parseInt(request.nextUrl.searchParams.get("days") ?? "7");
   const since = new Date(Date.now() - days * 86400000).toISOString();
 
-  const { data: transactions } = await supabase
+  const { data: transactionsData } = await supabase
     .from("canteen_transactions")
     .select("items, amount")
     .eq("merchant_id", profile.merchant_id ?? "")
     .gte("created_at", since)
     .in("status", ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"]);
+
+  const transactions = transactionsData as Array<{
+    items: Array<{ menu: string; qty: number; price: number }> | null;
+    amount: number;
+  }> | null;
 
   // Aggregate menu items
   const menuMap = new Map<string, { qty: number; revenue: number }>();

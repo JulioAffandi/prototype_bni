@@ -5,7 +5,7 @@
 // asymmetric RSA-SHA256 + HMAC-SHA512 symmetric signatures
 // =============================================================
 
-import { createHmac, createSign, createVerify } from "crypto";
+import { createHash, createHmac, createSign, createVerify } from "crypto";
 
 /**
  * Build the canonical string for SNAP BI symmetric (HMAC-SHA512) signature.
@@ -25,8 +25,7 @@ export function buildSymmetricStringToSign({
   body: string;
   timestamp: string;
 }): string {
-  const bodyHash = require("crypto")
-    .createHash("sha256")
+  const bodyHash = createHash("sha256")
     .update(body.length === 0 ? "" : JSON.stringify(JSON.parse(body)))
     .digest("hex")
     .toLowerCase();

@@ -11,11 +11,13 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("parent_id, role")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { parent_id: string | null; role: string } | null;
 
   if (!profile || profile.role !== "parent" || !profile.parent_id) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
@@ -37,13 +39,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
-  const { data: transactions } = await supabase
+  const { data: transactionsData } = await supabase
     .from("canteen_transactions")
     .select("amount, items, created_at, is_emergency")
     .eq("student_id", studentId ?? "")
     .gte("created_at", `${dateFrom}T00:00:00`)
     .lte("created_at", `${dateTo}T23:59:59`)
     .in("status", ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"]);
+
+  const transactions = transactionsData as Array<{
+    amount: number;
+    items: Array<{ menu: string; qty: number; price: number }> | null;
+    created_at: string;
+    is_emergency: boolean;
+  }> | null;
 
   // Aggregate by category (based on item names — would be enriched by menu category in production)
   const categoryMap = new Map<string, { count: number; total: number }>();

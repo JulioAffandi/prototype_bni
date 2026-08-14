@@ -53,11 +53,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, merchant_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { role: string; merchant_id: string | null } | null;
 
   if (!profile || profile.role !== "merchant_staff" || !profile.merchant_id) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
@@ -107,10 +109,10 @@ export async function POST(request: NextRequest) {
   // ── Step 2: Resolve student by NFC UID hash ──────────────────
   const { data: student } = await service
     .from("students")
-    .select(
-      "id, daily_limit, daily_limit_used, emergency_approve, emergency_limit, " +
-      "emergency_used_today, card_status, emergency_overdraft_count_7d, school_id",
-    )
+    .select(`
+      id, daily_limit, daily_limit_used, emergency_approve, emergency_limit,
+      emergency_used_today, card_status, emergency_overdraft_count_7d, school_id
+    `)
     .eq("nfc_uid_hash", nfc_uid_hash)
     .single();
 
@@ -185,11 +187,14 @@ export async function POST(request: NextRequest) {
     ? student.daily_limit_used // overdraft doesn't consume pagu budget
     : student.daily_limit_used + amount;
 
-  const studentUpdatePayload: Record<string, unknown> = {
+  const studentUpdatePayload: {
+    daily_limit_used: number;
+    emergency_used_today?: boolean;
+  } = {
     daily_limit_used: newUsed,
   };
   if (isEmergency) {
-    studentUpdatePayload["emergency_used_today"] = true;
+    studentUpdatePayload.emergency_used_today = true;
   }
 
   await service

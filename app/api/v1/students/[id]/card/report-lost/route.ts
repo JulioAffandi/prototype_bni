@@ -20,11 +20,13 @@ export async function POST(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("parent_id, role")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { parent_id: string | null; role: string } | null;
 
   if (!profile || profile.role !== "parent" || !profile.parent_id) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });

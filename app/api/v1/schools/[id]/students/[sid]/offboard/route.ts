@@ -20,11 +20,13 @@ export async function POST(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, school_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { role: string; school_id: string | null } | null;
 
   if (!profile || profile.role !== "school_admin" || profile.school_id !== schoolId) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });

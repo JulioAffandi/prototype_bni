@@ -18,22 +18,31 @@ export default async function SettlementPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("merchant_id")
     .eq("id", user.id)
     .single();
+  const profile = profileData as { merchant_id: string | null } | null;
   if (!profile?.merchant_id) redirect("/login");
 
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 
-  const { data: txToday } = await supabase
+  const { data: txTodayData } = await supabase
     .from("canteen_transactions")
     .select("id, amount, status, is_emergency, created_at")
     .eq("merchant_id", profile.merchant_id)
     .gte("created_at", today.toISOString())
     .order("created_at", { ascending: false });
+
+  const txToday = txTodayData as Array<{
+    id: string;
+    amount: number;
+    status: string;
+    is_emergency: boolean;
+    created_at: string;
+  }> | null;
 
   const settled = (txToday ?? []).filter((t) =>
     ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"].includes(t.status)

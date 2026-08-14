@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     merchantId: string;
   };
 
-  const { studentId, amount, sisaPagu, isEmergency } = body;
+  const { amount, sisaPagu, isEmergency } = body;
 
   // Build message
   const formattedAmount = new Intl.NumberFormat("id-ID", {

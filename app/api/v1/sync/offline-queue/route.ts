@@ -36,11 +36,13 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, merchant_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { role: string; merchant_id: string | null } | null;
 
   if (!profile || profile.role !== "merchant_staff" || !profile.merchant_id) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });

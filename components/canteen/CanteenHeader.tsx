@@ -7,7 +7,6 @@ import {
   WifiOff,
   BarChart3,
   Bot,
-  RefreshCw,
 } from "lucide-react";
 import Link from "next/link";
 import OfflineQueueIndicator from "./OfflineQueueIndicator";

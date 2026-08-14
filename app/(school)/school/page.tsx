@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
-import { Users, CheckCircle2, AlertTriangle, Clock, TrendingUp, Activity } from "lucide-react";
+import { Users, CheckCircle2, AlertTriangle, TrendingUp, Activity } from "lucide-react";
 import AIChatDrawer from "@/components/canteen/AIChatDrawer";
 import type { Metadata } from "next";
 
@@ -19,12 +19,13 @@ export default async function SchoolDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("school_id")
     .eq("id", user.id)
     .single();
 
+  const profile = profileData as { school_id: string | null } | null;
   const schoolId = profile?.school_id;
   if (!schoolId) redirect("/login");
 
@@ -33,11 +34,16 @@ export default async function SchoolDashboardPage() {
   const period = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   // SPP stats
-  const { data: sppStats } = await supabase
+  const { data: sppStatsData } = await supabase
     .from("spp_invoices")
     .select("status, amount")
     .eq("school_id", schoolId)
     .eq("period", period);
+
+  const sppStats = sppStatsData as Array<{
+    status: string;
+    amount: number;
+  }> | null;
 
   const totalInvoices = sppStats?.length ?? 0;
   const paidInvoices = sppStats?.filter((s) => s.status === "PAID").length ?? 0;
@@ -54,14 +60,23 @@ export default async function SchoolDashboardPage() {
     .eq("card_status", "active");
 
   // Recent canteen transactions
-  const { data: recentTx } = await supabase
+  const studentListQuery = await supabase.from("students").select("id").eq("school_id", schoolId);
+  const studentListData = studentListQuery.data as Array<{ id: string }> | null;
+  const studentIds = studentListData?.map((s) => s.id) ?? [];
+
+  const { data: recentTxData } = await supabase
     .from("canteen_transactions")
     .select("id, amount, status, created_at")
-    .in("student_id", 
-      (await supabase.from("students").select("id").eq("school_id", schoolId)).data?.map(s => s.id) ?? []
-    )
+    .in("student_id", studentIds)
     .order("created_at", { ascending: false })
     .limit(5);
+
+  const recentTx = recentTxData as Array<{
+    id: string;
+    amount: number;
+    status: string;
+    created_at: string;
+  }> | null;
 
   const stats = [
     {

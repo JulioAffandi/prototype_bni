@@ -10,11 +10,13 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("parent_id, role")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { parent_id: string | null; role: string } | null;
 
   if (!profile || profile.role !== "parent" || !profile.parent_id) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
@@ -31,11 +33,18 @@ export async function GET(request: NextRequest) {
 
   if (!guardian) return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
 
-  const { data: vault } = await supabase
+  const { data: vaultData } = await supabase
     .from("student_vault")
     .select("vault_balance, savings_goal_name, savings_goal_target, updated_at")
     .eq("student_id", studentId ?? "")
     .single();
+
+  const vault = vaultData as {
+    vault_balance: number;
+    savings_goal_name: string | null;
+    savings_goal_target: number | null;
+    updated_at: string;
+  } | null;
 
   if (!vault) return NextResponse.json({ error: "NOT_FOUND" }, { status: 404 });
 
