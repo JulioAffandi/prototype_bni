@@ -2,7 +2,6 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import POSCatalog from "@/components/canteen/POSCatalog";
 import AIChatDrawer from "@/components/canteen/AIChatDrawer";
-import { Bot } from "lucide-react";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = { title: "Kasir POS" };
@@ -25,12 +24,13 @@ export default async function CanteenPOSPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("merchant_id")
     .eq("id", user.id)
     .single();
 
+  const profile = profileData as { merchant_id: string | null } | null;
   const merchantId = profile?.merchant_id ?? "demo-merchant-id";
 
   return (

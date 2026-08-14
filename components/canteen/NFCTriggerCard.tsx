@@ -46,9 +46,7 @@ export default function NFCTriggerCard({
   const [showSimulator, setShowSimulator] = useState(false);
   const [result, setResult] = useState<TransactionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [isOnline, setIsOnline] = useState(
-    typeof navigator !== "undefined" ? navigator.onLine : true,
-  );
+
 
   const simulatorEnabled = process.env.NEXT_PUBLIC_NFC_SIMULATOR_ENABLED === "true";
 

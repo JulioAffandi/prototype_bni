@@ -11,11 +11,13 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("merchant_id, role")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { merchant_id: string | null; role: string } | null;
 
   if (!profile || profile.role !== "merchant_staff") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
@@ -30,13 +32,20 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
   }
 
-  const { data: transactions } = await supabase
+  const { data: transactionsData } = await supabase
     .from("canteen_transactions")
     .select("amount, status, is_emergency, created_at")
     .eq("merchant_id", merchantId)
     .gte("created_at", `${dateFrom}T00:00:00`)
     .lte("created_at", `${dateTo}T23:59:59`)
     .in("status", ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"]);
+
+  const transactions = transactionsData as Array<{
+    amount: number;
+    status: string;
+    is_emergency: boolean;
+    created_at: string;
+  }> | null;
 
   const totalRevenue = (transactions ?? []).reduce((s, t) => s + t.amount, 0);
   const txCount = (transactions ?? []).length;

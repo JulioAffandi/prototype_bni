@@ -1,6 +1,7 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
+import type { SPPStatus } from "@/types/database";
 import SPPReconciliationTable from "@/components/school/SPPReconciliationTable";
 import { FileText } from "lucide-react";
 
@@ -11,28 +12,31 @@ export default async function SchoolSPPPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("school_id")
     .eq("id", user.id)
     .single();
+  const profile = profileData as { school_id: string | null } | null;
   if (!profile?.school_id) redirect("/login");
 
   const now = new Date();
   const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
   // Fetch all periods available
-  const { data: periods } = await supabase
+  const { data: periodsData } = await supabase
     .from("spp_invoices")
     .select("period")
     .eq("school_id", profile.school_id)
     .order("period", { ascending: false });
 
+  const periods = periodsData as Array<{ period: string }> | null;
+
   const uniquePeriods = Array.from(new Set((periods ?? []).map((p) => p.period)));
   if (!uniquePeriods.includes(currentPeriod)) uniquePeriods.unshift(currentPeriod);
 
   // Fetch invoices for current period
-  const { data: invoices } = await supabase
+  const { data: invoicesData } = await supabase
     .from("spp_invoices")
     .select(`
       id, student_id, period, amount, status, due_date, paid_at,
@@ -42,6 +46,19 @@ export default async function SchoolSPPPage() {
     .eq("school_id", profile.school_id)
     .eq("period", currentPeriod)
     .order("status");
+
+  const invoices = invoicesData as Array<{
+    id: string;
+    student_id: string;
+    period: string;
+    amount: number;
+    status: SPPStatus;
+    due_date: string;
+    paid_at: string | null;
+    retry_count: number;
+    bni_h2h_reference: string | null;
+    students: { full_name: string } | null;
+  }> | null;
 
   return (
     <div className="space-y-6">

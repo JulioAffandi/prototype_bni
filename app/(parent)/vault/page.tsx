@@ -35,7 +35,7 @@ export default async function VaultPage() {
 
   if (parentId) {
     const service = createServiceClient();
-    const { data: mappings } = await service
+    const { data: mappingsData } = await service
       .from("guardian_student_map")
       .select(`
         student_id,
@@ -45,6 +45,20 @@ export default async function VaultPage() {
         )
       `)
       .eq("parent_id", parentId);
+
+    const mappings = mappingsData as Array<{
+      student_id: string;
+      students: {
+        id: string;
+        full_name: string;
+        student_vault: {
+          vault_balance: number;
+          savings_goal_name: string | null;
+          savings_goal_target: number | null;
+          updated_at: string;
+        } | null;
+      } | null;
+    }> | null;
 
     students = (mappings ?? [])
       .map((m) => m.students)

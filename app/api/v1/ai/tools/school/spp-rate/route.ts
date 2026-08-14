@@ -11,11 +11,13 @@ export async function GET(request: NextRequest) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("school_id, role")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { school_id: string | null; role: string } | null;
 
   if (!profile || profile.role !== "school_admin") {
     return NextResponse.json({ error: "FORBIDDEN" }, { status: 403 });
@@ -29,11 +31,16 @@ export async function GET(request: NextRequest) {
   const period = request.nextUrl.searchParams.get("period") ??
     new Date().toISOString().slice(0, 7);
 
-  const { data: invoices } = await supabase
+  const { data: invoicesData } = await supabase
     .from("spp_invoices")
     .select("status, amount")
     .eq("school_id", schoolId ?? "")
     .eq("period", period);
+
+  const invoices = invoicesData as Array<{
+    status: string;
+    amount: number;
+  }> | null;
 
   const total = (invoices ?? []).length;
   const paid = (invoices ?? []).filter((i) => i.status === "PAID").length;

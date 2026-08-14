@@ -28,7 +28,7 @@ export default async function PaguPage() {
 
   if (parentId) {
     const service = createServiceClient();
-    const { data: mappings } = await service
+    const { data: mappingsData } = await service
       .from("guardian_student_map")
       .select(`
         student_id,
@@ -39,6 +39,20 @@ export default async function PaguPage() {
         )
       `)
       .eq("parent_id", parentId);
+
+    const mappings = mappingsData as Array<{
+      student_id: string;
+      students: {
+        id: string;
+        full_name: string;
+        daily_limit: number;
+        daily_limit_used: number;
+        emergency_approve: boolean;
+        emergency_limit: number;
+        emergency_used_today: boolean;
+        emergency_overdraft_count_7d: number;
+      } | null;
+    }> | null;
 
     students = (mappings ?? [])
       .map((m) => m.students)

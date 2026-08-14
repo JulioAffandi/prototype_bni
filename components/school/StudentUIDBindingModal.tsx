@@ -256,7 +256,7 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                         </div>
                       ) : parentsList.length === 0 ? (
                         <p className="text-xs text-muted-foreground p-3 bg-muted/50 border border-border/60 rounded-xl">
-                          Belum ada orang tua terdaftar. Klik tab "HP Baru" di samping.
+                          Belum ada orang tua terdaftar. Klik tab &quot;HP Baru&quot; di samping.
                         </p>
                       ) : (
                         <select

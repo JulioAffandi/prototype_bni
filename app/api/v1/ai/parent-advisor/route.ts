@@ -17,11 +17,13 @@ export async function POST(request: NextRequest) {
     return new Response(JSON.stringify({ error: "UNAUTHORIZED" }), { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, parent_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { role: string; parent_id: string | null } | null;
 
   if (!profile || profile.role !== "parent") {
     return new Response(JSON.stringify({ error: "RLS_FORBIDDEN" }), { status: 403 });
@@ -45,7 +47,7 @@ export async function POST(request: NextRequest) {
         actor_profile_id: user.id,
         prompt: lastUserMsg,
         response: text,
-        function_calls: toolCalls.length > 0 ? (toolCalls as unknown as Record<string, unknown>[]) : null,
+        function_calls: toolCalls.length > 0 ? (toolCalls as unknown as Record<string, unknown>) : null,
       });
     },
   });

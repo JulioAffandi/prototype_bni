@@ -14,7 +14,7 @@ import {
   Clock,
   UserCheck,
 } from "lucide-react";
-import type { Student, StudentVault, SPPInvoice } from "@/types/database";
+import type { StudentRow, StudentVaultRow, SPPInvoiceRow } from "@/types/database";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -34,7 +34,7 @@ function getPaguPercentage(used: number, limit: number): number {
   return Math.min(100, (used / limit) * 100);
 }
 
-function getSPPStatusIcon(status: SPPInvoice["status"]) {
+function getSPPStatusIcon(status: SPPInvoiceRow["status"]) {
   switch (status) {
     case "PAID":
       return <CheckCircle2 className="w-4 h-4 text-primary" />;
@@ -47,9 +47,9 @@ function getSPPStatusIcon(status: SPPInvoice["status"]) {
   }
 }
 
-interface StudentWithVault extends Student {
-  student_vault: StudentVault | null;
-  spp_invoices: SPPInvoice[];
+interface StudentWithVault extends StudentRow {
+  student_vault: StudentVaultRow | null;
+  spp_invoices: SPPInvoiceRow[];
 }
 
 export default async function ParentDashboardPage() {
@@ -64,7 +64,7 @@ export default async function ParentDashboardPage() {
 
   if (parentId) {
     const service = createServiceClient();
-    const { data: mappings } = await service
+    const { data: mappingsData } = await service
       .from("guardian_student_map")
       .select(`
         student_id, is_primary_guardian,
@@ -76,6 +76,12 @@ export default async function ParentDashboardPage() {
         )
       `)
       .eq("parent_id", parentId);
+
+    const mappings = mappingsData as Array<{
+      student_id: string;
+      is_primary_guardian: boolean;
+      students: StudentWithVault | null;
+    }> | null;
 
     students = (mappings ?? [])
       .map((m) => m.students as StudentWithVault | null)

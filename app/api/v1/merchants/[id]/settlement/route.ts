@@ -18,11 +18,13 @@ export async function GET(
     return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
   }
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("role, merchant_id")
     .eq("id", user.id)
     .single();
+
+  const profile = profileData as { role: string; merchant_id: string | null } | null;
 
   if (!profile || profile.role !== "merchant_staff" || profile.merchant_id !== merchantId) {
     return NextResponse.json({ error: "RLS_FORBIDDEN" }, { status: 403 });
@@ -31,12 +33,20 @@ export async function GET(
   const date = request.nextUrl.searchParams.get("date") ??
     new Date().toISOString().split("T")[0];
 
-  const { data: txList } = await supabase
+  const { data: txListData } = await supabase
     .from("canteen_transactions")
     .select("id, amount, status, is_emergency, created_at")
     .eq("merchant_id", merchantId)
     .gte("created_at", `${date}T00:00:00`)
     .lte("created_at", `${date}T23:59:59`);
+
+  const txList = txListData as Array<{
+    id: string;
+    amount: number;
+    status: string;
+    is_emergency: boolean;
+    created_at: string;
+  }> | null;
 
   const settled = (txList ?? []).filter((t) =>
     ["SETTLED", "SETTLED_OVERDRAFT", "COMPLETED"].includes(t.status)

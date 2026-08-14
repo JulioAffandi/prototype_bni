@@ -10,28 +10,46 @@ export default async function SchoolAuditPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const { data: profile } = await supabase
+  const { data: profileData } = await supabase
     .from("profiles")
     .select("school_id")
     .eq("id", user.id)
     .single();
+  const profile = profileData as { school_id: string | null } | null;
   if (!profile?.school_id) redirect("/login");
 
   // Fetch recent audit logs for this school
-  const { data: auditLogs } = await supabase
+  const { data: auditLogsData } = await supabase
     .from("audit_log")
     .select("id, action, entity_type, entity_id, flag, metadata, created_at, actor_profile_id")
     .eq("metadata->>school_id", profile.school_id)
     .order("created_at", { ascending: false })
     .limit(50);
 
+  const auditLogs = auditLogsData as Array<{
+    id: string;
+    action: string;
+    entity_type: string;
+    entity_id: string | null;
+    flag: string | null;
+    metadata: Record<string, unknown> | null;
+    created_at: string;
+    actor_profile_id: string | null;
+  }> | null;
+
   // Frequent overdraft students
-  const { data: overdraftStudents } = await supabase
+  const { data: overdraftStudentsData } = await supabase
     .from("students")
     .select("id, full_name, emergency_overdraft_count_7d")
     .eq("school_id", profile.school_id)
     .gt("emergency_overdraft_count_7d", 2)
     .order("emergency_overdraft_count_7d", { ascending: false });
+
+  const overdraftStudents = overdraftStudentsData as Array<{
+    id: string;
+    full_name: string;
+    emergency_overdraft_count_7d: number;
+  }> | null;
 
   const flaggedCount = (auditLogs ?? []).filter((l) => l.flag).length;
   const overdraftCount = (overdraftStudents ?? []).length;

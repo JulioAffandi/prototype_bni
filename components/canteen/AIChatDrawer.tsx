@@ -2,7 +2,7 @@
 
 import { useChat } from "ai/react";
 import { useState } from "react";
-import { Bot, Send, X, MessageCircle, Loader2 } from "lucide-react";
+import { Bot, Send, X, Loader2 } from "lucide-react";
 
 interface AIChatDrawerProps {
   endpoint: string;

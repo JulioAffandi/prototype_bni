@@ -176,7 +176,7 @@ export default function LinkParentModal({
                 </div>
               ) : parentsList.length === 0 ? (
                 <p className="text-xs text-muted-foreground p-3 bg-muted/50 border border-border/60 rounded-xl">
-                  Belum ada akun orang tua terdaftar. Pilih tab "Input HP Baru" di atas.
+                  Belum ada akun orang tua terdaftar. Pilih tab &quot;Input HP Baru&quot; di atas.
                 </p>
               ) : (
                 <select

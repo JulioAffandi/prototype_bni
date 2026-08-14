@@ -11,11 +11,13 @@ export async function getOrResolveParentId(user: User): Promise<string | null> {
   const service = createServiceClient();
 
   // 1. Check existing profile
-  const { data: profile } = await service
+  const { data: profileData } = await service
     .from("profiles")
     .select("parent_id")
     .eq("id", user.id)
     .maybeSingle();
+
+  const profile = profileData as { parent_id: string | null } | null;
 
   if (profile?.parent_id) {
     return profile.parent_id;
