@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import CanteenHeader from "@/components/canteen/CanteenHeader";
+import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
   title: {
@@ -58,6 +59,7 @@ export default async function CanteenLayout({
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
+      <AiAssistant />
     </div>
   );
 }

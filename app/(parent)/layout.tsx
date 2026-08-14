@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import ParentBottomNav from "@/components/parent/ParentBottomNav";
+import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
   title: "Parent Control App",
@@ -43,6 +44,7 @@ export default async function ParentLayout({
         {children}
       </main>
       <ParentBottomNav />
+      <AiAssistant />
     </div>
   );
 }

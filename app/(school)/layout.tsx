@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import SchoolSidebar from "@/components/school/SchoolSidebar";
+import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
   title: {
@@ -60,6 +61,7 @@ export default async function SchoolLayout({
           {children}
         </div>
       </main>
+      <AiAssistant />
     </div>
   );
 }
