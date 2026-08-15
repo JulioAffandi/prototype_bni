@@ -1,6 +1,8 @@
 import { createServiceClient } from "@/lib/supabase/service";
 import { verifySnapWebhook } from "@/lib/snap";
 import { NextRequest, NextResponse } from "next/server";
+import { dispatchAfterResponse } from "@/lib/telegram/after-dispatch";
+import { notifyParentSPPSuccess } from "@/lib/telegram/notifier";
 
 /**
  * POST /api/webhooks/bni/h2h/debit-callback
@@ -48,7 +50,7 @@ export async function POST(request: NextRequest) {
   // Find invoice by BNI reference
   const { data: invoice } = await service
     .from("spp_invoices")
-    .select("id, student_id, school_id, billed_parent_id, amount, status, retry_count")
+    .select("id, student_id, school_id, billed_parent_id, period, amount, status, retry_count")
     .eq("bni_h2h_reference", originalReferenceNo)
     .single();
 
@@ -170,6 +172,35 @@ export async function POST(request: NextRequest) {
       entity_id: invoice.id,
       metadata: { bni_reference: referenceNo, amount: paidAmount },
     });
+
+    if (invoice.billed_parent_id) {
+      const parentId = invoice.billed_parent_id;
+      const studentId = invoice.student_id;
+      const periodStr = invoice.period || "Bulan Ini";
+      dispatchAfterResponse(async () => {
+        const { data: parent } = await service
+          .from("parents")
+          .select("id, telegram_chat_id")
+          .eq("id", parentId)
+          .maybeSingle();
+
+        const { data: student } = await service
+          .from("students")
+          .select("full_name")
+          .eq("id", studentId)
+          .maybeSingle();
+
+        if (parent?.telegram_chat_id) {
+          await notifyParentSPPSuccess({
+            parentChatId: parent.telegram_chat_id,
+            parentId: parent.id,
+            studentName: student?.full_name ?? "Anak",
+            period: periodStr,
+            amount: paidAmount,
+          });
+        }
+      }, "spp-settled");
+    }
   } else {
     // Failed — increment retry count
     const newRetryCount = (invoice.retry_count ?? 0) + 1;

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { X, Nfc, User, Phone, CreditCard, Loader2, CheckCircle2, UserCheck } from "lucide-react";
+import { X, Nfc, User, Phone, CreditCard, Loader2, CheckCircle2, UserCheck, AlertTriangle } from "lucide-react";
 
 interface ParentItem {
   id: string;
@@ -37,6 +37,11 @@ interface StudentUIDBindingModalProps {
 export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }: StudentUIDBindingModalProps) {
   const [step, setStep] = useState<"form" | "nfc" | "success">("form");
   const [fullName, setFullName] = useState("");
+  const [studentNumber, setStudentNumber] = useState("");
+  const [dateOfBirth, setDateOfBirth] = useState("");
+  const [gradeLevel, setGradeLevel] = useState("7");
+  const [className, setClassName] = useState("7A");
+  const [dailyLimit, setDailyLimit] = useState(20000);
   const [rawNfcUid, setRawNfcUid] = useState("");
   
   // Parent state
@@ -46,6 +51,7 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
   const [parentPhone, setParentPhone] = useState("");
   const [parentName, setParentName] = useState("");
   const [parentBniAccount, setParentBniAccount] = useState("");
+  const [relationship, setRelationship] = useState("orang_tua");
   
   const [loading, setLoading] = useState(false);
   const [fetchingParents, setFetchingParents] = useState(true);
@@ -71,6 +77,10 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
     loadParents();
   }, [schoolId]);
 
+  function clearErrorOnInput() {
+    if (error) setError(null);
+  }
+
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     setError(null);
@@ -84,13 +94,19 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
     try {
       const payload = {
         full_name: fullName.trim(),
+        student_number: studentNumber.trim() || undefined,
+        date_of_birth: dateOfBirth || undefined,
+        grade_level: gradeLevel,
+        class_name: className.trim(),
+        class_label: `Kelas ${gradeLevel} ${className.trim()}`.trim(),
+        daily_limit: Number(dailyLimit) || 20000,
         raw_nfc_uid: rawNfcUid.trim(),
         nfc_uid_last4: rawNfcUid.trim().slice(-4),
         parent_id: parentMode === "select" && selectedParentId ? selectedParentId : undefined,
         parent_phone: parentMode === "input" && parentPhone.trim() ? parentPhone.trim() : undefined,
         parent_full_name: parentMode === "input" && parentName.trim() ? parentName.trim() : undefined,
         parent_bni_account: parentBniAccount.trim() || undefined,
-        relationship: "orang_tua",
+        relationship: relationship || "orang_tua",
       };
 
       const res = await fetch(`/api/v1/schools/${schoolId}/students`, {
@@ -106,7 +122,6 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
       };
 
       if (!res.ok) {
-        if (res.status === 409) throw new Error("UID kartu ini sudah terdaftar untuk siswa lain.");
         throw new Error(data.message ?? data.error ?? "Gagal mendaftarkan siswa");
       }
 
@@ -177,7 +192,7 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                 {/* Name */}
                 <div>
                   <label htmlFor="student-name" className="block text-sm font-medium text-foreground mb-1.5">
-                    Nama Lengkap Siswa
+                    Nama Lengkap Siswa <span className="text-destructive">*</span>
                   </label>
                   <div className="relative">
                     <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
@@ -185,7 +200,10 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                       id="student-name"
                       type="text"
                       value={fullName}
-                      onChange={(e) => setFullName(e.target.value)}
+                      onChange={(e) => {
+                        setFullName(e.target.value);
+                        clearErrorOnInput();
+                      }}
                       placeholder="Contoh: Akbar Pratama"
                       required
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
@@ -193,10 +211,110 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                   </div>
                 </div>
 
+                {/* NISN, DOB & Class */}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label htmlFor="student-nisn" className="block text-xs font-medium text-foreground mb-1">
+                      NISN / No. Induk
+                    </label>
+                    <input
+                      id="student-nisn"
+                      type="text"
+                      value={studentNumber}
+                      onChange={(e) => {
+                        setStudentNumber(e.target.value);
+                        clearErrorOnInput();
+                      }}
+                      placeholder="Contoh: 0051234567"
+                      className="w-full px-3 py-2 rounded-xl bg-background text-foreground border border-border/80 text-xs font-mono focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                    />
+                  </div>
+
+                  <div>
+                    <label htmlFor="student-dob" className="block text-xs font-medium text-foreground mb-1">
+                      Tanggal Lahir (Verifikasi Wali)
+                    </label>
+                    <input
+                      id="student-dob"
+                      type="date"
+                      value={dateOfBirth}
+                      onChange={(e) => {
+                        setDateOfBirth(e.target.value);
+                        clearErrorOnInput();
+                      }}
+                      className="w-full px-3 py-2 rounded-xl bg-background text-foreground border border-border/80 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-medium text-foreground mb-1">
+                    Tingkat &amp; Kelas
+                  </label>
+                  <div className="flex gap-1.5">
+                      <select
+                        id="student-grade"
+                        value={gradeLevel}
+                        onChange={(e) => setGradeLevel(e.target.value)}
+                        className="w-16 px-2 py-2 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                      >
+                        {Array.from({ length: 12 }, (_, i) => i + 1).map((g) => (
+                          <option key={g} value={String(g)} className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+                            {g}
+                          </option>
+                        ))}
+                      </select>
+                      <input
+                        id="student-class"
+                        type="text"
+                        value={className}
+                        onChange={(e) => setClassName(e.target.value)}
+                        placeholder="Nama (7A)"
+                        className="flex-1 px-3 py-2 rounded-xl bg-background text-foreground border border-border/80 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                      />
+                    </div>
+                  </div>
+
+                {/* Daily Limit */}
+                <div>
+                  <div className="flex items-center justify-between mb-1">
+                    <label htmlFor="daily-limit" className="block text-xs font-medium text-foreground">
+                      Batas Pagu Harian Default
+                    </label>
+                    <span className="text-xs font-bold text-primary">
+                      Rp {new Intl.NumberFormat("id-ID").format(dailyLimit)}
+                    </span>
+                  </div>
+                  <input
+                    id="daily-limit"
+                    type="number"
+                    step={1000}
+                    value={dailyLimit}
+                    onChange={(e) => setDailyLimit(Number(e.target.value))}
+                    className="w-full px-3.5 py-2 rounded-xl bg-background text-foreground border border-border/80 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm mb-2"
+                  />
+                  <div className="flex gap-2">
+                    {[15000, 20000, 30000, 50000].map((preset) => (
+                      <button
+                        key={preset}
+                        type="button"
+                        onClick={() => setDailyLimit(preset)}
+                        className={`flex-1 py-1 rounded-lg text-[11px] font-semibold border transition-all ${
+                          dailyLimit === preset
+                            ? "bg-primary text-primary-foreground border-primary"
+                            : "bg-muted/50 text-muted-foreground border-border/60 hover:text-foreground"
+                        }`}
+                      >
+                        Rp {(preset / 1000).toLocaleString("id-ID")}k
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
                 {/* NFC UID */}
                 <div>
                   <label htmlFor="nfc-uid" className="block text-sm font-medium text-foreground mb-1.5">
-                    UID Kartu NFC
+                    UID Kartu NFC <span className="text-destructive">*</span>
                     {simulatorEnabled && (
                       <span className="ml-2 text-xs text-accent font-normal">(Simulator aktif)</span>
                     )}
@@ -207,7 +325,10 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                       id="nfc-uid"
                       type="text"
                       value={rawNfcUid}
-                      onChange={(e) => setRawNfcUid(e.target.value)}
+                      onChange={(e) => {
+                        setRawNfcUid(e.target.value);
+                        clearErrorOnInput();
+                      }}
                       placeholder={simulatorEnabled ? "Masukkan UID manual (demo)" : "Tempelkan kartu ke reader..."}
                       required
                       className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
@@ -261,17 +382,20 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                       ) : (
                         <select
                           value={selectedParentId}
-                          onChange={(e) => setSelectedParentId(e.target.value)}
-                          className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm cursor-pointer"
+                          onChange={(e) => {
+                            setSelectedParentId(e.target.value);
+                            clearErrorOnInput();
+                          }}
+                          className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm cursor-pointer"
                         >
-                          <option value="" className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100">
+                          <option value="" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
                             -- Pilih Orang Tua / Wali (Opsional) --
                           </option>
                           {parentsList.map((p) => (
                             <option
                               key={p.id}
                               value={p.id}
-                              className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100 py-1"
+                              className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 py-1"
                             >
                               {p.full_name} ({p.phone_number})
                             </option>
@@ -288,7 +412,10 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                             id="parent-phone"
                             type="tel"
                             value={parentPhone}
-                            onChange={(e) => setParentPhone(e.target.value)}
+                            onChange={(e) => {
+                              setParentPhone(e.target.value);
+                              clearErrorOnInput();
+                            }}
                             placeholder="No. HP Orang Tua (e.g. 08123456789)"
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
                           />
@@ -301,7 +428,10 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                           <input
                             type="text"
                             value={parentName}
-                            onChange={(e) => setParentName(e.target.value)}
+                            onChange={(e) => {
+                              setParentName(e.target.value);
+                              clearErrorOnInput();
+                            }}
                             placeholder={`Nama Orang Tua (e.g. Wali dari ${fullName || "Siswa"})`}
                             className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
                           />
@@ -326,9 +456,13 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
                 </div>
 
                 {error && (
-                  <p className="text-sm text-destructive bg-destructive/10 border border-destructive/25 rounded-xl px-3.5 py-2.5 font-medium">
-                    {error}
-                  </p>
+                  <div className="p-3.5 rounded-xl bg-destructive/15 border border-destructive/30 text-destructive text-xs font-semibold flex items-start gap-2.5 animate-in fade-in">
+                    <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                    <div>
+                      <p className="font-bold">Gagal Mendaftarkan Siswa</p>
+                      <p className="mt-0.5 text-destructive/90 font-normal leading-relaxed">{error}</p>
+                    </div>
+                  </div>
                 )}
 
                 <div className="flex gap-3 pt-3">

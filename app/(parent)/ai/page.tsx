@@ -12,7 +12,7 @@ const HINTS = [
 
 export default function ParentAIPage() {
   const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/v1/ai/parent-advisor",
+    api: "/api/chat",
   });
 
   return (

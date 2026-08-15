@@ -8,14 +8,14 @@ import {
   CreditCard,
   Bell,
   ChevronRight,
-  Wallet,
   AlertTriangle,
   CheckCircle2,
   Clock,
   UserCheck,
 } from "lucide-react";
-import type { StudentRow, StudentVaultRow, SPPInvoiceRow, txn_status_t } from "@/types/database";
+import type { StudentRow, StudentVaultRow, SPPInvoiceRow } from "@/types/database";
 import type { Metadata } from "next";
+import ParentLinkStudentAction from "@/components/parent/ParentLinkStudentAction";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -58,29 +58,36 @@ export default async function ParentDashboardPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const parentId = await getOrResolveParentId(user);
+  const parentId = await getOrResolveParentId(user, true);
   let students: DisplayStudent[] = [];
 
   const service = createServiceClient();
   const todayStr = new Date().toISOString().slice(0, 10);
 
   if (parentId) {
-    const { data: mappings } = await service
+    const { data: mappings, error: mapErr } = await service
       .from("guardian_student_map")
       .select(`
-        student_id, is_primary_guardian,
-        students (
+        student_id, is_primary_guardian, status,
+        students!guardian_student_map_student_id_fkey (
           id, school_id, full_name, student_number, class_label, date_of_birth, status,
           daily_limit, emergency_approve, emergency_limit, created_at, updated_at, offboarded_at,
-          student_cards ( id, uid_last4, status ),
-          student_vault ( student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at, ledger_accounts ( balance ) ),
-          spp_invoices ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
+          student_cards!student_cards_student_id_fkey ( id, uid_last4, status ),
+          student_vault!student_vault_student_id_fkey ( student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at, ledger_accounts ( balance ) ),
+          spp_invoices!spp_invoices_student_id_fkey ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
         )
       `)
-      .eq("parent_id", parentId)
-      .eq("status", "active");
+      .eq("parent_id", parentId);
 
-    const rawList = (mappings ?? []).map((m) => m.students).filter(Boolean);
+    if (mapErr) {
+      console.error("Error fetching parent guardian_student_map:", mapErr);
+    }
+
+    const activeMappings = (mappings ?? []).filter(
+      (m) => !m.status || m.status.toLowerCase() === "active"
+    );
+
+    const rawList = activeMappings.map((m) => m.students).filter(Boolean);
 
     students = await Promise.all(
       rawList.map(async (st: any) => {
@@ -132,13 +139,16 @@ export default async function ParentDashboardPage() {
           <p className="text-sm text-muted-foreground">Selamat datang kembali</p>
           <h1 className="text-xl font-bold text-foreground">Parent Control Hub</h1>
         </div>
-        <button
-          id="notif-btn"
-          className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
-          aria-label="Notifikasi"
-        >
-          <Bell className="w-5 h-5 text-foreground" />
-        </button>
+        <div className="flex items-center gap-2">
+          <ParentLinkStudentAction variant="button" />
+          <button
+            id="notif-btn"
+            className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
+            aria-label="Notifikasi"
+          >
+            <Bell className="w-5 h-5 text-foreground" />
+          </button>
+        </div>
       </div>
 
       {/* Student cards */}
@@ -220,13 +230,7 @@ export default async function ParentDashboardPage() {
 
       {/* Empty state */}
       {students.length === 0 && (
-        <div className="glass rounded-2xl p-8 text-center space-y-3 border border-border/60">
-          <Wallet className="w-12 h-12 text-muted-foreground/70 mx-auto" />
-          <h2 className="font-bold text-base text-foreground">Belum Ada Siswa Terhubung</h2>
-          <p className="text-xs text-muted-foreground max-w-sm mx-auto">
-            Akun Anda belum terhubung dengan data siswa di sekolah. Berikan No. HP Anda (<strong>{user.phone || user.email}</strong>) kepada Admin Sekolah untuk ditautkan.
-          </p>
-        </div>
+        <ParentLinkStudentAction variant="empty" userContact={user.phone || user.email} />
       )}
 
       {/* Recent transactions */}

@@ -59,7 +59,7 @@ export default async function CanteenLayout({
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
-      <AiAssistant />
+      <AiAssistant persona="merchant" />
     </div>
   );
 }

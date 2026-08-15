@@ -3,25 +3,18 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import VaultGoalCard from "@/components/parent/VaultGoalCard";
+import VaultWithdrawalModal from "@/components/parent/VaultWithdrawalModal";
 import type { Metadata } from "next";
-import { Vault, ArrowDownToLine, AlertCircle } from "lucide-react";
+import { Vault } from "lucide-react";
 
 export const metadata: Metadata = { title: "Student Vault" };
-
-function formatRupiah(amount: number) {
-  return new Intl.NumberFormat("id-ID", {
-    style: "currency",
-    currency: "IDR",
-    minimumFractionDigits: 0,
-  }).format(amount);
-}
 
 export default async function VaultPage() {
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect("/login");
 
-  const parentId = await getOrResolveParentId(user);
+  const parentId = await getOrResolveParentId(user, true);
   let students: Array<{
     id: string;
     full_name: string;
@@ -38,19 +31,22 @@ export default async function VaultPage() {
     const { data: mappings } = await service
       .from("guardian_student_map")
       .select(`
-        student_id,
-        students (
+        student_id, status,
+        students!guardian_student_map_student_id_fkey (
           id, full_name,
-          student_vault (
+          student_vault!student_vault_student_id_fkey (
             student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at,
             ledger_accounts ( balance )
           )
         )
       `)
-      .eq("parent_id", parentId)
-      .eq("status", "active");
+      .eq("parent_id", parentId);
 
-    const rawStudents = (mappings ?? []).map((m) => m.students).filter(Boolean);
+    const activeMappings = (mappings ?? []).filter(
+      (m) => !m.status || m.status.toLowerCase() === "active"
+    );
+
+    const rawStudents = activeMappings.map((m) => m.students).filter(Boolean);
 
     students = rawStudents.map((st: any) => {
       const vArr = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
@@ -73,62 +69,50 @@ export default async function VaultPage() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      {/* Header */}
-      <div className="flex items-center gap-3 pt-2">
-        <div className="w-9 h-9 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center">
+    <div className="p-4 space-y-6">
+      <div className="flex items-center gap-3">
+        <div className="w-9 h-9 rounded-xl bg-accent/15 flex items-center justify-center">
           <Vault className="w-5 h-5 text-accent" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-foreground">Student Goal Vault</h1>
-          <p className="text-sm text-muted-foreground">Tabungan otomatis dari sisa pagu harian (Schema v3)</p>
+          <h1 className="text-xl font-bold">Student Vault (Tabungan Siswa)</h1>
+          <p className="text-xs text-muted-foreground">
+            Alokasi sisa pagu harian otomatis masuk ke tabungan impian anak
+          </p>
         </div>
       </div>
 
-      {students.map((student) => {
-        const vault = student.student_vault;
-        return (
-          <div key={student.id} className="space-y-3">
+      {students.length === 0 ? (
+        <div className="glass rounded-2xl p-8 text-center space-y-3">
+          <p className="text-sm font-semibold">Belum Ada Siswa Terhubung</p>
+          <p className="text-xs text-muted-foreground">
+            Tautkan data siswa terlebih dahulu di Dashboard untuk mengakses Student Vault.
+          </p>
+        </div>
+      ) : (
+        students.map((student) => (
+          <div key={student.id} className="space-y-4">
+            <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider px-1">
+              {student.full_name}
+            </h2>
+
             <VaultGoalCard
+              studentId={student.id}
               studentName={student.full_name}
-              vaultBalance={vault?.vault_balance ?? 0}
-              goalName={vault?.savings_goal_name ?? "Tabungan"}
-              goalTarget={vault?.savings_goal_target ?? 300000}
+              vaultBalance={student.student_vault?.vault_balance ?? 0}
+              goalName={student.student_vault?.savings_goal_name ?? "Tabungan Impian"}
+              goalTarget={student.student_vault?.savings_goal_target ?? 0}
             />
 
-            {/* Withdrawal section */}
-            <div className="glass rounded-2xl p-4 border border-border/60">
-              <h3 className="font-semibold text-sm mb-3 flex items-center gap-2 text-foreground">
-                <ArrowDownToLine className="w-4 h-4 text-primary" />
-                Cairkan Tabungan
-              </h3>
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-muted/50 border border-border/50 mb-3">
-                <AlertCircle className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
-                <p className="text-xs text-muted-foreground">
-                  Pencairan memerlukan konfirmasi dua pihak (Dual Control). Dana akan
-                  dikembalikan ke rekening BNI orang tua utama.
-                </p>
-              </div>
-              {vault && vault.vault_balance > 0 ? (
-                <div className="flex items-center justify-between">
-                  <span className="text-sm text-muted-foreground">Saldo tersedia</span>
-                  <span className="font-bold text-lg text-foreground">{formatRupiah(vault.vault_balance)}</span>
-                </div>
-              ) : (
-                <p className="text-sm text-muted-foreground text-center py-2">
-                  Belum ada saldo untuk dicairkan
-                </p>
-              )}
+            <div className="flex justify-end">
+              <VaultWithdrawalModal
+                studentId={student.id}
+                studentName={student.full_name}
+                vaultBalance={student.student_vault?.vault_balance ?? 0}
+              />
             </div>
           </div>
-        );
-      })}
-
-      {students.length === 0 && (
-        <div className="glass rounded-2xl p-8 text-center border border-border/60">
-          <Vault className="w-10 h-10 text-muted-foreground/70 mx-auto mb-3" />
-          <p className="font-bold text-foreground">Belum Ada Siswa Terhubung</p>
-        </div>
+        ))
       )}
     </div>
   );

@@ -7,6 +7,7 @@ interface ParentItem {
   id: string;
   full_name: string;
   phone_number: string;
+  email?: string | null;
   bni_account_number: string;
 }
 
@@ -29,6 +30,7 @@ export default function LinkParentModal({
 }: LinkParentModalProps) {
   const [mode, setMode] = useState<"select" | "new">("select");
   const [parentsList, setParentsList] = useState<ParentItem[]>([]);
+  const [parentSearch, setParentSearch] = useState("");
   const [selectedParentId, setSelectedParentId] = useState<string>(student.parent?.id || "");
   const [parentName, setParentName] = useState("");
   const [parentPhone, setParentPhone] = useState("");
@@ -37,6 +39,16 @@ export default function LinkParentModal({
   const [loading, setLoading] = useState(false);
   const [fetchingParents, setFetchingParents] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const filteredParents = parentsList.filter((p) => {
+    if (!parentSearch.trim()) return true;
+    const q = parentSearch.toLowerCase().trim();
+    return (
+      p.full_name.toLowerCase().includes(q) ||
+      p.phone_number.includes(q) ||
+      (p.email && p.email.toLowerCase().includes(q))
+    );
+  });
 
   useEffect(() => {
     async function loadParents() {
@@ -168,31 +180,43 @@ export default function LinkParentModal({
           </div>
 
           {mode === "select" ? (
-            <div>
-              <label className="block text-sm font-medium text-foreground mb-1.5">Pilih Orang Tua</label>
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <label className="block text-xs font-semibold text-foreground">Pilih Orang Tua Terdaftar</label>
+                <span className="text-[11px] text-muted-foreground">{filteredParents.length} akun ditemukan</span>
+              </div>
+
+              <input
+                type="text"
+                value={parentSearch}
+                onChange={(e) => setParentSearch(e.target.value)}
+                placeholder="Cari nama, HP, atau email wali..."
+                className="w-full px-3 py-1.5 rounded-xl bg-background border border-border text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 mb-1"
+              />
+
               {fetchingParents ? (
-                <div className="flex items-center gap-2 text-sm text-muted-foreground p-3 bg-background border border-border/60 rounded-xl">
+                <div className="flex items-center gap-2 text-xs text-muted-foreground p-3 bg-background border border-border/60 rounded-xl">
                   <Loader2 className="w-4 h-4 animate-spin text-primary" /> Memuat data orang tua...
                 </div>
-              ) : parentsList.length === 0 ? (
+              ) : filteredParents.length === 0 ? (
                 <p className="text-xs text-muted-foreground p-3 bg-muted/50 border border-border/60 rounded-xl">
-                  Belum ada akun orang tua terdaftar. Pilih tab &quot;Input HP Baru&quot; di atas.
+                  Tidak ada akun orang tua yang sesuai. Pilih tab &quot;Input HP Baru&quot; di atas.
                 </p>
               ) : (
                 <select
                   value={selectedParentId}
                   onChange={(e) => setSelectedParentId(e.target.value)}
-                  className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm cursor-pointer"
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm cursor-pointer"
                   required
                 >
-                  <option value="" className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100">
-                    -- Pilih Orang Tua / Wali --
+                  <option value="" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+                    -- Pilih Orang Tua / Wali ({filteredParents.length}) --
                   </option>
-                  {parentsList.map((p) => (
+                  {filteredParents.map((p) => (
                     <option
                       key={p.id}
                       value={p.id}
-                      className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100 py-1"
+                      className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 py-1"
                     >
                       {p.full_name} ({p.phone_number})
                     </option>
@@ -252,11 +276,11 @@ export default function LinkParentModal({
             <select
               value={relationship}
               onChange={(e) => setRelationship(e.target.value)}
-              className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm cursor-pointer"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm cursor-pointer"
             >
-              <option value="orang_tua" className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100">Orang Tua (Ayah / Ibu)</option>
-              <option value="wali" className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100">Wali / Keluarga</option>
-              <option value="kakak" className="bg-slate-900 text-slate-100 dark:bg-zinc-900 dark:text-zinc-100">Kakak / Saudara Kandung</option>
+              <option value="orang_tua" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Orang Tua (Ayah / Ibu)</option>
+              <option value="wali" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Wali / Keluarga</option>
+              <option value="kakak" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Kakak / Saudara Kandung</option>
             </select>
           </div>
 

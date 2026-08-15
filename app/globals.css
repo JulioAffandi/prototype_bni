@@ -44,6 +44,17 @@
     -webkit-font-smoothing: antialiased;
   }
 
+  select {
+    color-scheme: dark;
+    background-color: #0f172a;
+    color: #f8fafc;
+  }
+
+  select option {
+    background-color: #0f172a !important;
+    color: #f8fafc !important;
+  }
+
   /* Scrollbar styling */
   ::-webkit-scrollbar {
     width: 6px;

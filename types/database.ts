@@ -83,6 +83,9 @@ export interface TransactionItem {
   menu: string;
   qty: number;
   price: number;
+  category?: string;
+  menu_item_id?: string;
+  unit_cost?: number;
 }
 
 // ─── RPC Return Type ──────────────────────────────────────────
@@ -100,6 +103,14 @@ export interface CanteenTapRpcResult {
   [key: string]: unknown;
 }
 
+export type TelegramTargetsResult = {
+  parent_chat_ids: string[] | null;
+  merchant_chat_id: string | null;
+  student_full_name: string;
+  merchant_name: string;
+};
+
+
 // ─── Supabase Database Interface ───────────────────────────────
 export interface Database {
   public: {
@@ -115,6 +126,7 @@ export interface Database {
           default_daily_limit: number;
           default_emergency_limit: number;
           status: school_status_t;
+          telegram_chat_id: string | null;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -134,6 +146,7 @@ export interface Database {
           pic_name: string | null;
           bni_merchant_account: string;
           status: merchant_status_t;
+          telegram_chat_id: string | null;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -163,6 +176,7 @@ export interface Database {
           email: string | null;
           bni_account_number: string | null;
           bni_link_status: string;
+          telegram_chat_id: string | null;
           created_at: string;
           updated_at: string;
           deleted_at: string | null;
@@ -178,7 +192,10 @@ export interface Database {
         Row: {
           id: string;
           display_name: string;
+          role: user_role_t | null;
+          school_id: string | null;
           parent_id: string | null;
+          merchant_id: string | null;
           locale: string;
           is_active: boolean;
           created_at: string;
@@ -246,11 +263,16 @@ export interface Database {
           full_name: string;
           student_number: string | null;
           class_label: string | null;
+          grade_level: number | null;
+          class_name: string | null;
           date_of_birth: string | null;
           status: student_status_t;
           daily_limit: number;
+          daily_limit_used: number;
+          daily_limit_reset_at: string | null;
           emergency_approve: boolean;
           emergency_limit: number;
+          emergency_used_today: boolean;
           created_at: string;
           updated_at: string;
           offboarded_at: string | null;
@@ -584,6 +606,7 @@ export interface Database {
           student_id: string;
           school_id: string;
           ledger_account_id: string;
+          vault_balance: number;
           savings_goal_name: string | null;
           savings_goal_target: number | null;
           created_at: string;
@@ -772,22 +795,189 @@ export interface Database {
       ai_chat_logs: {
         Row: {
           id: string;
+          session_id: string | null;
           persona_type: ai_persona_t;
           actor_user_id: string | null;
+          actor_profile_id: string | null;
           school_id: string | null;
           prompt: string;
-          response: string;
+          response: string | null;
           function_calls: Json | null;
           model: string | null;
+          model_id: string | null;
+          input_tokens: number | null;
+          output_tokens: number | null;
+          total_tokens: number | null;
+          tools_invoked: string[];
+          step_count: number | null;
+          finish_reason: string | null;
           latency_ms: number | null;
+          error_code: string | null;
+          scope_snapshot: Json | null;
           created_at: string;
         };
         Insert: Partial<Database["public"]["Tables"]["ai_chat_logs"]["Row"]> & {
           persona_type: ai_persona_t;
           prompt: string;
-          response: string;
         };
         Update: Partial<Database["public"]["Tables"]["ai_chat_logs"]["Row"]>;
+        Relationships: [];
+      };
+      telegram_link_failures: {
+        Row: {
+          id: string;
+          entity_type: "parent" | "merchant" | "school";
+          entity_id: string;
+          chat_id: string;
+          consecutive_failures: number;
+          last_error_code: number | null;
+          last_attempt_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["telegram_link_failures"]["Row"]> & {
+          entity_type: "parent" | "merchant" | "school";
+          entity_id: string;
+          chat_id: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["telegram_link_failures"]["Row"]>;
+        Relationships: [];
+      };
+      menu_items: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          name: string;
+          category: string;
+          unit_price: number;
+          unit_cost: number | null;
+          stock_qty: number;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["menu_items"]["Row"]> & {
+          merchant_id: string;
+          name: string;
+          category: string;
+          unit_price: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["menu_items"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "menu_items_merchant_id_fkey";
+            columns: ["merchant_id"];
+            isOneToOne: false;
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      canteen_transaction_items: {
+        Row: {
+          id: string;
+          transaction_id: string;
+          menu_item_id: string | null;
+          item_name_snapshot: string;
+          category_snapshot: string;
+          qty: number;
+          unit_price_snapshot: number;
+          unit_cost_snapshot: number | null;
+          line_total: number;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["canteen_transaction_items"]["Row"]> & {
+          transaction_id: string;
+          item_name_snapshot: string;
+          category_snapshot: string;
+          qty: number;
+          unit_price_snapshot: number;
+          line_total: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["canteen_transaction_items"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "canteen_transaction_items_transaction_id_fkey";
+            columns: ["transaction_id"];
+            isOneToOne: false;
+            referencedRelation: "canteen_transactions";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "canteen_transaction_items_menu_item_id_fkey";
+            columns: ["menu_item_id"];
+            isOneToOne: false;
+            referencedRelation: "menu_items";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      settlement_batches: {
+        Row: {
+          id: string;
+          merchant_id: string;
+          business_date: string;
+          gross_amount: number;
+          platform_fee: number;
+          net_amount: number;
+          transaction_count: number;
+          status: "PENDING" | "SUBMITTED" | "CONFIRMED" | "FAILED";
+          bni_reference: string | null;
+          failure_reason: string | null;
+          scheduled_disburse_at: string | null;
+          disbursed_at: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["settlement_batches"]["Row"]> & {
+          merchant_id: string;
+          business_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["settlement_batches"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "settlement_batches_merchant_id_fkey";
+            columns: ["merchant_id"];
+            isOneToOne: false;
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      school_giro_snapshots: {
+        Row: {
+          id: string;
+          school_id: string;
+          snapshot_date: string;
+          giro_balance: number;
+          source: "BNI_H2H" | "MANUAL_ENTRY";
+          fetched_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["school_giro_snapshots"]["Row"]> & {
+          school_id: string;
+          snapshot_date: string;
+          giro_balance: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["school_giro_snapshots"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "school_giro_snapshots_school_id_fkey";
+            columns: ["school_id"];
+            isOneToOne: false;
+            referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      ai_rate_limit_counters: {
+        Row: {
+          actor_profile_id: string;
+          window_start: string;
+          request_count: number;
+          token_count: number;
+        };
+        Insert: Partial<Database["public"]["Tables"]["ai_rate_limit_counters"]["Row"]> & {
+          actor_profile_id: string;
+          window_start: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["ai_rate_limit_counters"]["Row"]>;
         Relationships: [];
       };
     };
@@ -805,6 +995,108 @@ export interface Database {
           p_occurred_at?: string;
         };
         Returns: CanteenTapRpcResult;
+      };
+      fn_get_telegram_targets: {
+        Args: {
+          p_student_id: string;
+          p_merchant_id: string;
+        };
+        Returns: TelegramTargetsResult[];
+      };
+      rpc_school_escrow_summary: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          net_balance: number;
+          total_credit: number;
+          total_debit: number;
+          entry_count: number;
+          last_entry_at: string | null;
+        }>;
+      };
+      rpc_merchant_daily_metrics: {
+        Args: {
+          p_business_date: string;
+        };
+        Returns: Array<{
+          gross_revenue: number;
+          transaction_count: number;
+          avg_ticket: number;
+          emergency_count: number;
+          rejected_count: number;
+          estimated_cogs: number;
+          cogs_coverage_pct: number;
+          peak_hour: number | null;
+          peak_hour_count: number;
+        }>;
+      };
+      rpc_merchant_top_items: {
+        Args: {
+          p_days: number;
+          p_limit: number;
+        };
+        Returns: Array<{
+          item_name: string;
+          category: string;
+          qty_sold: number;
+          revenue: number;
+          stock_left: number | null;
+        }>;
+      };
+      rpc_child_spending_by_category: {
+        Args: {
+          p_student_id: string;
+          p_from: string;
+          p_to: string;
+        };
+        Returns: Array<{
+          category: string;
+          total_amount: number;
+          item_count: number;
+          pct_of_total: number;
+        }>;
+      };
+      rpc_spp_collection_rate: {
+        Args: {
+          p_period: string;
+        };
+        Returns: Array<{
+          total_invoice: number;
+          paid_count: number;
+          unpaid_count: number;
+          failed_count: number;
+          overdue_count: number;
+          billed_amount: number;
+          collected_amount: number;
+          collection_pct: number;
+        }>;
+      };
+      rpc_school_card_stats: {
+        Args: Record<string, never>;
+        Returns: Array<{
+          total_students: number;
+          active_cards: number;
+          lost_reported: number;
+          blocked: number;
+          graduated: number;
+          transferred_out: number;
+          consent_pending: number;
+          issued_last_30d: number;
+        }>;
+      };
+      valo_current_role: {
+        Args: Record<string, never>;
+        Returns: string;
+      };
+      rpc_ai_consume_rate_limit: {
+        Args: {
+          p_profile: string;
+          p_max_req: number;
+          p_window_minutes: number;
+        };
+        Returns: Array<{
+          diizinkan: boolean;
+          sisa_request: number;
+        }>;
       };
     };
     Enums: {
@@ -854,6 +1146,12 @@ export type CardLifecycleEventRow = Database["public"]["Tables"]["card_lifecycle
 export type ParentalConsentRow = Database["public"]["Tables"]["parental_consent"]["Row"];
 export type AuditLogRow = Database["public"]["Tables"]["audit_log"]["Row"];
 export type AIChatLogRow = Database["public"]["Tables"]["ai_chat_logs"]["Row"];
+export type TelegramLinkFailureRow = Database["public"]["Tables"]["telegram_link_failures"]["Row"];
+export type MenuItemRow = Database["public"]["Tables"]["menu_items"]["Row"];
+export type CanteenTransactionItemRow = Database["public"]["Tables"]["canteen_transaction_items"]["Row"];
+export type SettlementBatchRow = Database["public"]["Tables"]["settlement_batches"]["Row"];
+export type SchoolGiroSnapshotRow = Database["public"]["Tables"]["school_giro_snapshots"]["Row"];
+export type AIRateLimitCounterRow = Database["public"]["Tables"]["ai_rate_limit_counters"]["Row"];
 
 // ─── API Types ───────────────────────────────────────────────
 export interface CanteenTransactionRequest {

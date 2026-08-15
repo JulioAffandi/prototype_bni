@@ -7,6 +7,9 @@ import {
   WifiOff,
   BarChart3,
   Bot,
+  Settings,
+  Utensils,
+  User,
 } from "lucide-react";
 import Link from "next/link";
 import OfflineQueueIndicator from "./OfflineQueueIndicator";
@@ -60,9 +63,19 @@ export default function CanteenHeader({ merchantName }: CanteenHeaderProps) {
         <div className="flex items-center gap-2">
           <OfflineQueueIndicator />
           <Link
+            href="/pos/menu"
+            id="menu-management-link"
+            className="w-8 h-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors"
+            title="Kelola Menu & Stok"
+            aria-label="Kelola Menu & Stok"
+          >
+            <Utensils className="w-4 h-4 text-muted-foreground" />
+          </Link>
+          <Link
             href="/pos/settlement"
             id="settlement-link"
             className="w-8 h-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors"
+            title="Settlement H+0"
             aria-label="Settlement H+0"
           >
             <BarChart3 className="w-4 h-4 text-muted-foreground" />
@@ -71,9 +84,28 @@ export default function CanteenHeader({ merchantName }: CanteenHeaderProps) {
             href="/pos/ai"
             id="ai-advisor-link"
             className="w-8 h-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors"
+            title="AI Sales Advisor"
             aria-label="AI Sales Advisor"
           >
             <Bot className="w-4 h-4 text-muted-foreground" />
+          </Link>
+          <Link
+            href="/pos/profile"
+            id="profile-link"
+            className="w-8 h-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors"
+            title="Profil Stand Kantin"
+            aria-label="Profil Stand Kantin"
+          >
+            <User className="w-4 h-4 text-muted-foreground" />
+          </Link>
+          <Link
+            href="/pos/settings"
+            id="settings-link"
+            className="w-8 h-8 rounded-xl border border-border flex items-center justify-center hover:bg-muted transition-colors"
+            title="Pengaturan Telegram"
+            aria-label="Pengaturan Telegram"
+          >
+            <Settings className="w-4 h-4 text-muted-foreground" />
           </Link>
         </div>
       </div>

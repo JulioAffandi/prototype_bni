@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   CheckCircle2, AlertTriangle, Clock, XCircle,
-  RefreshCw, ChevronDown, Search, Filter,
+  RefreshCw, ChevronDown, Search, Filter, Plus, Loader2, X, FileText,
 } from "lucide-react";
 
 import type { invoice_status_t } from "@/types/database";
@@ -39,12 +39,12 @@ function formatRupiah(amount: number) {
 }
 
 const STATUS_CONFIG: Record<string, { icon: typeof CheckCircle2; label: string; class: string }> = {
-  PAID:      { icon: CheckCircle2,  label: "Lunas",       class: "badge-paid" },
-  UNPAID:    { icon: Clock,         label: "Belum Bayar", class: "badge-unpaid" },
-  FAILED:    { icon: XCircle,       label: "Gagal",       class: "badge-failed" },
-  OVERDUE:   { icon: AlertTriangle, label: "Jatuh Tempo", class: "badge-overdue" },
-  DRAFT:     { icon: Clock,         label: "Draft",       class: "badge-unpaid" },
-  CANCELLED: { icon: XCircle,       label: "Batal",       class: "badge-failed" },
+  PAID: { icon: CheckCircle2, label: "Lunas", class: "badge-paid" },
+  UNPAID: { icon: Clock, label: "Belum Bayar", class: "badge-unpaid" },
+  FAILED: { icon: XCircle, label: "Gagal", class: "badge-failed" },
+  OVERDUE: { icon: AlertTriangle, label: "Jatuh Tempo", class: "badge-overdue" },
+  DRAFT: { icon: Clock, label: "Draft", class: "badge-unpaid" },
+  CANCELLED: { icon: XCircle, label: "Batal", class: "badge-failed" },
 };
 
 export default function SPPReconciliationTable({
@@ -54,11 +54,20 @@ export default function SPPReconciliationTable({
   initialInvoices,
 }: SPPReconciliationTableProps) {
   const [period, setPeriod] = useState(initialPeriod);
+  const [periodsList, setPeriodsList] = useState<string[]>(availablePeriods);
   const [invoices, setInvoices] = useState<Invoice[]>(initialInvoices);
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<SPPStatus | "ALL">("ALL");
   const [loading, setLoading] = useState(false);
   const [retrying, setRetrying] = useState<string | null>(null);
+
+  // Generate modal state
+  const [showGenModal, setShowGenModal] = useState(false);
+  const [genPeriod, setGenPeriod] = useState(initialPeriod);
+  const [genAmount, setGenAmount] = useState(500000);
+  const [generating, setGenerating] = useState(false);
+  const [genMsg, setGenMsg] = useState<string | null>(null);
+  const [genError, setGenError] = useState<string | null>(null);
 
   async function loadPeriod(newPeriod: string) {
     setLoading(true);
@@ -90,16 +99,56 @@ export default function SPPReconciliationTable({
     }
   }
 
+  async function handleGenerateSPP(e: React.FormEvent) {
+    e.preventDefault();
+    setGenerating(true);
+    setGenError(null);
+    setGenMsg(null);
+
+    try {
+      const res = await fetch(`/api/v1/schools/${schoolId}/spp/generate`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          period: genPeriod.trim(),
+          amount: Number(genAmount),
+        }),
+      });
+
+      const data = await res.json() as { success?: boolean; message?: string; generated_count?: number; error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.message ?? data.error ?? "Gagal memproses batch SPP");
+      }
+
+      if (!periodsList.includes(genPeriod.trim())) {
+        setPeriodsList((prev) => [genPeriod.trim(), ...prev]);
+      }
+
+      setGenMsg(data.message ?? `Berhasil membuat ${data.generated_count} tagihan SPP.`);
+      await loadPeriod(genPeriod.trim());
+
+      setTimeout(() => {
+        setShowGenModal(false);
+        setGenMsg(null);
+      }, 1500);
+    } catch (err) {
+      setGenError(err instanceof Error ? err.message : "Terjadi kesalahan");
+    } finally {
+      setGenerating(false);
+    }
+  }
+
   const filtered = invoices.filter((inv) => {
     const matchSearch = search === "" || inv.student_name.toLowerCase().includes(search.toLowerCase());
     const matchStatus = filterStatus === "ALL" || inv.status === filterStatus;
     return matchSearch && matchStatus;
   });
 
-  const totalPaid    = invoices.filter((i) => i.status === "PAID").length;
-  const totalFailed  = invoices.filter((i) => i.status === "FAILED" || i.status === "OVERDUE").length;
-  const totalAmount  = invoices.reduce((s, i) => s + i.amount, 0);
-  const paidAmount   = invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0);
+  const totalPaid = invoices.filter((i) => i.status === "PAID").length;
+  const totalFailed = invoices.filter((i) => i.status === "FAILED" || i.status === "OVERDUE").length;
+  const totalAmount = invoices.reduce((s, i) => s + i.amount, 0);
+  const paidAmount = invoices.filter((i) => i.status === "PAID").reduce((s, i) => s + i.amount, 0);
 
   return (
     <div className="space-y-4">
@@ -118,7 +167,7 @@ export default function SPPReconciliationTable({
         ))}
       </div>
 
-      {/* Filters */}
+      {/* Filters & Actions */}
       <div className="flex items-center gap-3 flex-wrap">
         {/* Period selector */}
         <div className="relative">
@@ -126,10 +175,12 @@ export default function SPPReconciliationTable({
             id="spp-period-select"
             value={period}
             onChange={(e) => loadPeriod(e.target.value)}
-            className="appearance-none bg-muted border border-border rounded-xl px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            className="appearance-none bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 rounded-xl px-4 py-2 pr-8 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
           >
-            {availablePeriods.map((p) => (
-              <option key={p} value={p}>{p}</option>
+            {periodsList.map((p) => (
+              <option key={p} value={p} className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+                {p}
+              </option>
             ))}
           </select>
           <ChevronDown className="absolute right-2 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
@@ -148,6 +199,20 @@ export default function SPPReconciliationTable({
           />
         </div>
 
+        {/* Generate Button */}
+        <button
+          id="generate-spp-btn"
+          onClick={() => {
+            setGenError(null);
+            setGenMsg(null);
+            setShowGenModal(true);
+          }}
+          className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-primary text-primary-foreground text-sm font-bold hover:bg-primary/90 active:scale-[0.98] transition-all shadow-sm"
+        >
+          <Plus className="w-4 h-4" />
+          Generate Tagihan SPP
+        </button>
+
         {/* Status filter */}
         <div className="flex items-center gap-2">
           <Filter className="w-4 h-4 text-muted-foreground" />
@@ -156,11 +221,10 @@ export default function SPPReconciliationTable({
               key={s}
               id={`spp-filter-${s}`}
               onClick={() => setFilterStatus(s)}
-              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${
-                filterStatus === s
-                  ? "border-primary bg-primary/15 text-primary"
-                  : "border-border text-muted-foreground hover:border-primary/50"
-              }`}
+              className={`px-3 py-1.5 rounded-full text-xs font-medium border transition-all ${filterStatus === s
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-border text-muted-foreground hover:border-primary/50"
+                }`}
             >
               {s === "ALL" ? "Semua" : STATUS_CONFIG[s].label}
             </button>
@@ -245,6 +309,117 @@ export default function SPPReconciliationTable({
           </table>
         )}
       </div>
+
+      {/* Generate SPP Modal */}
+      {showGenModal && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden p-5 space-y-4">
+            <div className="flex items-center justify-between border-b border-border pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
+                  <FileText className="w-4 h-4 text-primary" />
+                </div>
+                <h3 className="font-bold text-base text-foreground">Generate Batch Tagihan SPP</h3>
+              </div>
+              <button
+                onClick={() => setShowGenModal(false)}
+                className="w-7 h-7 rounded-lg hover:bg-muted flex items-center justify-center text-muted-foreground"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <form onSubmit={handleGenerateSPP} className="space-y-4">
+              <div>
+                <label htmlFor="gen-period" className="block text-xs font-semibold text-foreground mb-1">
+                  Periode Tagihan (YYYY-MM)
+                </label>
+                <input
+                  id="gen-period"
+                  type="month"
+                  value={genPeriod}
+                  onChange={(e) => setGenPeriod(e.target.value)}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                />
+              </div>
+
+              <div>
+                <label htmlFor="gen-amount" className="block text-xs font-semibold text-foreground mb-1">
+                  Nominal SPP per Siswa (Rp)
+                </label>
+                <input
+                  id="gen-amount"
+                  type="number"
+                  step={50000}
+                  value={genAmount}
+                  onChange={(e) => setGenAmount(Number(e.target.value))}
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm mb-2"
+                />
+                <div className="flex gap-2">
+                  {[300000, 500000, 750000, 1000000].map((preset) => (
+                    <button
+                      key={preset}
+                      type="button"
+                      onClick={() => setGenAmount(preset)}
+                      className={`flex-1 py-1 rounded-lg text-[11px] font-semibold border transition-all ${genAmount === preset
+                        ? "bg-primary text-primary-foreground border-primary"
+                        : "bg-muted/50 text-muted-foreground border-border/60 hover:text-foreground"
+                        }`}
+                    >
+                      Rp {(preset / 1000).toLocaleString("id-ID")}k
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="p-3 rounded-xl bg-muted/60 border border-border/60 text-xs text-muted-foreground">
+                Sistem akan memproses seluruh siswa aktif di sekolah ini yang belum memiliki tagihan SPP untuk periode <strong>{genPeriod}</strong>.
+              </div>
+
+              {genMsg && (
+                <p className="text-xs text-emerald-500 bg-emerald-500/15 border border-emerald-500/30 p-2.5 rounded-xl font-semibold flex items-center gap-1.5">
+                  <CheckCircle2 className="w-4 h-4 shrink-0" />
+                  {genMsg}
+                </p>
+              )}
+
+              {genError && (
+                <p className="text-xs text-destructive bg-destructive/10 border border-destructive/25 p-2.5 rounded-xl font-medium">
+                  {genError}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setShowGenModal(false)}
+                  disabled={generating}
+                  className="flex-1 py-2.5 rounded-xl border border-border bg-background text-foreground text-xs font-semibold hover:bg-muted transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  id="submit-gen-spp-btn"
+                  type="submit"
+                  disabled={generating || !genPeriod.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-1 shadow-md disabled:opacity-60"
+                >
+                  {generating ? (
+                    <>
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" /> Memproses...
+                    </>
+                  ) : (
+                    "Proses Batch Tagihan"
+                  )}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

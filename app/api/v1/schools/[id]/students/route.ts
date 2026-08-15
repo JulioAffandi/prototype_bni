@@ -9,6 +9,9 @@ const RegisterStudentSchema = z.object({
   raw_nfc_uid: z.string().min(4),
   nfc_uid_last4: z.string().length(4).optional(),
   student_number: z.string().optional(),
+  date_of_birth: z.string().optional(),
+  grade_level: z.string().optional(),
+  class_name: z.string().optional(),
   class_label: z.string().optional(),
   daily_limit: z.number().positive().optional().default(20000),
   emergency_limit: z.number().nonnegative().optional().default(15000),
@@ -16,8 +19,8 @@ const RegisterStudentSchema = z.object({
   parent_id: z.string().uuid().optional(),
   parent_phone: z.string().optional(),
   parent_full_name: z.string().optional(),
-  parent_email: z.string().email().optional(),
-  relationship: z.enum(["ayah", "ibu", "wali", "kakek_nenek", "saudara", "institusi", "lainnya"]).default("wali"),
+  parent_email: z.string().optional(),
+  relationship: z.enum(["ayah", "ibu", "wali", "kakek_nenek", "saudara", "institusi", "lainnya", "orang_tua"]).default("wali"),
 });
 
 /**
@@ -82,6 +85,9 @@ export async function POST(
     raw_nfc_uid,
     nfc_uid_last4,
     student_number,
+    date_of_birth,
+    grade_level,
+    class_name,
     class_label,
     daily_limit,
     emergency_limit,
@@ -92,6 +98,8 @@ export async function POST(
     parent_email,
     relationship,
   } = parsed.data;
+
+  const finalClassLabel = class_label || (grade_level || class_name ? `Kelas ${grade_level || ''} ${class_name || ''}`.trim() : null);
 
   // 1. SHA-256 Card UID Tokenization
   const tenantSalt = process.env.TENANT_SALT_SECRET || "default_tenant_salt";
@@ -111,7 +119,7 @@ export async function POST(
 
   if (existingCard) {
     return NextResponse.json(
-      { error: "INVALID_PAYLOAD", message: "UID kartu ini sudah terdaftar di sekolah ini." },
+      { error: "CARD_ALREADY_REGISTERED", message: "Kartu NFC dengan UID ini sudah digunakan oleh siswa lain." },
       { status: 409 },
     );
   }
@@ -123,17 +131,41 @@ export async function POST(
       school_id: schoolId,
       full_name,
       student_number: student_number || null,
-      class_label: class_label || null,
+      date_of_birth: date_of_birth || null,
+      class_label: finalClassLabel,
       daily_limit,
       emergency_approve,
       emergency_limit,
       status: "active",
     })
-    .select("id, school_id, full_name, student_number, class_label, daily_limit, emergency_approve, emergency_limit, created_at")
+    .select("id, school_id, full_name, student_number, date_of_birth, class_label, daily_limit, emergency_approve, emergency_limit, created_at")
     .single();
 
   if (studentError || !student) {
-    return NextResponse.json({ error: "INSERT_FAILED", detail: studentError?.message }, { status: 500 });
+    const isNisnConflict =
+      studentError?.code === "23505" ||
+      studentError?.message?.includes("student_number") ||
+      studentError?.message?.includes("uq_students_number_per_school") ||
+      studentError?.details?.includes("student_number");
+
+    if (isNisnConflict) {
+      return NextResponse.json(
+        {
+          error: "NISN_ALREADY_EXISTS",
+          message: `NISN / No. Induk "${student_number}" sudah terdaftar di sekolah ini.`,
+        },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(
+      {
+        error: "INSERT_FAILED",
+        message: studentError?.message || "Gagal menyimpan data siswa ke database.",
+        detail: studentError?.details,
+      },
+      { status: 400 },
+    );
   }
 
   // 3. Insert Card Credentials into public.student_cards
@@ -151,7 +183,23 @@ export async function POST(
     .single();
 
   if (cardError || !card) {
-    return NextResponse.json({ error: "CARD_PROVISIONING_FAILED", detail: cardError?.message }, { status: 500 });
+    const isCardConflict =
+      cardError?.code === "23505" ||
+      cardError?.message?.includes("uid_hash") ||
+      cardError?.message?.includes("uq_cards_tenant_uid") ||
+      cardError?.details?.includes("uid_hash");
+
+    if (isCardConflict) {
+      return NextResponse.json(
+        { error: "CARD_ALREADY_REGISTERED", message: "Kartu NFC dengan UID ini sudah digunakan oleh siswa lain." },
+        { status: 409 },
+      );
+    }
+
+    return NextResponse.json(
+      { error: "CARD_PROVISIONING_FAILED", message: cardError?.message || "Gagal mengaktifkan kartu NFC." },
+      { status: 400 },
+    );
   }
 
   // 4. Initialize Vault Ledger Account & Student Vault
@@ -194,7 +242,7 @@ export async function POST(
     } else {
       // Create parent record without fake BNI account
       const parentName = parent_full_name?.trim() || `Wali dari ${full_name}`;
-      const { data: newParent } = await service
+      const { data: newParent, error: parentErr } = await service
         .from("parents")
         .insert({
           full_name: parentName,
@@ -209,6 +257,18 @@ export async function POST(
       if (newParent) {
         targetParentId = newParent.id;
         parentRecord = newParent;
+      } else if (parentErr) {
+        // Fallback to lookup existing parent on phone unique conflict
+        const { data: fallbackParent } = await service
+          .from("parents")
+          .select("id, full_name, phone_number, email")
+          .eq("phone_number", cleanPhone)
+          .maybeSingle();
+
+        if (fallbackParent) {
+          targetParentId = fallbackParent.id;
+          parentRecord = fallbackParent;
+        }
       }
     }
   } else if (targetParentId) {
@@ -223,20 +283,38 @@ export async function POST(
   }
 
   if (targetParentId) {
-    // Insert Guardianship Mapping
-    await service.from("guardian_student_map").insert({
-      parent_id: targetParentId,
-      student_id: student.id,
-      school_id: schoolId,
-      relationship: relationship || "wali",
-      is_primary_guardian: true,
-      status: "active",
-      can_view_activity: true,
-      can_manage_pagu: true,
-      can_fund: true,
-      can_approve_vault: true,
-      can_report_card_lost: true,
-    });
+    const validRelationship = relationship === "orang_tua" ? "wali" : (relationship as "ayah" | "ibu" | "wali" | "kakek_nenek" | "saudara" | "institusi" | "lainnya");
+    
+    // Check if mapping already exists
+    const { data: existingMap } = await service
+      .from("guardian_student_map")
+      .select("id")
+      .eq("parent_id", targetParentId)
+      .eq("student_id", student.id)
+      .maybeSingle();
+
+    if (existingMap) {
+      await service.from("guardian_student_map").update({
+        status: "active",
+        relationship: validRelationship,
+        is_primary_guardian: true,
+        revoked_at: null,
+      }).eq("id", existingMap.id);
+    } else {
+      await service.from("guardian_student_map").insert({
+        parent_id: targetParentId,
+        student_id: student.id,
+        school_id: schoolId,
+        relationship: validRelationship,
+        is_primary_guardian: true,
+        status: "active",
+        can_view_activity: true,
+        can_manage_pagu: true,
+        can_fund: true,
+        can_approve_vault: true,
+        can_report_card_lost: true,
+      });
+    }
 
     // Check profile binding
     const { data: profile } = await service

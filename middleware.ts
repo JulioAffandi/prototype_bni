@@ -4,12 +4,6 @@ import { NextResponse, type NextRequest } from "next/server";
 /**
  * Next.js Middleware — Session refresh + dedicated login portal routing & strict persona isolation.
  * Reference: Schema v3 Custom Access Token Hooks (§15 jwt_app_meta)
- *
- * App Metadata Claims:
- * - roles: string[]
- * - school_ids: string[]
- * - merchant_ids: string[]
- * - parent_id: string | null
  */
 export async function middleware(request: NextRequest) {
   let supabaseResponse = NextResponse.next({ request });
@@ -22,7 +16,7 @@ export async function middleware(request: NextRequest) {
         getAll() {
           return request.cookies.getAll();
         },
-        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+        setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) { // eslint-disable-line @typescript-eslint/no-explicit-any
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
@@ -42,7 +36,20 @@ export async function middleware(request: NextRequest) {
 
   const { pathname } = request.nextUrl;
 
-  // Extract roles from app_metadata (Schema v3 JWT injection)
+  // 1. Whitelisted public / auth / static routes
+  const isPublicRoute =
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/auth") ||
+    pathname.startsWith("/api") ||
+    pathname.startsWith("/_next") ||
+    pathname === "/favicon.ico" ||
+    pathname === "/sitemap.xml" ||
+    pathname === "/robots.txt" ||
+    pathname === "/manifest.json" ||
+    pathname.startsWith("/icons") ||
+    pathname.startsWith("/sw.js");
+
+  // Extract roles from app_metadata or user_metadata
   const appMetadata = user?.app_metadata || {};
   const userRoles: string[] = Array.isArray(appMetadata.roles) ? appMetadata.roles : [];
   const legacyRole = (user?.user_metadata?.role as string) || (appMetadata.role as string) || "";
@@ -53,52 +60,90 @@ export async function middleware(request: NextRequest) {
   const isMerchantStaff = roles.some((r) => r === "merchant_staff" || r === "merchant_owner");
   const isPlatformAdmin = roles.some((r) => r === "platform_admin" || r === "platform_support");
 
-  // Webhooks path - always unauthenticated
-  if (pathname.startsWith("/api/webhooks")) {
-    return supabaseResponse;
-  }
-
-  // If user is ALREADY logged in and attempts to visit /login or /login/*
+  // 2. Handle /login page for authenticated users
   if (user && pathname.startsWith("/login")) {
-    const redirectUrl = request.nextUrl.clone();
     if (isSchoolStaff || isPlatformAdmin) {
-      redirectUrl.pathname = "/school";
+      const url = request.nextUrl.clone();
+      url.pathname = "/school";
+      return NextResponse.redirect(url);
     } else if (isMerchantStaff) {
-      redirectUrl.pathname = "/pos";
+      const url = request.nextUrl.clone();
+      url.pathname = "/pos";
+      return NextResponse.redirect(url);
     } else if (isParent) {
-      redirectUrl.pathname = "/parent";
-    } else {
-      redirectUrl.pathname = "/parent";
+      const url = request.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
     }
-    return NextResponse.redirect(redirectUrl);
-  }
-
-  // Unauthenticated access to /login or /login/* is allowed
-  if (pathname.startsWith("/login")) {
+    // If authenticated user has no specific role assigned yet, stay on login page (no loop!)
     return supabaseResponse;
   }
 
-  // Unauthenticated user attempting to access protected route
-  if (!user) {
+  // 3. Bypass auth checks for whitelisted public routes
+  if (isPublicRoute) {
+    return supabaseResponse;
+  }
+
+  // 4. Handle root path "/"
+  if (pathname === "/") {
+    if (!user) {
+      const url = request.nextUrl.clone();
+      url.pathname = "/login";
+      return NextResponse.redirect(url);
+    }
     const url = request.nextUrl.clone();
-    url.pathname = "/login";
+    if (isSchoolStaff || isPlatformAdmin) url.pathname = "/school";
+    else if (isMerchantStaff) url.pathname = "/pos";
+    else if (isParent) url.pathname = "/dashboard";
+    else url.pathname = "/login";
     return NextResponse.redirect(url);
   }
 
-  // Strict Persona Route Enforcement
+  // 5. Unauthenticated user trying to access protected paths
+  if (!user) {
+    const url = request.nextUrl.clone();
+    if (pathname.startsWith("/school")) {
+      url.pathname = "/login/school";
+    } else if (pathname.startsWith("/pos") || pathname.startsWith("/canteen")) {
+      url.pathname = "/login/merchant";
+    } else if (
+      pathname.startsWith("/parent") ||
+      pathname.startsWith("/dashboard") ||
+      pathname.startsWith("/pagu") ||
+      pathname.startsWith("/vault") ||
+      pathname.startsWith("/spp") ||
+      pathname.startsWith("/settings") ||
+      pathname === "/ai"
+    ) {
+      url.pathname = "/login/parent";
+    } else {
+      url.pathname = "/login";
+    }
+    return NextResponse.redirect(url);
+  }
+
+  // 6. Strict Persona Route Enforcement for authenticated users
   if (pathname.startsWith("/school")) {
     if (!isSchoolStaff && !isPlatformAdmin) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = isMerchantStaff ? "/pos" : isParent ? "/parent" : "/login/school";
+      redirectUrl.pathname = isMerchantStaff ? "/pos" : isParent ? "/dashboard" : "/login/school";
       return NextResponse.redirect(redirectUrl);
     }
-  } else if (pathname.startsWith("/pos")) {
+  } else if (pathname.startsWith("/pos") || pathname.startsWith("/canteen")) {
     if (!isMerchantStaff && !isPlatformAdmin) {
       const redirectUrl = request.nextUrl.clone();
-      redirectUrl.pathname = isSchoolStaff ? "/school" : isParent ? "/parent" : "/login/merchant";
+      redirectUrl.pathname = isSchoolStaff ? "/school" : isParent ? "/dashboard" : "/login/merchant";
       return NextResponse.redirect(redirectUrl);
     }
-  } else if (pathname.startsWith("/parent") || pathname.startsWith("/dashboard") || pathname.startsWith("/pagu") || pathname.startsWith("/vault")) {
+  } else if (
+    pathname.startsWith("/parent") ||
+    pathname.startsWith("/dashboard") ||
+    pathname.startsWith("/pagu") ||
+    pathname.startsWith("/vault") ||
+    pathname.startsWith("/spp") ||
+    pathname.startsWith("/settings") ||
+    pathname === "/ai"
+  ) {
     if (!isParent && !isPlatformAdmin) {
       const redirectUrl = request.nextUrl.clone();
       redirectUrl.pathname = isSchoolStaff ? "/school" : isMerchantStaff ? "/pos" : "/login/parent";
@@ -111,9 +156,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    /*
-     * Match all request paths except static assets
-     */
     "/((?!_next/static|_next/image|favicon.ico|sitemap.xml|robots.txt|icons/|manifest.json).*)",
   ],
 };

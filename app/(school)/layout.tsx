@@ -61,7 +61,7 @@ export default async function SchoolLayout({
           {children}
         </div>
       </main>
-      <AiAssistant />
+      <AiAssistant persona="school" />
     </div>
   );
 }

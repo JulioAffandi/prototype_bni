@@ -44,7 +44,7 @@ export default async function ParentLayout({
         {children}
       </main>
       <ParentBottomNav />
-      <AiAssistant />
+      <AiAssistant persona="parent" />
     </div>
   );
 }

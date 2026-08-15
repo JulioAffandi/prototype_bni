@@ -40,9 +40,31 @@ export default async function CanteenPOSPage() {
     merchantId = roles?.[0]?.merchant_id || null;
   }
 
+  const effectiveMerchantId = merchantId ?? "demo-merchant-id";
+
+  // Fetch dynamic menu items from public.menu_items
+  const { data: dbItems } = await service
+    .from("menu_items")
+    .select("id, name, unit_price, category, is_active, stock_qty")
+    .eq("merchant_id", effectiveMerchantId)
+    .eq("is_active", true)
+    .gt("stock_qty", 0)
+    .order("category")
+    .order("name");
+
+  const menuItems = (dbItems && dbItems.length > 0)
+    ? dbItems.map((m) => ({
+        id: m.id,
+        name: m.name,
+        price: m.unit_price,
+        category: m.category,
+        available: m.is_active && m.stock_qty > 0,
+      }))
+    : DEMO_MENU;
+
   return (
     <div className="max-w-2xl mx-auto">
-      <POSCatalog merchantId={merchantId ?? "demo-merchant-id"} menuItems={DEMO_MENU} />
+      <POSCatalog merchantId={effectiveMerchantId} menuItems={menuItems} />
 
       {/* Floating AI advisor button */}
       <div className="fixed bottom-6 right-4 z-30">

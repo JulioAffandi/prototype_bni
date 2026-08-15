@@ -55,6 +55,10 @@ export default function StudentManagementTable({ schoolId, students: initialStud
   const [filterStatus, setFilterStatus] = useState<CardStatus | "ALL">("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
   const [selectedStudentForLink, setSelectedStudentForLink] = useState<Student | null>(null);
+  const [reissueStudent, setReissueStudent] = useState<Student | null>(null);
+  const [reissueUid, setReissueUid] = useState("");
+  const [reissuing, setReissuing] = useState(false);
+  const [reissueError, setReissueError] = useState<string | null>(null);
   const [offboarding, setOffboarding] = useState<string | null>(null);
 
   const filtered = students.filter((s) => {
@@ -85,6 +89,43 @@ export default function StudentManagementTable({ schoolId, students: initialStud
       }
     } finally {
       setOffboarding(null);
+    }
+  }
+
+  async function handleReissueSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!reissueStudent || !reissueUid.trim()) return;
+    setReissuing(true);
+    setReissueError(null);
+
+    try {
+      const res = await fetch(`/api/v1/schools/${schoolId}/students/${reissueStudent.id}/reissue-card`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ raw_nfc_uid: reissueUid.trim() }),
+      });
+
+      const data = await res.json() as { success?: boolean; card?: { uid_last4: string }; message?: string; error?: string };
+
+      if (!res.ok) {
+        throw new Error(data.message ?? data.error ?? "Gagal menerbitkan kartu baru");
+      }
+
+      const newLast4 = data.card?.uid_last4 || reissueUid.trim().slice(-4);
+      setStudents((prev) =>
+        prev.map((s) =>
+          s.id === reissueStudent.id
+            ? { ...s, card_status: "active", nfc_uid_last4: newLast4 }
+            : s
+        )
+      );
+
+      setReissueStudent(null);
+      setReissueUid("");
+    } catch (err) {
+      setReissueError(err instanceof Error ? err.message : "Terjadi kesalahan");
+    } finally {
+      setReissuing(false);
     }
   }
 
@@ -130,11 +171,15 @@ export default function StudentManagementTable({ schoolId, students: initialStud
           id="student-status-filter"
           value={filterStatus}
           onChange={(e) => setFilterStatus(e.target.value as CardStatus | "ALL")}
-          className="bg-muted border border-border rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+          className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
         >
-          <option value="ALL">Semua Status</option>
+          <option value="ALL" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+            Semua Status
+          </option>
           {Object.entries(CARD_STATUS_CONFIG).map(([key, cfg]) => (
-            <option key={key} value={key}>{cfg.label}</option>
+            <option key={key} value={key} className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+              {cfg.label}
+            </option>
           ))}
         </select>
 
@@ -167,6 +212,8 @@ export default function StudentManagementTable({ schoolId, students: initialStud
               const cfg = CARD_STATUS_CONFIG[student.card_status];
               const Icon = cfg.icon;
               const isFrequent = student.emergency_overdraft_count_7d > 2;
+              const isBlockedOrLost = ["lost_reported", "blocked"].includes(student.card_status);
+
               return (
                 <tr key={student.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
                   <td className="p-4">
@@ -239,6 +286,22 @@ export default function StudentManagementTable({ schoolId, students: initialStud
                   </td>
                   <td className="p-4 text-right">
                     <div className="flex items-center justify-end gap-2">
+                      {isBlockedOrLost && (
+                        <button
+                          id={`reissue-card-btn-${student.id}`}
+                          onClick={() => {
+                            setReissueStudent(student);
+                            setReissueUid("");
+                            setReissueError(null);
+                          }}
+                          className="text-xs px-2.5 py-1.5 rounded-lg bg-primary/15 text-primary border border-primary/30 hover:bg-primary/25 font-semibold transition-all flex items-center gap-1"
+                          title="Terbitkan Kartu Baru"
+                        >
+                          <CreditCard className="w-3.5 h-3.5" />
+                          Terbitkan Kartu Baru
+                        </button>
+                      )}
+
                       <button
                         onClick={() => setSelectedStudentForLink(student)}
                         className="text-xs px-2 py-1.5 rounded-lg border border-border text-muted-foreground hover:border-primary/50 hover:text-primary transition-all flex items-center gap-1"
@@ -299,6 +362,69 @@ export default function StudentManagementTable({ schoolId, students: initialStud
           onSuccess={handleParentLinked}
         />
       )}
+
+      {/* Reissue Card Modal */}
+      {reissueStudent && (
+        <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-md shadow-2xl overflow-hidden p-5 space-y-4">
+            <div className="flex items-center gap-3 border-b border-border pb-3">
+              <div className="w-9 h-9 rounded-xl bg-primary/20 flex items-center justify-center text-primary">
+                <CreditCard className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="font-bold text-base text-foreground">Terbitkan Kartu NFC Baru</h3>
+                <p className="text-xs text-muted-foreground">Re-binding kartu pengganti untuk {reissueStudent.full_name}</p>
+              </div>
+            </div>
+
+            <form onSubmit={handleReissueSubmit} className="space-y-4">
+              <div>
+                <label htmlFor="reissue-uid" className="block text-xs font-semibold text-foreground mb-1.5">
+                  UID Kartu NFC Baru
+                </label>
+                <input
+                  id="reissue-uid"
+                  type="text"
+                  value={reissueUid}
+                  onChange={(e) => setReissueUid(e.target.value)}
+                  placeholder="Tempelkan kartu baru atau masukkan UID..."
+                  required
+                  className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
+                />
+                <p className="text-xs text-muted-foreground mt-1">
+                  Kartu lama (last4: {reissueStudent.nfc_uid_last4}) akan otomatis direvoke secara permanen.
+                </p>
+              </div>
+
+              {reissueError && (
+                <p className="text-xs text-destructive bg-destructive/10 border border-destructive/25 p-2.5 rounded-xl font-medium">
+                  {reissueError}
+                </p>
+              )}
+
+              <div className="flex gap-2 pt-2">
+                <button
+                  type="button"
+                  onClick={() => setReissueStudent(null)}
+                  disabled={reissuing}
+                  className="flex-1 py-2.5 rounded-xl border border-border bg-background text-foreground text-xs font-semibold hover:bg-muted transition-all"
+                >
+                  Batal
+                </button>
+                <button
+                  id="submit-reissue-btn"
+                  type="submit"
+                  disabled={reissuing || !reissueUid.trim()}
+                  className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all shadow-md disabled:opacity-60"
+                >
+                  {reissuing ? "Memproses..." : "Terbitkan Kartu"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
+

@@ -68,7 +68,7 @@ export default function ParentLoginPage() {
       }
 
       router.refresh();
-      router.push("/parent");
+      router.push("/dashboard");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan saat masuk.");
       setLoading(false);
