@@ -2,21 +2,58 @@
 
 import { useChat } from "ai/react";
 import { useEffect, useRef, useState } from "react";
-import { Bot, X, Send, Loader2, MessageCircle, Minimize2, Sparkles, ChevronDown } from "lucide-react";
+import { usePathname } from "next/navigation";
+import {
+  Bot,
+  X,
+  Send,
+  Loader2,
+  MessageCircle,
+  Minimize2,
+  Sparkles,
+  ChevronDown,
+  Square,
+} from "lucide-react";
+import { CHAT_COPY, type PersonaKey } from "./chat-copy";
+import { ChatMessageList } from "./ChatMessageList";
+import { QuickPromptChips } from "./QuickPromptChips";
 
-/**
- * AiAssistant — Floating glassmorphic chat widget (bottom-right).
- * Compatible across all 3 VALO portals (Parent, School, Merchant).
- * The backend /api/chat resolves the AI persona dynamically from the
- * user's session roles — this component is intentionally role-agnostic.
- */
-export default function AiAssistant() {
+export interface AiAssistantProps {
+  persona?: PersonaKey;
+}
+
+export default function AiAssistant({ persona }: AiAssistantProps) {
+  const pathname = usePathname();
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error, setMessages } = useChat({
+  // Determine active persona key from prop or path
+  let activePersona: PersonaKey = persona || "parent";
+  if (!persona && pathname) {
+    if (pathname.startsWith("/pos") || pathname.startsWith("/canteen")) {
+      activePersona = "merchant";
+    } else if (pathname.startsWith("/school")) {
+      activePersona = "school";
+    } else if (pathname.startsWith("/parent")) {
+      activePersona = "parent";
+    }
+  }
+
+  const copy = CHAT_COPY[activePersona];
+
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    isLoading,
+    error,
+    setMessages,
+    append,
+    stop,
+  } = useChat({
     api: "/api/chat",
     initialMessages: [],
     onError: (err) => {
@@ -29,7 +66,7 @@ export default function AiAssistant() {
     if (isOpen && !isMinimized) {
       messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }
-  }, [messages, isOpen, isMinimized]);
+  }, [messages, isOpen, isMinimized, isLoading]);
 
   // Focus input when opening
   useEffect(() => {
@@ -52,6 +89,13 @@ export default function AiAssistant() {
     setMessages([]);
   };
 
+  const handleChipSelect = (chip: string) => {
+    append({
+      role: "user",
+      content: chip,
+    });
+  };
+
   const unreadCount = !isOpen ? messages.filter((m) => m.role === "assistant").length : 0;
 
   return (
@@ -61,7 +105,7 @@ export default function AiAssistant() {
         <button
           onClick={handleOpen}
           id="ai-assistant-trigger"
-          aria-label="Buka VALO AI Assistant"
+          aria-label={`Buka ${copy.judul}`}
           className="fixed bottom-6 right-6 z-50 group w-14 h-14 rounded-full flex items-center justify-center shadow-2xl shadow-violet-950/60 transition-all duration-300 hover:scale-110 active:scale-95"
           style={{
             background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)",
@@ -73,7 +117,6 @@ export default function AiAssistant() {
               {unreadCount}
             </span>
           )}
-          {/* Pulse ring on first load */}
           <span className="absolute inset-0 rounded-full animate-ping opacity-20 bg-violet-400" />
         </button>
       )}
@@ -81,33 +124,35 @@ export default function AiAssistant() {
       {/* ── Chat Widget ─────────────────────────────────────────── */}
       {isOpen && (
         <div
-          className="fixed bottom-6 right-6 z-50 w-[360px] max-w-[calc(100vw-2rem)] flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50"
+          className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] flex flex-col rounded-2xl overflow-hidden shadow-2xl shadow-black/50"
           style={{
-            height: isMinimized ? "auto" : "520px",
-            background: "rgba(15, 15, 23, 0.92)",
+            height: isMinimized ? "auto" : "540px",
+            background: "rgba(15, 15, 23, 0.94)",
             backdropFilter: "blur(24px)",
-            border: "1px solid rgba(124, 58, 237, 0.25)",
+            border: "1px solid rgba(124, 58, 237, 0.3)",
           }}
         >
           {/* ── Header ────────────────────────────────────────── */}
           <div
             className="flex items-center justify-between px-4 py-3 shrink-0"
             style={{
-              background: "linear-gradient(135deg, rgba(124,58,237,0.25) 0%, rgba(79,70,229,0.15) 100%)",
-              borderBottom: "1px solid rgba(124, 58, 237, 0.2)",
+              background: "linear-gradient(135deg, rgba(124,58,237,0.3) 0%, rgba(79,70,229,0.2) 100%)",
+              borderBottom: "1px solid rgba(124, 58, 237, 0.25)",
             }}
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl flex items-center justify-center"
-                   style={{ background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }}>
+              <div
+                className="w-8 h-8 rounded-xl flex items-center justify-center"
+                style={{ background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }}
+              >
                 <Bot className="w-4 h-4 text-white" />
               </div>
               <div>
                 <div className="flex items-center gap-1.5">
-                  <span className="text-sm font-bold text-white leading-none">VALO AI</span>
+                  <span className="text-sm font-bold text-white leading-none">{copy.judul}</span>
                   <Sparkles className="w-3 h-3 text-violet-400" />
                 </div>
-                <span className="text-[10px] text-violet-300/70 leading-none">Assistant Ekosistem</span>
+                <span className="text-[10px] text-violet-300/70 leading-none">VALO Copilot</span>
               </div>
             </div>
 
@@ -144,84 +189,37 @@ export default function AiAssistant() {
           {/* ── Body (collapsed when minimized) ──────────────── */}
           {!isMinimized && (
             <>
-              {/* ── Messages ──────────────────────────────────── */}
+              {/* ── Messages & Quick Prompt Chips ───────────── */}
               <div className="flex-1 overflow-y-auto px-4 py-4 space-y-3 scrollbar-thin scrollbar-thumb-violet-900/50 scrollbar-track-transparent">
-                {/* Welcome message */}
+                <ChatMessageList messages={messages} sapaan={copy.sapaan} />
+
                 {messages.length === 0 && (
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center"
-                         style={{ background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }}>
-                      <Bot className="w-4 h-4 text-white" />
-                    </div>
-                    <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 max-w-[80%]"
-                         style={{ background: "rgba(124, 58, 237, 0.15)", border: "1px solid rgba(124, 58, 237, 0.2)" }}>
-                      <p className="text-xs text-slate-200 leading-relaxed">
-                        Halo! Saya <strong className="text-violet-300">VALO AI Assistant</strong>. Ada yang bisa saya bantu hari ini? 👋
-                      </p>
-                    </div>
-                  </div>
+                  <QuickPromptChips chips={copy.chips} onSelect={handleChipSelect} />
                 )}
-
-                {/* Chat messages */}
-                {messages.map((message) => (
-                  <div
-                    key={message.id}
-                    className={`flex items-start gap-2.5 ${message.role === "user" ? "flex-row-reverse" : ""}`}
-                  >
-                    {/* Avatar */}
-                    {message.role === "assistant" && (
-                      <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center"
-                           style={{ background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }}>
-                        <Bot className="w-4 h-4 text-white" />
-                      </div>
-                    )}
-
-                    {/* Bubble */}
-                    <div
-                      className={`rounded-2xl px-3.5 py-2.5 max-w-[82%] text-xs leading-relaxed ${
-                        message.role === "user"
-                          ? "rounded-tr-sm text-white"
-                          : "rounded-tl-sm text-slate-200"
-                      }`}
-                      style={
-                        message.role === "user"
-                          ? { background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }
-                          : { background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }
-                      }
-                    >
-                      {/* Render newlines for better readability */}
-                      {message.content.split("\n").map((line, i) => (
-                        <span key={i}>
-                          {line}
-                          {i < message.content.split("\n").length - 1 && <br />}
-                        </span>
-                      ))}
-                    </div>
-                  </div>
-                ))}
 
                 {/* Loading indicator */}
                 {isLoading && (
-                  <div className="flex items-start gap-2.5">
-                    <div className="w-7 h-7 rounded-full shrink-0 flex items-center justify-center"
-                         style={{ background: "linear-gradient(135deg, #7c3aed 0%, #4f46e5 100%)" }}>
-                      <Bot className="w-4 h-4 text-white" />
+                  <div className="flex items-center justify-between gap-2 px-3 py-2 rounded-xl bg-violet-950/30 border border-violet-500/20 text-xs text-violet-300">
+                    <div className="flex items-center gap-2">
+                      <Loader2 className="w-3.5 h-3.5 animate-spin text-violet-400" />
+                      <span>Sedang berpikir...</span>
                     </div>
-                    <div className="rounded-2xl rounded-tl-sm px-4 py-3"
-                         style={{ background: "rgba(255,255,255,0.06)", border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div className="flex gap-1.5 items-center">
-                        <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "0ms" }} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "150ms" }} />
-                        <div className="w-1.5 h-1.5 rounded-full bg-violet-400 animate-bounce" style={{ animationDelay: "300ms" }} />
-                      </div>
-                    </div>
+                    <button
+                      onClick={stop}
+                      className="flex items-center gap-1 text-[11px] text-rose-300 hover:text-rose-200 px-2 py-0.5 rounded bg-rose-500/20 hover:bg-rose-500/30 transition-colors"
+                    >
+                      <Square className="w-3 h-3 fill-current" />
+                      Stop
+                    </button>
                   </div>
                 )}
 
                 {/* Error state */}
                 {error && (
-                  <div className="rounded-xl px-3.5 py-2.5 text-xs text-rose-300"
-                       style={{ background: "rgba(244, 63, 94, 0.12)", border: "1px solid rgba(244, 63, 94, 0.25)" }}>
+                  <div
+                    className="rounded-xl px-3.5 py-2.5 text-xs text-rose-300"
+                    style={{ background: "rgba(244, 63, 94, 0.12)", border: "1px solid rgba(244, 63, 94, 0.25)" }}
+                  >
                     ⚠️ Gagal mengirim pesan. Periksa koneksi dan coba lagi.
                   </div>
                 )}
@@ -240,7 +238,7 @@ export default function AiAssistant() {
                   type="text"
                   value={input}
                   onChange={handleInputChange}
-                  placeholder="Tanya sesuatu..."
+                  placeholder={copy.placeholder}
                   disabled={isLoading}
                   className="flex-1 px-3.5 py-2.5 rounded-xl text-xs text-slate-200 placeholder:text-slate-500 focus:outline-none focus:ring-2 transition-all disabled:opacity-60"
                   style={{

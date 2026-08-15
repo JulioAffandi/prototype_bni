@@ -18,6 +18,14 @@ const nextConfig: NextConfig = {
       allowedOrigins: ["localhost:3000"],
     },
   },
+  async rewrites() {
+    return [
+      {
+        source: "/parent",
+        destination: "/dashboard",
+      },
+    ];
+  },
 };
 
 export default withPWA(nextConfig);

@@ -1,6 +1,8 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { NextRequest, NextResponse } from "next/server";
+import { dispatchAfterResponse } from "@/lib/telegram/after-dispatch";
+import { notifyParentCardLostConfirmation } from "@/lib/telegram/notifier";
 
 /**
  * POST /api/v1/students/[id]/card/report-lost
@@ -93,6 +95,37 @@ export async function POST(
     entity_id: activeCard.id,
     metadata: { student_id: studentId, reported_by: "parent", timestamp: new Date().toISOString() },
   });
+
+  dispatchAfterResponse(async () => {
+    const { data: student } = await service
+      .from("students")
+      .select("full_name")
+      .eq("id", studentId)
+      .maybeSingle();
+
+    const studentName = student?.full_name ?? "Anak";
+
+    const { data: mapRows } = await service
+      .from("guardian_student_map")
+      .select("parent_id, parents(id, telegram_chat_id)")
+      .eq("student_id", studentId)
+      .eq("status", "active");
+
+    const jobs: Promise<unknown>[] = [];
+    for (const row of mapRows ?? []) {
+      const parent = Array.isArray(row.parents) ? row.parents[0] : row.parents;
+      if (parent?.telegram_chat_id) {
+        jobs.push(
+          notifyParentCardLostConfirmation({
+            parentChatId: parent.telegram_chat_id,
+            parentId: parent.id,
+            studentName,
+          })
+        );
+      }
+    }
+    await Promise.allSettled(jobs);
+  }, "card-lost");
 
   return NextResponse.json({ status: "lost_reported", card_id: activeCard.id });
 }

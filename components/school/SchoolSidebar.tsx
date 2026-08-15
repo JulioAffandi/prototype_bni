@@ -10,6 +10,8 @@ import {
   ShieldCheck,
   Bot,
   Building2,
+  Settings,
+  User,
 } from "lucide-react";
 
 interface SchoolSidebarProps {
@@ -22,6 +24,8 @@ const NAV_ITEMS = [
   { href: "/school/students", icon: Users, label: "Manajemen Siswa" },
   { href: "/school/audit", icon: ShieldCheck, label: "Audit & Kepatuhan" },
   { href: "/school/ai", icon: Bot, label: "Treasury AI" },
+  { href: "/school/profile", icon: User, label: "Profil Sekolah" },
+  { href: "/school/settings", icon: Settings, label: "Pengaturan" },
 ] as const;
 
 export default function SchoolSidebar({ schoolName }: SchoolSidebarProps) {

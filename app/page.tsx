@@ -32,16 +32,15 @@ export default async function RootPage() {
 
   switch (primaryRole) {
     case "parent":
-      redirect("/parent");
+      redirect("/dashboard");
     case "merchant_staff":
     case "merchant_owner":
       redirect("/pos");
     case "school_admin":
     case "school_treasurer":
-      redirect("/school");
     case "platform_admin":
     case "platform_support":
-      redirect("/admin");
+      redirect("/school");
     default:
       redirect("/login");
   }

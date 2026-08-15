@@ -2,14 +2,14 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutDashboard, SlidersHorizontal, Vault, FileText, Bot } from "lucide-react";
+import { LayoutDashboard, SlidersHorizontal, Vault, FileText, Settings } from "lucide-react";
 
 const NAV_ITEMS = [
   { href: "/dashboard", icon: LayoutDashboard, label: "Beranda" },
   { href: "/pagu", icon: SlidersHorizontal, label: "Pagu" },
   { href: "/vault", icon: Vault, label: "Vault" },
   { href: "/spp", icon: FileText, label: "SPP" },
-  { href: "/ai", icon: Bot, label: "AI Advisor" },
+  { href: "/profile", icon: Settings, label: "Profil" },
 ] as const;
 
 export default function ParentBottomNav() {

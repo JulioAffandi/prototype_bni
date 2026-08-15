@@ -3,6 +3,7 @@ import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
 import type { Metadata } from "next";
 import { ShieldCheck, Flag, AlertTriangle, CheckCircle2 } from "lucide-react";
+import SchoolAuditTabs from "@/components/school/SchoolAuditTabs";
 
 export const metadata: Metadata = { title: "Audit & Kepatuhan" };
 
@@ -28,7 +29,7 @@ export default async function SchoolAuditPage() {
 
   if (!schoolId) redirect("/login");
 
-  // Fetch recent audit logs for this school using school_id column (Schema v3)
+  // 1. Fetch recent audit logs for this school using school_id column (Schema v3)
   const { data: auditLogs } = await service
     .from("audit_log")
     .select("id, action, entity_type, entity_id, flag, metadata, created_at, actor_user_id, actor_role_snapshot")
@@ -36,7 +37,7 @@ export default async function SchoolAuditPage() {
     .order("created_at", { ascending: false })
     .limit(50);
 
-  // Frequent overdraft students via student_daily_counters (Schema v3)
+  // 2. Frequent overdraft students via student_daily_counters (Schema v3)
   const { data: overdraftCounters } = await service
     .from("student_daily_counters")
     .select("student_id, overdraft_count, students ( full_name )")
@@ -44,9 +45,54 @@ export default async function SchoolAuditPage() {
     .gt("overdraft_count", 0)
     .order("created_at", { ascending: false });
 
+  // 3. Parental Consent logs (UU PDP Compliance)
+  const { data: parentalConsents } = await service
+    .from("parental_consent")
+    .select(`
+      id, parent_id, student_id, consent_type, consent_version, consent_token, granted_at, revoked_at, evidence_ip, created_at,
+      students ( full_name ),
+      parents ( full_name )
+    `)
+    .eq("school_id", schoolId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
+  // 4. Card Lifecycle Events
+  const { data: cardEvents } = await service
+    .from("card_lifecycle_events")
+    .select(`
+      id, student_id, card_id, event_type, notes, actor_role_snapshot, created_at,
+      students ( full_name )
+    `)
+    .eq("school_id", schoolId)
+    .order("created_at", { ascending: false })
+    .limit(50);
+
   const logs = auditLogs ?? [];
   const flaggedCount = logs.filter((l) => l.flag).length;
   const overdraftCount = (overdraftCounters ?? []).length;
+
+  const formattedConsents = (parentalConsents ?? []).map((c: any) => ({
+    id: c.id,
+    student_name: c.students?.full_name ?? "Siswa",
+    parent_name: c.parents?.full_name ?? "Orang Tua",
+    consent_type: c.consent_type,
+    consent_version: c.consent_version,
+    consent_token: c.consent_token,
+    granted_at: c.granted_at,
+    revoked_at: c.revoked_at,
+    evidence_ip: c.evidence_ip,
+    created_at: c.created_at,
+  }));
+
+  const formattedCardEvents = (cardEvents ?? []).map((e: any) => ({
+    id: e.id,
+    student_name: e.students?.full_name ?? "Siswa",
+    event_type: e.event_type,
+    notes: e.notes,
+    actor_role_snapshot: e.actor_role_snapshot,
+    created_at: e.created_at,
+  }));
 
   return (
     <div className="space-y-6">
@@ -55,15 +101,15 @@ export default async function SchoolAuditPage() {
           <ShieldCheck className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Audit &amp; Kepatuhan</h1>
-          <p className="text-sm text-muted-foreground">Log aktivitas dan deteksi anomali otomatis (Schema v3)</p>
+          <h1 className="text-2xl font-bold">Audit &amp; Kepatuhan UU PDP</h1>
+          <p className="text-sm text-muted-foreground">Log aktivitas, kepatuhan consent orang tua, dan lifecycle kartu (Schema v3)</p>
         </div>
       </div>
 
       {/* Summary */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: "Total Log", value: logs.length, icon: CheckCircle2, color: "text-primary", bg: "bg-primary/15" },
+          { label: "Total Log System", value: logs.length, icon: CheckCircle2, color: "text-primary", bg: "bg-primary/15" },
           { label: "Log Berbendera", value: flaggedCount, icon: Flag, color: "text-accent", bg: "bg-accent/15" },
           { label: "Overdraft Sering", value: overdraftCount, icon: AlertTriangle, color: "text-destructive", bg: "bg-destructive/15" },
         ].map((s) => {
@@ -103,56 +149,13 @@ export default async function SchoolAuditPage() {
         </div>
       )}
 
-      {/* Audit log table */}
-      <div className="glass rounded-2xl overflow-hidden">
-        <div className="p-4 border-b border-border">
-          <h2 className="font-semibold text-sm">Log Aktivitas Terbaru</h2>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b border-border">
-                <th className="text-left p-3 text-xs text-muted-foreground font-medium">Waktu</th>
-                <th className="text-left p-3 text-xs text-muted-foreground font-medium">Aksi</th>
-                <th className="text-left p-3 text-xs text-muted-foreground font-medium">Entitas</th>
-                <th className="text-left p-3 text-xs text-muted-foreground font-medium">Flag</th>
-              </tr>
-            </thead>
-            <tbody>
-              {logs.map((log) => (
-                <tr key={log.id} className={`border-b border-border/40 last:border-0 hover:bg-muted/20 transition-colors ${log.flag ? "bg-destructive/5" : ""}`}>
-                  <td className="p-3 text-xs text-muted-foreground whitespace-nowrap">
-                    {new Date(log.created_at).toLocaleString("id-ID")}
-                  </td>
-                  <td className="p-3">
-                    <span className="font-mono text-xs">{log.action}</span>
-                  </td>
-                  <td className="p-3 text-xs text-muted-foreground">
-                    {log.entity_type}{log.entity_id ? ` · ${log.entity_id.slice(-8)}` : ""}
-                  </td>
-                  <td className="p-3">
-                    {log.flag ? (
-                      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-destructive/15 text-destructive text-xs">
-                        <Flag className="w-3 h-3" />
-                        {log.flag}
-                      </span>
-                    ) : (
-                      <span className="text-xs text-muted-foreground">—</span>
-                    )}
-                  </td>
-                </tr>
-              ))}
-              {logs.length === 0 && (
-                <tr>
-                  <td colSpan={4} className="p-8 text-center text-sm text-muted-foreground">
-                    Belum ada log aktivitas
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      {/* Audit tabs visualizer */}
+      <SchoolAuditTabs
+        logs={logs}
+        consents={formattedConsents}
+        cardEvents={formattedCardEvents}
+      />
     </div>
   );
 }
+

@@ -21,7 +21,7 @@ export async function GET() {
   }
 
   // Resolve parent_id with fallback auto-binding
-  const parentId = await getOrResolveParentId(user);
+  const parentId = await getOrResolveParentId(user, true);
   if (!parentId) {
     return NextResponse.json({ error: "NO_PARENT_PROFILE", students: [] }, { status: 200 });
   }
@@ -40,7 +40,8 @@ export async function GET() {
       can_fund,
       can_approve_vault,
       can_report_card_lost,
-      students (
+      status,
+      students!guardian_student_map_student_id_fkey (
         id,
         full_name,
         student_number,
@@ -50,21 +51,24 @@ export async function GET() {
         emergency_limit,
         status,
         school_id,
-        schools ( name ),
-        student_cards ( id, uid_last4, status )
+        schools!students_school_id_fkey ( name ),
+        student_cards!student_cards_student_id_fkey ( id, uid_last4, status )
       )
     `)
-    .eq("parent_id", parentId)
-    .eq("status", "active");
+    .eq("parent_id", parentId);
 
   if (error) {
     return NextResponse.json({ error: "FETCH_FAILED", detail: error.message }, { status: 500 });
   }
 
+  const activeMappings = (mappings ?? []).filter(
+    (m) => !m.status || m.status.toLowerCase() === "active"
+  );
+
   const todayStr = new Date().toISOString().slice(0, 10);
 
   const formattedStudents = await Promise.all(
-    (mappings || []).map(async (m) => {
+    activeMappings.map(async (m) => {
       const st = m.students as unknown as {
         id: string;
         full_name: string;

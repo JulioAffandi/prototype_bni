@@ -4,6 +4,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { createHash } from "crypto";
 import type { CanteenTapRpcResult } from "@/types/database";
+import { dispatchAfterResponse } from "@/lib/telegram/after-dispatch";
+import { notifyParentCanteenTap, notifyParentPaguAlert, notifyMerchantTransaction } from "@/lib/telegram/notifier";
 
 const CanteenTxSchema = z.object({
   nfc_uid_hash: z.string().min(1),
@@ -16,6 +18,9 @@ const CanteenTxSchema = z.object({
         menu: z.string(),
         qty: z.number().int().positive(),
         price: z.number().nonnegative(),
+        category: z.string().optional(),
+        menu_item_id: z.string().uuid().optional(),
+        unit_cost: z.number().nonnegative().optional(),
       }),
     )
     .optional()
@@ -99,33 +104,139 @@ export async function POST(request: NextRequest) {
   const result = (rpcData || {}) as CanteenTapRpcResult;
   const httpStatus = typeof result.http_status === "number" ? result.http_status : 200;
 
-  // Non-blocking WA notification dispatch on successful settlement
-  if (httpStatus === 200 && result.transaction_id) {
-    void triggerWANotification({
-      merchantId: merchant_id,
-      amount,
-      sisaPagu: result.sisa_pagu ?? 0,
-      isEmergency: !!result.is_emergency,
-    });
+  // Persist transaction line items if transaction_id was created and items exist
+  if (result.transaction_id && items.length > 0) {
+    try {
+      const itemNames = items.map((i) => i.menu);
+      const { data: dbMenuItems } = await service
+        .from("menu_items")
+        .select("id, name, category, unit_cost")
+        .eq("merchant_id", merchant_id)
+        .in("name", itemNames);
+
+      const menuMap = new Map<string, { id: string; name: string; category: string; unit_cost: number | null }>();
+      if (dbMenuItems) {
+        for (const m of dbMenuItems) {
+          menuMap.set(m.name, m as { id: string; name: string; category: string; unit_cost: number | null });
+        }
+      }
+
+      const validCategories = new Set([
+        "makanan_berat",
+        "makanan_ringan",
+        "gorengan",
+        "minuman_manis",
+        "minuman_sehat",
+        "buah",
+        "lainnya",
+      ]);
+
+      const itemRows = items.map((item) => {
+        const dbMatch = menuMap.get(item.menu);
+        const rawCategory = item.category || dbMatch?.category || "lainnya";
+        const safeCategory = validCategories.has(rawCategory) ? rawCategory : "lainnya";
+
+        return {
+          transaction_id: result.transaction_id!,
+          menu_item_id: item.menu_item_id || dbMatch?.id || null,
+          item_name_snapshot: item.menu,
+          category_snapshot: safeCategory,
+          qty: item.qty,
+          unit_price_snapshot: item.price,
+          unit_cost_snapshot: item.unit_cost ?? dbMatch?.unit_cost ?? null,
+          line_total: item.price * item.qty,
+        };
+      });
+
+      await service.from("canteen_transaction_items").insert(itemRows as any);
+    } catch (itemErr) {
+      console.error("Failed to persist canteen_transaction_items:", itemErr);
+    }
+  }
+
+  // Non-blocking Telegram & WA notification dispatch scheduled after response sent
+  if (result.transaction_id) {
+    const isSettled = httpStatus === 200;
+    const isRejectedOverlimit = result.error === "PAGU_EXCEEDED" || httpStatus === 402;
+
+    if (isSettled) {
+      dispatchAfterResponse(async () => {
+        const { data: tx } = await service
+          .from("canteen_transactions")
+          .select("student_id, merchant_id, amount")
+          .eq("id", result.transaction_id!)
+          .maybeSingle();
+
+        if (!tx) return;
+
+        const { data: targets } = await service
+          .rpc("fn_get_telegram_targets", {
+            p_student_id: tx.student_id,
+            p_merchant_id: tx.merchant_id,
+          })
+          .single();
+
+        if (!targets) return;
+
+        const jobs: Promise<unknown>[] = [];
+        for (const parentChatId of targets.parent_chat_ids ?? []) {
+          jobs.push(
+            notifyParentCanteenTap({
+              parentChatId,
+              parentId: "",
+              studentName: targets.student_full_name,
+              merchantName: targets.merchant_name,
+              amount: tx.amount,
+              remainingLimit: typeof result.sisa_pagu === "number" ? result.sisa_pagu : 0,
+            })
+          );
+        }
+
+        if (targets.merchant_chat_id) {
+          jobs.push(
+            notifyMerchantTransaction({
+              merchantChatId: targets.merchant_chat_id,
+              merchantId: tx.merchant_id,
+              studentName: targets.student_full_name,
+              amount: tx.amount,
+            })
+          );
+        }
+
+        await Promise.allSettled(jobs);
+      }, "canteen-tap-settled");
+    } else if (isRejectedOverlimit) {
+      dispatchAfterResponse(async () => {
+        const { data: tx } = await service
+          .from("canteen_transactions")
+          .select("student_id, merchant_id, amount")
+          .eq("id", result.transaction_id!)
+          .maybeSingle();
+
+        if (!tx) return;
+
+        const { data: targets } = await service
+          .rpc("fn_get_telegram_targets", {
+            p_student_id: tx.student_id,
+            p_merchant_id: tx.merchant_id,
+          })
+          .single();
+
+        if (!targets) return;
+
+        const jobs = (targets.parent_chat_ids ?? []).map((chatId) =>
+          notifyParentPaguAlert({
+            parentChatId: chatId,
+            parentId: "",
+            studentName: targets.student_full_name,
+            attemptedAmount: amount,
+          })
+        );
+
+        await Promise.allSettled(jobs);
+      }, "canteen-tap-rejected");
+    }
   }
 
   return NextResponse.json(result, { status: httpStatus });
-}
-
-// Non-blocking WA notification helper
-async function triggerWANotification(params: {
-  merchantId: string;
-  amount: number;
-  sisaPagu: number;
-  isEmergency: boolean;
-}) {
-  try {
-    await fetch("/api/v1/notifications/wa", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(params),
-    });
-  } catch {
-    // Non-blocking — silently ignore failures
-  }
 }
