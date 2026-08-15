@@ -7,6 +7,7 @@ import type { guardian_relationship_t } from "@/types/database";
 const LinkParentSchema = z.object({
   parent_id: z.string().optional(),
   parent_phone: z.string().optional(),
+  parent_full_name: z.string().optional(),
   parent_name: z.string().optional(),
   parent_bni_account: z.string().optional(),
   relationship: z.string().optional().default("wali"),
@@ -26,8 +27,10 @@ function normalizePhoneE164(phone: string): string {
 
 /**
  * POST /api/v1/schools/[id]/students/[sid]/link-parent
- * School Admin links a parent account (existing or newly provisioned) to a student (Schema v3).
- * Gracefully handles phone normalization and guardian_student_map conflict updates.
+ * School Admin Pre-Binding Workflow (SPEC v2.1 §4.4 & §3B):
+ * 1. Normalizes phone number to E.164 (+62...)
+ * 2. Searches or auto-provisions parent record with account_status = 'invited_pending_signup'
+ * 3. Upserts guardian_student_map with status = 'pending_activation' & linked_via = 'school_admin_prebind'
  */
 export async function POST(
   request: NextRequest,
@@ -52,31 +55,38 @@ export async function POST(
     );
   }
 
-  const { parent_id, parent_phone, parent_name, parent_bni_account, relationship } = parsed.data;
+  const { parent_id, parent_phone, parent_full_name, parent_name, parent_bni_account, relationship } = parsed.data;
   let targetParentId: string | null = parent_id || null;
+  let parentAccountStatus = "active";
 
-  // If parent_phone is provided, normalize and find/provision parent record
-  if (parent_phone && parent_phone.trim().length >= 8) {
-    const normPhone = normalizePhoneE164(parent_phone.trim());
+  const rawPhone = parent_phone?.trim();
+  const nameToUse = parent_full_name?.trim() || parent_name?.trim();
 
-    // Search existing parent by normalized phone or raw phone
+  if (rawPhone && rawPhone.length >= 8) {
+    const normPhone = normalizePhoneE164(rawPhone);
+
+    // Find existing parent by E.164 phone or raw phone
     const { data: existingParents } = await service
       .from("parents")
-      .select("id, full_name, phone_number")
-      .or(`phone_number.eq.${normPhone},phone_number.eq.${parent_phone.trim()}`)
+      .select("id, full_name, phone_number, account_status")
+      .or(`phone_number.eq.${normPhone},phone_number.eq.${rawPhone}`)
       .limit(1);
 
     if (existingParents && existingParents.length > 0) {
       targetParentId = existingParents[0].id;
+      parentAccountStatus = existingParents[0].account_status ?? "active";
     } else {
-      // Provision new parent in public.parents
+      // Auto-provision parent record in public.parents
+      parentAccountStatus = "invited_pending_signup";
       const { data: newParent, error: createParentErr } = await service
         .from("parents")
         .insert({
-          full_name: parent_name?.trim() || `Orang Tua (${normPhone})`,
+          full_name: nameToUse || `Orang Tua (${normPhone})`,
           phone_number: normPhone,
           bni_account_number: parent_bni_account?.trim() || null,
           bni_link_status: parent_bni_account ? "LINKED" : "UNLINKED",
+          account_status: "invited_pending_signup",
+          invited_by_school_id: schoolId,
         })
         .select("id")
         .single();
@@ -98,14 +108,12 @@ export async function POST(
     );
   }
 
-  // Determine valid relationship enum
   const relInput = relationship.toLowerCase();
   const validRel: guardian_relationship_t =
     relInput === "ayah" || relInput === "ibu" || relInput === "kakek_nenek" || relInput === "saudara" || relInput === "institusi" || relInput === "lainnya"
       ? relInput
       : "wali";
 
-  // Upsert into public.guardian_student_map
   const { data: existingMap } = await service
     .from("guardian_student_map")
     .select("id, status")
@@ -114,13 +122,16 @@ export async function POST(
     .maybeSingle();
 
   const nowIso = new Date().toISOString();
+  const linkStatus = parentAccountStatus === "invited_pending_signup" ? "pending_activation" : "active";
 
   if (existingMap) {
     await service
       .from("guardian_student_map")
       .update({
-        status: "active",
+        status: linkStatus,
         relationship: validRel,
+        linked_via: "school_admin_prebind",
+        linked_at: nowIso,
         is_primary_guardian: true,
         revoked_at: null,
         revoked_reason: null,
@@ -139,7 +150,9 @@ export async function POST(
       school_id: schoolId,
       relationship: validRel,
       is_primary_guardian: true,
-      status: "active",
+      status: linkStatus,
+      linked_via: "school_admin_prebind",
+      linked_at: nowIso,
       can_view_activity: true,
       can_manage_pagu: true,
       can_fund: true,
@@ -149,7 +162,6 @@ export async function POST(
     });
   }
 
-  // Audit Log
   await service.from("audit_log").insert({
     school_id: schoolId,
     actor_user_id: user.id,
@@ -161,9 +173,44 @@ export async function POST(
   });
 
   return NextResponse.json({
-    success: true,
+    guardian_relationship_status: linkStatus,
+    parent_account_status: parentAccountStatus,
+    invite_channel: "whatsapp_otp",
     parent_id: targetParentId,
     student_id: studentId,
     message: "Berhasil menautkan akun orang tua ke data siswa!",
   });
+}
+
+/**
+ * DELETE /api/v1/schools/[id]/students/[sid]/link-parent
+ * Unlinks parent from student by soft-revoking relationship in guardian_student_map.
+ */
+export async function DELETE(
+  _request: NextRequest,
+  { params }: { params: Promise<{ id: string; sid: string }> },
+) {
+  const { id: schoolId, sid: studentId } = await params;
+  const supabase = await createServerSupabaseClient();
+
+  const { data: { user }, error: authError } = await supabase.auth.getUser();
+  if (authError || !user) {
+    return NextResponse.json({ error: "UNAUTHORIZED" }, { status: 401 });
+  }
+
+  const service = createServiceClient();
+  const nowIso = new Date().toISOString();
+
+  await service
+    .from("guardian_student_map")
+    .update({
+      status: "revoked",
+      revoked_at: nowIso,
+      revoked_reason: "Dibatalkan oleh School Admin",
+      updated_at: nowIso,
+    })
+    .eq("school_id", schoolId)
+    .eq("student_id", studentId);
+
+  return NextResponse.json({ success: true, message: "Relasi orang tua berhasil dihapus." });
 }

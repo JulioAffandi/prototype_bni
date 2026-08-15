@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { UserCheck, Mail, Phone, CreditCard, Send, CheckCircle2, Loader2, ShieldCheck, User } from "lucide-react";
+import { UserCheck, Mail, Phone, CreditCard, Send, CheckCircle2, Loader2, ShieldCheck, User, LogOut } from "lucide-react";
+import { handleLogout } from "@/lib/auth/actions";
 
 interface LinkedStudentItem {
   id: string;
@@ -99,6 +100,16 @@ export default function ParentProfileClient({ user, parent, linkedStudents }: Pa
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            id="parent-logout-header-btn"
+            onClick={() => handleLogout("/login")}
+            className="px-4 py-2 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all text-xs font-bold flex items-center gap-2 self-stretch sm:self-auto justify-center"
+          >
+            <LogOut className="w-4 h-4" />
+            Keluar Akun / Ganti User
+          </button>
         </div>
       </div>
 
@@ -223,7 +234,17 @@ export default function ParentProfileClient({ user, parent, linkedStudents }: Pa
           </p>
         )}
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-3 border-t border-border flex items-center justify-between gap-3">
+          <button
+            type="button"
+            id="parent-logout-footer-btn"
+            onClick={() => handleLogout("/login")}
+            className="px-4 py-2.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all text-xs font-bold flex items-center gap-2 shadow-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            Keluar Akun / Ganti User
+          </button>
+
           <button
             type="submit"
             disabled={loading}
@@ -236,3 +257,4 @@ export default function ParentProfileClient({ user, parent, linkedStudents }: Pa
     </div>
   );
 }
+

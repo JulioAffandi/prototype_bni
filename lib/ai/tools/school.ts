@@ -20,25 +20,70 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
         try {
           const p = periode ?? scope.currentPeriod;
           const { data, error } = await db.rpc("rpc_spp_collection_rate", { p_period: p });
-          if (error) throw error;
+          if (error) {
+            console.error("⚠️ [getSPPCollectionRate RPC Error]:", error);
+            // Fallback querying spp_invoices table directly if RPC fails
+            const { data: invoices } = await db
+              .from("spp_invoices")
+              .select("amount, status")
+              .eq("period", p);
+
+            if (!invoices || invoices.length === 0) {
+              return kosong(`Belum ada invoice SPP diterbitkan untuk periode ${p}.`);
+            }
+
+            const totalInvoice = invoices.length;
+            const lunas = invoices.filter((i: any) => i.status === "PAID").length;
+            const belumBayar = invoices.filter((i: any) => i.status === "UNPAID").length;
+            const gagalDebit = invoices.filter((i: any) => i.status === "FAILED").length;
+            const jatuhTempo = invoices.filter((i: any) => i.status === "OVERDUE").length;
+            const nilaiDitagihkan = invoices.reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0);
+            const nilaiTertagih = invoices
+              .filter((i: any) => i.status === "PAID")
+              .reduce((sum: number, i: any) => sum + Number(i.amount || 0), 0);
+            const collectionPct = totalInvoice > 0 ? (lunas / totalInvoice) * 100 : 0;
+
+            return {
+              periode: p,
+              cutOff: `${scope.businessDate} 00:00 WIB`,
+              totalInvoice,
+              lunas,
+              belumBayar,
+              gagalDebit,
+              jatuhTempo,
+              nilaiDitagihkan: rupiah(nilaiDitagihkan),
+              nilaiTertagih: rupiah(nilaiTertagih),
+              nilaiTertunggak: rupiah(Math.max(0, nilaiDitagihkan - nilaiTertagih)),
+              collectionPersen: persen(collectionPct),
+            };
+          }
 
           const m = (data as any[])?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
-          if (!m || Number(m.total_invoice) === 0) {
+          if (!m || Number(m.total_invoice || 0) === 0) {
             return kosong(`Belum ada invoice SPP diterbitkan untuk periode ${p}.`);
           }
+
+          const totalInvoice = Number(m.total_invoice || 0);
+          const lunas = Number(m.paid_count || 0);
+          const belumBayar = Number(m.unpaid_count || 0);
+          const gagalDebit = Number(m.failed_count || 0);
+          const jatuhTempo = Number(m.overdue_count || 0);
+          const nilaiDitagihkan = Number(m.billed_amount || 0);
+          const nilaiTertagih = Number(m.collected_amount || 0);
+          const collectionPct = Number(m.collection_pct || 0);
 
           return {
             periode: p,
             cutOff: `${scope.businessDate} 00:00 WIB`,
-            totalInvoice: Number(m.total_invoice),
-            lunas: Number(m.paid_count),
-            belumBayar: Number(m.unpaid_count),
-            gagalDebit: Number(m.failed_count),
-            jatuhTempo: Number(m.overdue_count),
-            nilaiDitagihkan: rupiah(m.billed_amount),
-            nilaiTertagih: rupiah(m.collected_amount),
-            nilaiTertunggak: rupiah(m.billed_amount) - rupiah(m.collected_amount),
-            collectionPersen: persen(m.collection_pct),
+            totalInvoice,
+            lunas,
+            belumBayar,
+            gagalDebit,
+            jatuhTempo,
+            nilaiDitagihkan: rupiah(nilaiDitagihkan),
+            nilaiTertagih: rupiah(nilaiTertagih),
+            nilaiTertunggak: rupiah(Math.max(0, nilaiDitagihkan - nilaiTertagih)),
+            collectionPersen: persen(collectionPct),
           };
         } catch (e) {
           return toolError(e, "getSPPCollectionRate");
@@ -61,7 +106,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
           const p = periode ?? scope.currentPeriod;
           let q = db
             .from("spp_invoices")
-            .select("period, amount, status, retry_count, due_date, students!inner(full_name, grade_level, class_name)")
+            .select("period, amount, status, retry_count, due_date, students!spp_invoices_student_id_fkey(full_name, grade_level, class_name)")
             .eq("period", p)
             .in("status", ["UNPAID", "FAILED", "OVERDUE"])
             .order("due_date", { ascending: true })
@@ -167,7 +212,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
           const e0 = (escrow.data as any[])?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
           const snaps = (giro.data ?? []) as any[]; // eslint-disable-line @typescript-eslint/no-explicit-any
 
-          if (!e0 || Number(e0.entry_count) === 0) {
+          if (!e0 || Number(e0.entry_count || 0) === 0) {
             return kosong("Belum ada entri ledger escrow untuk sekolah ini.");
           }
 
@@ -208,22 +253,22 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
           if (error) throw error;
 
           const m = (data as any[])?.[0]; // eslint-disable-line @typescript-eslint/no-explicit-any
-          if (!m || Number(m.total_students) === 0) {
+          if (!m || Number(m.total_students || 0) === 0) {
             return kosong("Belum ada siswa terdaftar pada sekolah ini.");
           }
 
           return {
             cutOff: scope.businessDate,
-            totalSiswa: Number(m.total_students),
-            kartuAktif: Number(m.active_cards),
-            dilaporkanHilang: Number(m.lost_reported),
-            diblokir: Number(m.blocked),
-            lulus: Number(m.graduated),
-            pindahKeluar: Number(m.transferred_out),
-            tanpaConsentAktif: Number(m.consent_pending),
-            diterbitkan30Hari: Number(m.issued_last_30d),
+            totalSiswa: Number(m.total_students || 0),
+            kartuAktif: Number(m.active_cards || 0),
+            dilaporkanHilang: Number(m.lost_reported || 0),
+            diblokir: Number(m.blocked || 0),
+            lulus: Number(m.graduated || 0),
+            pindahKeluar: Number(m.transferred_out || 0),
+            tanpaConsentAktif: Number(m.consent_pending || 0),
+            diterbitkan30Hari: Number(m.issued_last_30d || 0),
             catatanKepatuhan:
-              Number(m.consent_pending) > 0
+              Number(m.consent_pending || 0) > 0
                 ? "Ada siswa tanpa parental consent aktif. Sesuai UU PDP, akun mereka seharusnya tidak aktif. Sarankan tindak lanjut ke admin."
                 : null,
           };
@@ -244,7 +289,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
         try {
           const { data, error } = await db
             .from("settlement_batches")
-            .select("business_date, net_amount, gross_amount, transaction_count, status, failure_reason, merchants!inner(name)")
+            .select("business_date, net_amount, gross_amount, transaction_count, status, failure_reason, merchants!settlement_batches_merchant_id_fkey(name)")
             .order("business_date", { ascending: false })
             .limit(hariTerakhir * 10);
 

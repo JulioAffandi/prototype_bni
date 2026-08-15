@@ -11,9 +11,9 @@ const ReissueCardSchema = z.object({
 
 /**
  * POST /api/v1/schools/[id]/students/[sid]/reissue-card
- * School Admin re-issues a new NFC card for a student (Schema v3).
- * Revokes old card credentials, hashes new UID (SHA-256), inserts active student_cards record,
- * resets student.card_status to 'active', and logs lifecycle & audit events.
+ * School Admin re-issues a new NFC card for a student (SPEC v2.1 §6.4).
+ * Retires/replaces old card credentials, tokenizes new raw UID via SHA-256(raw_uid + TENANT_SALT_SECRET),
+ * inserts active student_cards record, resets student status to 'active', and logs lifecycle (REISSUED) & audit events.
  */
 export async function POST(
   request: NextRequest,
@@ -81,16 +81,16 @@ export async function POST(
 
   if (existingCard) {
     return NextResponse.json(
-      { error: "INVALID_PAYLOAD", message: "UID kartu ini sudah digunakan oleh siswa lain." },
+      { error: "CARD_ALREADY_BOUND", message: "UID kartu ini sudah digunakan oleh siswa lain." },
       { status: 409 },
     );
   }
 
-  // 2. Retire/replace all previous active/lost cards for student
+  // 2. Deactivate/replace all previous active/lost cards for student in atomic update
   const nowIso = new Date().toISOString();
   await service
     .from("student_cards")
-    .update({ status: "replaced", retired_at: nowIso })
+    .update({ status: "replaced", retired_at: nowIso, deactivated_at: nowIso })
     .eq("student_id", studentId)
     .in("status", ["active", "lost_reported", "blocked", "pending_activation"]);
 
@@ -101,6 +101,7 @@ export async function POST(
       student_id: studentId,
       school_id: schoolId,
       uid_hash: byteaHash,
+      card_uid_hash: rawHash.toLowerCase(),
       uid_last4: last4,
       status: "active",
       activated_at: nowIso,
@@ -115,19 +116,19 @@ export async function POST(
     );
   }
 
-  // 4. Reset student status in public.students table
+  // 4. Ensure student status is active
   await service
     .from("students")
     .update({ status: "active" })
     .eq("id", studentId);
 
-  // 5. Log lifecycle event & audit trail
+  // 5. Log lifecycle event (REISSUED) & audit trail
   await service.from("card_lifecycle_events").insert({
     student_id: studentId,
     card_id: newCard.id,
     school_id: schoolId,
-    event_type: "reissued",
-    notes: "Kartu NFC baru diterbitkan (re-binding) oleh admin sekolah",
+    event_type: "REISSUED",
+    notes: `Pengganti kartu baru (${last4}) oleh admin sekolah`,
     actor_user_id: user.id,
     actor_role_snapshot: "school_admin",
   });

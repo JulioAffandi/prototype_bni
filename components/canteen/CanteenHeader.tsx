@@ -10,9 +10,11 @@ import {
   Settings,
   Utensils,
   User,
+  LogOut,
 } from "lucide-react";
 import Link from "next/link";
 import OfflineQueueIndicator from "./OfflineQueueIndicator";
+import { handleLogout } from "@/lib/auth/actions";
 
 interface CanteenHeaderProps {
   merchantName: string;
@@ -107,6 +109,20 @@ export default function CanteenHeader({ merchantName }: CanteenHeaderProps) {
           >
             <Settings className="w-4 h-4 text-muted-foreground" />
           </Link>
+          <button
+            type="button"
+            id="canteen-header-logout-btn"
+            onClick={() => {
+              if (confirm("Keluar dari Kasir Stand Kantin?")) {
+                handleLogout("/login");
+              }
+            }}
+            className="w-8 h-8 rounded-xl border border-red-500/30 bg-red-500/10 hover:bg-red-500 hover:text-white text-red-400 flex items-center justify-center transition-all"
+            title="Keluar Akun Kasir / Switch User"
+            aria-label="Keluar Akun Kasir / Switch User"
+          >
+            <LogOut className="w-4 h-4" />
+          </button>
         </div>
       </div>
     </header>

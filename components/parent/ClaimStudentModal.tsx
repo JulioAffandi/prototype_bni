@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, Hash, Calendar, Heart, Loader2, X, CheckCircle2, School, ShieldCheck } from "lucide-react";
+import { UserPlus, Hash, Calendar, Heart, Loader2, X, CheckCircle2, School, ShieldCheck, Lock } from "lucide-react";
 
 interface PublicSchool {
   id: string;
@@ -30,6 +30,7 @@ export default function ClaimStudentModal({
   const [studentNumber, setStudentNumber] = useState("");
   const [dateOfBirth, setDateOfBirth] = useState("");
   const [relationship, setRelationship] = useState("orang_tua");
+  const [consentMinor, setConsentMinor] = useState(true);
   const [loading, setLoading] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +66,11 @@ export default function ClaimStudentModal({
       return;
     }
 
+    if (!consentMinor) {
+      setError("Persetujuan pemrosesan data pribadi anak (UU PDP) wajib disetujui.");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     setSuccessMsg(null);
@@ -79,6 +85,7 @@ export default function ClaimStudentModal({
           student_number: studentNumber.trim(),
           date_of_birth: dateOfBirth,
           relationship,
+          consent_data_processing_minor: consentMinor,
         }),
       });
 
@@ -88,15 +95,14 @@ export default function ClaimStudentModal({
         throw new Error(data.message ?? data.error ?? "Gagal menghubungkan data siswa");
       }
 
-      setSuccessMsg(data.message ?? `Berhasil terhubung dengan ${data.student?.full_name ?? "Siswa"}!`);
+      setSuccessMsg(data.message ?? `Berhasil terhubung dengan data siswa!`);
       setTimeout(() => {
         onClose();
         if (onSuccess) {
           onSuccess();
         }
         router.refresh();
-        window.location.reload();
-      }, 1200);
+      }, 1000);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan saat klaim data siswa");
     } finally {
@@ -115,7 +121,7 @@ export default function ClaimStudentModal({
             </div>
             <div>
               <h3 className="font-bold text-base text-foreground">Hubungkan / Klaim Data Siswa</h3>
-              <p className="text-xs text-muted-foreground">Verifikasi NISN &amp; Tanggal Lahir Siswa</p>
+              <p className="text-xs text-muted-foreground">Verifikasi 3-Faktor (NPSN, NISN &amp; Tanggal Lahir)</p>
             </div>
           </div>
           <button
@@ -205,9 +211,6 @@ export default function ClaimStudentModal({
                   className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 shadow-sm"
                 />
               </div>
-              <p className="text-[11px] text-muted-foreground mt-1">
-                Digunakan sebagai kunci verifikasi hak akses wali murid (UU PDP §11.2).
-              </p>
             </div>
           </div>
 
@@ -229,6 +232,23 @@ export default function ClaimStudentModal({
                 <option value="saudara" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Kakak / Saudara Kandung</option>
               </select>
             </div>
+          </div>
+
+          {/* UU PDP Parental Consent Checkbox */}
+          <div className="pt-2 border-t border-border/60">
+            <label className="flex items-start gap-2.5 cursor-pointer text-xs text-muted-foreground select-none">
+              <input
+                id="consent-minor-checkbox"
+                type="checkbox"
+                checked={consentMinor}
+                onChange={(e) => setConsentMinor(e.target.checked)}
+                className="mt-0.5 rounded border-border text-primary focus:ring-primary h-4 w-4"
+              />
+              <span>
+                <Lock className="w-3 h-3 text-primary inline mr-1" />
+                Saya menyetujui pemrosesan data pribadi spesifik anak (NFC UID, NISN, Tanggal Lahir) sesuai <strong>UU No. 27/2022 (UU PDP)</strong> untuk ekosistem VALO.
+              </span>
+            </label>
           </div>
 
           {successMsg && (
@@ -256,7 +276,7 @@ export default function ClaimStudentModal({
             <button
               id="submit-claim-student-btn"
               type="submit"
-              disabled={loading || !studentNumber.trim() || !dateOfBirth}
+              disabled={loading || !studentNumber.trim() || !dateOfBirth || !consentMinor}
               className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground text-xs font-bold hover:bg-primary/90 transition-all flex items-center justify-center gap-1.5 shadow-md disabled:opacity-60"
             >
               {loading ? (

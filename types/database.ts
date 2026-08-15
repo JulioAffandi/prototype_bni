@@ -28,7 +28,7 @@ export type merchant_status_t = "pending" | "active" | "suspended" | "terminated
 export type student_status_t = "active" | "suspended" | "graduated" | "transferred_out" | "archived";
 export type card_status_t = "pending_activation" | "active" | "lost_reported" | "blocked" | "replaced" | "retired";
 export type guardian_relationship_t = "ayah" | "ibu" | "wali" | "kakek_nenek" | "saudara" | "institusi" | "lainnya";
-export type guardian_link_status_t = "pending" | "active" | "revoked";
+export type guardian_link_status_t = "pending" | "pending_activation" | "active" | "revoked";
 export type txn_status_t = "PENDING" | "SETTLED" | "REJECTED_OVERLIMIT" | "REJECTED_CARD_BLOCKED" | "REJECTED_POST_HOC" | "REVERSED";
 export type settlement_status_t = "UNSETTLED" | "BATCHED" | "DISBURSED" | "FAILED";
 export type txn_channel_t = "ONLINE_TAP" | "OFFLINE_SYNC" | "MANUAL_ADJUSTMENT";
@@ -58,7 +58,21 @@ export type ledger_source_t =
   | "MANUAL_ADJUSTMENT"
   | "OFFBOARDING_PAYOUT";
 
-export type card_event_t = "issued" | "activated" | "lost_reported" | "blocked" | "unblocked" | "reissued" | "retired" | "offboarded";
+export type card_event_t =
+  | "issued"
+  | "activated"
+  | "lost_reported"
+  | "blocked"
+  | "unblocked"
+  | "reissued"
+  | "retired"
+  | "offboarded"
+  | "ISSUANCE"
+  | "LOST_REPORTED"
+  | "BLOCKED"
+  | "REISSUED"
+  | "DEACTIVATED"
+  | "OFFBOARDED";
 export type consent_type_t = "DATA_PROCESSING_MINOR" | "MARKETING" | "AI_ANALYTICS" | "BIOMETRIC_NONE";
 export type sync_status_t = "PENDING" | "SYNCED" | "CONFLICT" | "DISCARDED";
 export type idempotency_status_t = "PROCESSING" | "COMPLETED" | "FAILED";
@@ -176,6 +190,8 @@ export interface Database {
           email: string | null;
           bni_account_number: string | null;
           bni_link_status: string;
+          account_status?: string;
+          invited_by_school_id?: string | null;
           telegram_chat_id: string | null;
           created_at: string;
           updated_at: string;
@@ -263,8 +279,9 @@ export interface Database {
           full_name: string;
           student_number: string | null;
           class_label: string | null;
-          grade_level: number | null;
+          grade_level: number | string | null;
           class_name: string | null;
+          class_group?: string | null;
           date_of_birth: string | null;
           status: student_status_t;
           daily_limit: number;
@@ -298,11 +315,14 @@ export interface Database {
           student_id: string;
           school_id: string;
           uid_hash: string;
+          card_uid_hash?: string | null;
           uid_last4: string | null;
           status: card_status_t;
           issued_at: string;
           activated_at: string | null;
           retired_at: string | null;
+          deactivated_at?: string | null;
+          issued_by_profile_id?: string | null;
           replaced_by_card_id: string | null;
           created_at: string;
         };
@@ -338,6 +358,8 @@ export interface Database {
           relationship: guardian_relationship_t;
           is_primary_guardian: boolean;
           status: guardian_link_status_t;
+          linked_via?: string;
+          linked_at?: string;
           can_view_activity: boolean;
           can_manage_pagu: boolean;
           can_fund: boolean;
@@ -377,6 +399,30 @@ export interface Database {
             columns: ["school_id"];
             isOneToOne: false;
             referencedRelation: "schools";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      guardian_claim_attempts: {
+        Row: {
+          id: string;
+          parent_id: string | null;
+          ip_address: string | null;
+          attempted_npsn: string | null;
+          attempted_nisn: string | null;
+          success: boolean;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["guardian_claim_attempts"]["Row"]> & {
+          success: boolean;
+        };
+        Update: Partial<Database["public"]["Tables"]["guardian_claim_attempts"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "guardian_claim_attempts_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "parents";
             referencedColumns: ["id"];
           },
         ];

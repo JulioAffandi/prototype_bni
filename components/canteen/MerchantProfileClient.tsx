@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { Utensils, CreditCard, Loader2, CheckCircle2, User, School, Power } from "lucide-react";
+import { Utensils, CreditCard, Loader2, CheckCircle2, User, School, Power, LogOut } from "lucide-react";
+import { handleLogout } from "@/lib/auth/actions";
 
 interface MerchantProfileProps {
   user: {
@@ -86,6 +87,16 @@ export default function MerchantProfileClient({ user, merchant }: MerchantProfil
               </div>
             </div>
           </div>
+
+          <button
+            type="button"
+            id="merchant-logout-header-btn"
+            onClick={() => handleLogout("/login")}
+            className="px-4 py-2 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all text-xs font-bold flex items-center gap-2"
+          >
+            <LogOut className="w-4 h-4" />
+            Keluar Akun Stand / Ganti User
+          </button>
         </div>
       </div>
 
@@ -175,7 +186,17 @@ export default function MerchantProfileClient({ user, merchant }: MerchantProfil
           </p>
         )}
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-3 border-t border-border flex items-center justify-between gap-3">
+          <button
+            type="button"
+            id="merchant-logout-footer-btn"
+            onClick={() => handleLogout("/login")}
+            className="px-4 py-2.5 rounded-xl border border-destructive/30 bg-destructive/10 text-destructive hover:bg-destructive hover:text-white transition-all text-xs font-bold flex items-center gap-2 shadow-sm"
+          >
+            <LogOut className="w-4 h-4" />
+            Keluar Akun Kasir / Switch User
+          </button>
+
           <button
             type="submit"
             disabled={loading}
@@ -188,3 +209,4 @@ export default function MerchantProfileClient({ user, merchant }: MerchantProfil
     </div>
   );
 }
+

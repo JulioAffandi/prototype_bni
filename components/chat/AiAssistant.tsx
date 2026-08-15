@@ -55,6 +55,9 @@ export default function AiAssistant({ persona }: AiAssistantProps) {
     stop,
   } = useChat({
     api: "/api/chat",
+    body: {
+      persona: activePersona,
+    },
     initialMessages: [],
     onError: (err) => {
       console.error("[AiAssistant] Chat error:", err);
@@ -217,10 +220,15 @@ export default function AiAssistant({ persona }: AiAssistantProps) {
                 {/* Error state */}
                 {error && (
                   <div
-                    className="rounded-xl px-3.5 py-2.5 text-xs text-rose-300"
+                    className="rounded-xl px-3.5 py-2.5 text-xs text-rose-300 space-y-1"
                     style={{ background: "rgba(244, 63, 94, 0.12)", border: "1px solid rgba(244, 63, 94, 0.25)" }}
                   >
-                    ⚠️ Gagal mengirim pesan. Periksa koneksi dan coba lagi.
+                    <div className="font-semibold flex items-center gap-1.5">
+                      <span>⚠️ Gagal mengirim pesan</span>
+                    </div>
+                    <p className="text-[11px] opacity-90 break-words">
+                      {error.message || "Terjadi kesalahan saat menghubungkan ke AI Assistant."}
+                    </p>
                   </div>
                 )}
 
