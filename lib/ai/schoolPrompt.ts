@@ -3,7 +3,7 @@
 // Reference: PRODUCT_SPECIFICATION_v2.md §10.2
 // =============================================================
 
-import type { CoreTool } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
 
 export const SCHOOL_SYSTEM_PROMPT = `Kamu adalah "VALO Treasury Advisor", asisten AI untuk bendahara sekolah.
@@ -18,10 +18,10 @@ sebagai margin keamanan likuiditas operasional.`;
  * Tool: get_spp_collection_rate
  * Returns percentage of paid vs overdue SPP for a given period.
  */
-export const getSPPCollectionRateTool: CoreTool = {
+export const getSPPCollectionRateTool = tool({
   description:
     "Menghitung persentase SPP lunas vs tertunggak untuk periode tertentu.",
-  parameters: z.object({
+  inputSchema: z.object({
     school_id: z.string().uuid().describe("UUID sekolah"),
     period: z.string().describe("Format YYYY-MM, contoh: 2026-08"),
   }),
@@ -33,16 +33,16 @@ export const getSPPCollectionRateTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil data tingkat pembayaran SPP." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /**
  * Tool: get_giro_balance_trend
  * Returns 30-day balance trend for the school's BNI Giro account.
  */
-export const getGiroBalanceTrendTool: CoreTool = {
+export const getGiroBalanceTrendTool = tool({
   description:
     "Mengambil tren saldo mengendap di rekening Giro BNI sekolah 30 hari terakhir.",
-  parameters: z.object({
+  inputSchema: z.object({
     school_id: z.string().uuid().describe("UUID sekolah"),
   }),
   execute: async ({ school_id }) => {
@@ -53,16 +53,16 @@ export const getGiroBalanceTrendTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil tren saldo Giro." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /**
  * Tool: simulate_deposito_allocation
  * Simulates yield if a portion of idle funds is placed in BNI Deposito.
  */
-export const simulateDepositoAllocationTool: CoreTool = {
+export const simulateDepositoAllocationTool = tool({
   description:
     "Simulasi hasil yield jika sejumlah dana dialokasikan ke BNI Deposito jangka pendek.",
-  parameters: z.object({
+  inputSchema: z.object({
     school_id: z.string().uuid().describe("UUID sekolah"),
     amount: z.number().positive().describe("Jumlah dana yang ingin dialokasikan (Rupiah)"),
     tenor_months: z
@@ -81,7 +81,7 @@ export const simulateDepositoAllocationTool: CoreTool = {
     if (!res.ok) return { error: "Gagal menjalankan simulasi deposito." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 export const schoolTreasuryTools = {
   get_spp_collection_rate: getSPPCollectionRateTool,

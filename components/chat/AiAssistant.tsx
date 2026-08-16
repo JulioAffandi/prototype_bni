@@ -1,6 +1,7 @@
 "use client";
 
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useEffect, useRef, useState } from "react";
 import { usePathname } from "next/navigation";
 import {
@@ -43,26 +44,41 @@ export default function AiAssistant({ persona }: AiAssistantProps) {
 
   const copy = CHAT_COPY[activePersona];
 
+  const [input, setInput] = useState("");
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => setInput(e.target.value);
+
   const {
     messages,
-    input,
-    handleInputChange,
-    handleSubmit,
-    isLoading,
+    sendMessage,
+    status,
     error,
     setMessages,
-    append,
     stop,
   } = useChat({
-    api: "/api/chat",
-    body: {
-      persona: activePersona,
-    },
-    initialMessages: [],
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+      body: {
+        persona: activePersona,
+      },
+    }),
+    messages: [],
     onError: (err) => {
       console.error("[AiAssistant] Chat error:", err);
     },
   });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const append = (message: { role: "user"; content: string }) => {
+    sendMessage({ text: message.content });
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  };
 
   // Auto-scroll to latest message
   useEffect(() => {

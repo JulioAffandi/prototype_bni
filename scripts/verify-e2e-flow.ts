@@ -6,7 +6,10 @@ import type { Database } from "@/types/database";
 
 // Load environment variables from .env.local
 function loadEnv() {
-  const envPath = path.join(process.cwd(), ".env.local");
+  let envPath = path.join(process.cwd(), ".env.local");
+  if (!fs.existsSync(envPath)) {
+    envPath = path.join(process.cwd(), ".env");
+  }
   if (fs.existsSync(envPath)) {
     const content = fs.readFileSync(envPath, "utf-8");
     for (const line of content.split("\n")) {

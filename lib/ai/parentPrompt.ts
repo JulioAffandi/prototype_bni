@@ -3,7 +3,7 @@
 // Reference: PRODUCT_SPECIFICATION_v2.md §10.3
 // =============================================================
 
-import type { CoreTool } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
 
 export const PARENT_SYSTEM_PROMPT = `Kamu adalah "VALO Family Advisor", asisten AI ramah untuk orang tua murid.
@@ -22,10 +22,10 @@ Batasan penting:
  * Tool: get_child_spending_breakdown
  * Returns spending breakdown by food category over a date range.
  */
-export const getChildSpendingBreakdownTool: CoreTool = {
+export const getChildSpendingBreakdownTool = tool({
   description:
     "Mengambil rekap pengeluaran jajan anak per kategori menu dalam rentang waktu tertentu.",
-  parameters: z.object({
+  inputSchema: z.object({
     student_id: z.string().uuid().describe("UUID siswa"),
     date_from: z.string().describe("Tanggal mulai (YYYY-MM-DD)"),
     date_to: z.string().describe("Tanggal selesai (YYYY-MM-DD)"),
@@ -38,16 +38,16 @@ export const getChildSpendingBreakdownTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil data pengeluaran anak." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /**
  * Tool: get_vault_savings_status
  * Returns Student Vault balance + progress toward savings goal.
  */
-export const getVaultSavingsStatusTool: CoreTool = {
+export const getVaultSavingsStatusTool = tool({
   description:
     "Mengambil saldo Student Vault dan progres terhadap goal tabungan.",
-  parameters: z.object({
+  inputSchema: z.object({
     student_id: z.string().uuid().describe("UUID siswa"),
   }),
   execute: async ({ student_id }) => {
@@ -58,16 +58,16 @@ export const getVaultSavingsStatusTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil status Vault." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /**
  * Tool: simulate_reksadana_allocation
  * Simulates projected value if part of vault is allocated to BNI Reksa Dana / wondr Growth.
  */
-export const simulateReksadanaAllocationTool: CoreTool = {
+export const simulateReksadanaAllocationTool = tool({
   description:
     "Simulasi proyeksi nilai jika saldo vault dialokasikan sebagian ke produk BNI Reksa Dana/wondr Growth.",
-  parameters: z.object({
+  inputSchema: z.object({
     student_id: z.string().uuid().describe("UUID siswa"),
     allocation_amount: z.number().positive().describe("Jumlah yang ingin dialokasikan (Rupiah)"),
   }),
@@ -79,7 +79,7 @@ export const simulateReksadanaAllocationTool: CoreTool = {
     if (!res.ok) return { error: "Gagal menjalankan simulasi reksa dana." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 export const parentAdvisorTools = {
   get_child_spending_breakdown: getChildSpendingBreakdownTool,

@@ -98,7 +98,9 @@ export default async function SchoolStudentsPage() {
     studentQuery = studentQuery.eq("school_id", schoolId);
   }
 
-  let { data: students, error: fetchErr } = await studentQuery;
+  const studentResult = await studentQuery;
+  let students = studentResult.data;
+  const fetchErr = studentResult.error;
 
   // Fallback: if no students returned for specific schoolId filter, fetch all active students in system
   if ((!students || students.length === 0) && schoolId) {

@@ -1,8 +1,10 @@
 "use client";
 
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 import { Bot, Send, X, Loader2 } from "lucide-react";
+import { getMessageText } from "@/lib/ai/message-utils";
 
 interface AIChatDrawerProps {
   endpoint: string;
@@ -24,9 +26,26 @@ const PERSONA_HINTS: Record<AIChatDrawerProps["persona"], string[]> = {
 
 export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChatDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error } = useChat({
-    api: endpoint,
+  const [input, setInput] = useState("");
+
+  const { messages, sendMessage, status, error } = useChat({
+    transport: new DefaultChatTransport({
+      api: endpoint,
+    }),
   });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  };
 
   const personaName = PERSONA_NAMES[persona];
   const hints = PERSONA_HINTS[persona];
@@ -107,7 +126,7 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
                       msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
                     }`}
                   >
-                    {msg.content}
+                    {getMessageText(msg)}
                   </div>
                 </div>
               ))}

@@ -19,7 +19,7 @@ export function buildParentTools(db: Db, scope: AiScope) {
         "Status pagu jajan HARI INI untuk satu anak: limit harian, sudah terpakai, sisa, " +
         "status toggle emergency, dan apakah jatah overdraft harian sudah dipakai. " +
         'Gunakan untuk pertanyaan "berapa sisa pagu <nama> hari ini".',
-      parameters: z.object({ childId }),
+      inputSchema: z.object({ childId }),
       execute: async ({ childId: sid }) => {
         try {
           const { data, error } = await db
@@ -57,7 +57,7 @@ export function buildParentTools(db: Db, scope: AiScope) {
         "Rekap belanja kantin satu anak pada rentang tanggal, dipecah per kategori menu " +
         "(gorengan, minuman manis, makanan berat, dan seterusnya) beserta persentasenya. " +
         "Rentang maksimum 92 hari.",
-      parameters: z.object({
+      inputSchema: z.object({
         childId,
         dariTanggal: tanggalSchema.describe("Tanggal awal inklusif, YYYY-MM-DD."),
         sampaiTanggal: tanggalSchema.describe("Tanggal akhir inklusif, YYYY-MM-DD."),
@@ -99,7 +99,7 @@ export function buildParentTools(db: Db, scope: AiScope) {
       description:
         "Saldo Student Goal Vault satu anak, nama target tabungan, nilai target, " +
         "persentase progres, dan kekurangan menuju target.",
-      parameters: z.object({ childId }),
+      inputSchema: z.object({ childId }),
       execute: async ({ childId: sid }) => {
         try {
           const { data, error } = await db
@@ -133,7 +133,7 @@ export function buildParentTools(db: Db, scope: AiScope) {
         "Daftar tagihan SPP yang BELUM lunas untuk anak-anak pengguna, mencakup status " +
         "UNPAID, FAILED, dan OVERDUE, beserta jumlah percobaan auto-debit dan jatuh tempo. " +
         "Kosongkan childId untuk melihat seluruh anak.",
-      parameters: z.object({
+      inputSchema: z.object({
         childId: childId.optional().describe("Opsional. Kosongkan untuk seluruh anak."),
       }),
       execute: async ({ childId: sid }) => {
