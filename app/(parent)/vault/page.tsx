@@ -35,8 +35,7 @@ export default async function VaultPage() {
         students!guardian_student_map_student_id_fkey (
           id, full_name,
           student_vault!student_vault_student_id_fkey (
-            student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at,
-            ledger_accounts ( balance )
+            student_id, school_id, ledger_account_id, vault_balance, savings_goal_name, savings_goal_target, updated_at
           )
         )
       `)
@@ -48,24 +47,34 @@ export default async function VaultPage() {
 
     const rawStudents = activeMappings.map((m) => m.students).filter(Boolean);
 
-    students = rawStudents.map((st: any) => {
-      const vArr = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
-      const ledgerObj = vArr?.ledger_accounts as { balance?: number } | null;
-      const balance = ledgerObj?.balance ?? 0;
+    students = await Promise.all(
+      rawStudents.map(async (st: any) => {
+        const vArr = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
+        let balance = vArr?.vault_balance ?? 0;
 
-      return {
-        id: st.id,
-        full_name: st.full_name,
-        student_vault: vArr
-          ? {
-              vault_balance: balance,
-              savings_goal_name: vArr.savings_goal_name,
-              savings_goal_target: vArr.savings_goal_target,
-              updated_at: vArr.updated_at,
-            }
-          : null,
-      };
-    });
+        if (vArr?.ledger_account_id && (vArr.vault_balance === undefined || vArr.vault_balance === null)) {
+          const { data: ledgerAcc } = await service
+            .from("ledger_accounts")
+            .select("balance")
+            .eq("id", vArr.ledger_account_id)
+            .maybeSingle();
+          if (ledgerAcc) balance = ledgerAcc.balance ?? 0;
+        }
+
+        return {
+          id: st.id,
+          full_name: st.full_name,
+          student_vault: vArr
+            ? {
+                vault_balance: balance,
+                savings_goal_name: vArr.savings_goal_name,
+                savings_goal_target: vArr.savings_goal_target,
+                updated_at: vArr.updated_at,
+              }
+            : null,
+        };
+      })
+    );
   }
 
   return (

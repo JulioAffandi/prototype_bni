@@ -73,7 +73,7 @@ export default async function ParentDashboardPage() {
           id, school_id, full_name, student_number, class_label, date_of_birth, status,
           daily_limit, emergency_approve, emergency_limit, created_at, updated_at, offboarded_at,
           student_cards!student_cards_student_id_fkey ( id, uid_last4, status ),
-          student_vault!student_vault_student_id_fkey ( student_id, school_id, ledger_account_id, savings_goal_name, savings_goal_target, updated_at, ledger_accounts ( balance ) ),
+          student_vault!student_vault_student_id_fkey ( student_id, school_id, ledger_account_id, vault_balance, savings_goal_name, savings_goal_target, updated_at ),
           spp_invoices!spp_invoices_student_id_fkey ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
         )
       `)
@@ -103,8 +103,18 @@ export default async function ParentDashboardPage() {
           .maybeSingle();
 
         const vaultObj = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
-        const ledgerObj = vaultObj?.ledger_accounts as { balance?: number } | null;
-        const vaultBalance = ledgerObj?.balance ?? 0;
+        let vaultBalance = vaultObj?.vault_balance ?? 0;
+
+        if (vaultObj?.ledger_account_id && (vaultObj.vault_balance === undefined || vaultObj.vault_balance === null)) {
+          const { data: ledgerAcc } = await service
+            .from("ledger_accounts")
+            .select("balance")
+            .eq("id", vaultObj.ledger_account_id)
+            .maybeSingle();
+          if (ledgerAcc) {
+            vaultBalance = ledgerAcc.balance ?? 0;
+          }
+        }
 
         return {
           ...st,

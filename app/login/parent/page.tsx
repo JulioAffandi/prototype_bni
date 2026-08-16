@@ -200,12 +200,18 @@ export default function ParentLoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-border/50 text-center">
+          <div className="pt-4 border-t border-border/50 flex items-center justify-between text-xs">
             <Link
               href="/login"
-              className="text-xs text-muted-foreground hover:text-emerald-400 font-medium transition-colors"
+              className="text-muted-foreground hover:text-emerald-400 font-medium transition-colors"
             >
-              Bukan akun orang tua? <span className="underline">Ganti portal</span>
+              Ganti Portal
+            </Link>
+            <Link
+              href="/register?role=parent"
+              className="text-emerald-400 hover:underline font-bold transition-colors"
+            >
+              Belum punya akun? Daftar
             </Link>
           </div>
         </div>

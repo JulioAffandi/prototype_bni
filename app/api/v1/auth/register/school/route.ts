@@ -3,8 +3,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 
 const SchoolRegisterSchema = z.object({
-  school_name: z.string().min(3, "Nama sekolah wajib diisi"),
-  npsn: z.string().min(8, "NPSN 8 digit angka wajib diisi"),
+  school_id: z.string().optional(),
+  school_name: z.string().optional(),
+  npsn: z.string().optional(),
   school_type: z.string().optional().default("SMA"),
   pic_name: z.string().min(2, "Nama PIC Admin wajib diisi"),
   email: z.string().email("Format email tidak valid"),
@@ -37,37 +38,22 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const { school_name, npsn, pic_name, email, password, phone_number, giro_account } = parsed.data;
+  const { school_id, school_name, npsn, pic_name, email, password, phone_number, giro_account } = parsed.data;
   const normPhone = normalizePhone(phone_number);
 
-  // 1. Create auth user using Supabase Admin Auth API
-  const { data: authUser, error: authError } = await service.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: pic_name, role: "school_admin" },
-  });
+  // 1. Resolve school_id
+  let schoolId: string | null = school_id || null;
 
-  if (authError || !authUser?.user) {
-    return NextResponse.json(
-      { error: "AUTH_REGISTRATION_FAILED", message: authError?.message || "Gagal membuat akun registrasi admin sekolah." },
-      { status: 400 },
-    );
+  if (!schoolId && npsn?.trim()) {
+    const { data: s } = await service
+      .from("schools")
+      .select("id")
+      .eq("npsn", npsn.trim())
+      .maybeSingle();
+    if (s) schoolId = s.id;
   }
 
-  const userId = authUser.user.id;
-
-  // 2. Check or create school record in public.schools
-  let schoolId: string;
-  const { data: existingSchool } = await service
-    .from("schools")
-    .select("id")
-    .eq("npsn", npsn.trim())
-    .maybeSingle();
-
-  if (existingSchool) {
-    schoolId = existingSchool.id;
-  } else {
+  if (!schoolId && school_name?.trim() && npsn?.trim()) {
     const { data: newSchool, error: schoolErr } = await service
       .from("schools")
       .insert({
@@ -87,6 +73,30 @@ export async function POST(request: NextRequest) {
     }
     schoolId = newSchool.id;
   }
+
+  if (!schoolId) {
+    return NextResponse.json(
+      { error: "SCHOOL_NOT_FOUND", message: "Sekolah tidak ditemukan. Pilih sekolah terdaftar atau daftarkan entitas sekolah baru." },
+      { status: 400 },
+    );
+  }
+
+  // 2. Create auth user using Supabase Admin Auth API
+  const { data: authUser, error: authError } = await service.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+    user_metadata: { full_name: pic_name, role: "school_admin" },
+  });
+
+  if (authError || !authUser?.user) {
+    return NextResponse.json(
+      { error: "AUTH_REGISTRATION_FAILED", message: authError?.message || "Gagal membuat akun registrasi admin sekolah." },
+      { status: 400 },
+    );
+  }
+
+  const userId = authUser.user.id;
 
   // Update auth metadata with school_id
   await service.auth.admin.updateUserById(userId, {

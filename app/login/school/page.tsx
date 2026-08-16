@@ -210,12 +210,18 @@ export default function SchoolLoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-border/50 text-center">
+          <div className="pt-4 border-t border-border/50 flex items-center justify-between text-xs">
             <Link
               href="/login"
-              className="text-xs text-muted-foreground hover:text-blue-400 font-medium transition-colors"
+              className="text-muted-foreground hover:text-blue-400 font-medium transition-colors"
             >
-              Bukan pengelola sekolah? <span className="underline">Ganti portal</span>
+              Ganti Portal
+            </Link>
+            <Link
+              href="/register?role=school_admin"
+              className="text-blue-400 hover:underline font-bold transition-colors"
+            >
+              Daftar Sekolah Baru
             </Link>
           </div>
         </div>

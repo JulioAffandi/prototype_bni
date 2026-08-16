@@ -39,6 +39,7 @@ export async function middleware(request: NextRequest) {
   // 1. Whitelisted public / auth / static routes
   const isPublicRoute =
     pathname.startsWith("/login") ||
+    pathname.startsWith("/register") ||
     pathname.startsWith("/auth") ||
     pathname.startsWith("/api") ||
     pathname.startsWith("/_next") ||
@@ -60,8 +61,8 @@ export async function middleware(request: NextRequest) {
   const isMerchantStaff = roles.some((r) => r === "merchant_staff" || r === "merchant_owner");
   const isPlatformAdmin = roles.some((r) => r === "platform_admin" || r === "platform_support");
 
-  // 2. Handle /login page for authenticated users
-  if (user && pathname.startsWith("/login")) {
+  // 2. Handle /login & /register pages for authenticated users
+  if (user && (pathname.startsWith("/login") || pathname.startsWith("/register"))) {
     if (isSchoolStaff || isPlatformAdmin) {
       const url = request.nextUrl.clone();
       url.pathname = "/school";
@@ -75,7 +76,7 @@ export async function middleware(request: NextRequest) {
       url.pathname = "/dashboard";
       return NextResponse.redirect(url);
     }
-    // If authenticated user has no specific role assigned yet, stay on login page (no loop!)
+    // If authenticated user has no specific role assigned yet, stay on page
     return supabaseResponse;
   }
 

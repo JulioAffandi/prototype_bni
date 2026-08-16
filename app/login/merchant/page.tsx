@@ -210,12 +210,18 @@ export default function MerchantLoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-slate-800 text-center">
+          <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
             <Link
               href="/login"
-              className="text-xs text-slate-400 hover:text-orange-400 font-medium transition-colors"
+              className="text-slate-400 hover:text-orange-400 font-medium transition-colors"
             >
-              Bukan kasir kantin? <span className="underline">Ganti portal</span>
+              Ganti Portal
+            </Link>
+            <Link
+              href="/register?role=merchant_staff"
+              className="text-orange-400 hover:underline font-bold transition-colors"
+            >
+              Daftar Merchant Kantin
             </Link>
           </div>
         </div>
