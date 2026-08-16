@@ -14,7 +14,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
         "rata-rata nilai transaksi, jam paling ramai, jumlah transaksi emergency, " +
         "jumlah transaksi ditolak, dan estimasi harga pokok bila data biaya tersedia. " +
         "Default hari ini.",
-      parameters: z.object({
+      inputSchema: z.object({
         tanggal: tanggalSchema.optional().describe("Opsional, YYYY-MM-DD. Default hari ini."),
       }),
       execute: async ({ tanggal }) => {
@@ -59,7 +59,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
       description:
         "Menu terlaris berdasarkan kuantitas terjual dalam N hari terakhir, beserta omzet " +
         "per menu dan sisa stok saat ini. Untuk rekomendasi restok bahan baku.",
-      parameters: z.object({
+      inputSchema: z.object({
         hariTerakhir: z.number().int().min(1).max(90).default(7),
         jumlahBaris: z.number().int().min(1).max(15).default(8),
       }),
@@ -92,7 +92,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
       description:
         "Sisa stok seluruh menu aktif. Gunakan ambangStokMenipis untuk menyaring hanya " +
         "menu yang perlu segera direstok.",
-      parameters: z.object({
+      inputSchema: z.object({
         ambangStokMenipis: z.number().int().min(0).max(100).default(5),
         hanyaYangMenipis: z.boolean().default(true),
       }),
@@ -101,6 +101,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
           let q = db
             .from("menu_items")
             .select("name, category, stock_qty, unit_price")
+            .eq("merchant_id", scope.merchantId!)
             .eq("is_active", true)
             .order("stock_qty", { ascending: true })
             .limit(40);
@@ -135,7 +136,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
         "Status settlement H+0 ke rekening merchant BNI untuk beberapa hari terakhir: " +
         "nilai kotor, potongan platform, nilai bersih, status pencairan, dan waktu cair. " +
         'Gunakan untuk pertanyaan "uang saya kapan cair" atau "berapa yang belum cair".',
-      parameters: z.object({
+      inputSchema: z.object({
         hariTerakhir: z.number().int().min(1).max(31).default(7),
       }),
       execute: async ({ hariTerakhir }) => {
@@ -143,6 +144,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
           const { data, error } = await db
             .from("settlement_batches")
             .select("business_date, gross_amount, platform_fee, net_amount, transaction_count, status, disbursed_at, scheduled_disburse_at, failure_reason")
+            .eq("merchant_id", scope.merchantId!)
             .order("business_date", { ascending: false })
             .limit(hariTerakhir);
 
@@ -176,7 +178,7 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
         "Diagnosis masalah tap dalam N jam terakhir: jumlah transaksi ditolak karena pagu " +
         "habis, ditolak karena kartu diblokir, masih tertahan di antrean offline, dan " +
         "ditolak saat rekonsiliasi. Data bersifat AGREGAT dan ANONIM, tidak memuat identitas siswa.",
-      parameters: z.object({
+      inputSchema: z.object({
         jamTerakhir: z.number().int().min(1).max(72).default(8),
       }),
       execute: async ({ jamTerakhir }) => {
@@ -187,11 +189,13 @@ export function buildMerchantTools(db: Db, scope: AiScope) {
             db
               .from("canteen_transactions")
               .select("status, is_emergency")
+              .eq("merchant_id", scope.merchantId!)
               .gte("created_at", sejak)
               .limit(2000),
             db
               .from("offline_sync_queue")
               .select("sync_status")
+              .eq("merchant_id", scope.merchantId!)
               .gte("created_at", sejak)
               .limit(2000),
           ]);

@@ -4,7 +4,7 @@
 // Vercel AI SDK tool definitions (OpenAI function calling format)
 // =============================================================
 
-import type { CoreTool } from "ai";
+import { tool } from "ai";
 import { z } from "zod";
 
 /**
@@ -23,10 +23,10 @@ satu rekomendasi actionable jika relevan.`;
  * Tool: get_daily_sales_summary
  * Returns canteen revenue + transaction count for a date range.
  */
-export const getDailySalesSummaryTool: CoreTool = {
+export const getDailySalesSummaryTool = tool({
   description:
     "Mengambil ringkasan omzet dan jumlah transaksi kantin pada rentang tanggal tertentu.",
-  parameters: z.object({
+  inputSchema: z.object({
     merchant_id: z.string().uuid().describe("UUID merchant kantin"),
     date_from: z.string().describe("Tanggal mulai (YYYY-MM-DD)"),
     date_to: z.string().describe("Tanggal selesai (YYYY-MM-DD)"),
@@ -39,16 +39,16 @@ export const getDailySalesSummaryTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil data omzet." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /**
  * Tool: get_menu_stock_status
  * Returns remaining stock and today's sales per menu item.
  */
-export const getMenuStockStatusTool: CoreTool = {
+export const getMenuStockStatusTool = tool({
   description:
     "Mengambil sisa stok dan riwayat penjualan per item menu hari ini.",
-  parameters: z.object({
+  inputSchema: z.object({
     merchant_id: z.string().uuid().describe("UUID merchant kantin"),
   }),
   execute: async ({ merchant_id }) => {
@@ -59,16 +59,16 @@ export const getMenuStockStatusTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil data stok." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /**
  * Tool: get_top_selling_items
  * Returns top-selling menu items for restocking recommendations.
  */
-export const getTopSellingItemsTool: CoreTool = {
+export const getTopSellingItemsTool = tool({
   description:
     "Mengambil daftar menu terlaris dalam N hari terakhir untuk rekomendasi restok bahan baku.",
-  parameters: z.object({
+  inputSchema: z.object({
     merchant_id: z.string().uuid().describe("UUID merchant kantin"),
     last_n_days: z.number().int().default(7).describe("Jumlah hari ke belakang (default 7)"),
   }),
@@ -80,7 +80,7 @@ export const getTopSellingItemsTool: CoreTool = {
     if (!res.ok) return { error: "Gagal mengambil data menu terlaris." };
     return res.json() as Promise<unknown>;
   },
-};
+});
 
 /** All merchant AI tools bundled for streamText() */
 export const merchantTools = {

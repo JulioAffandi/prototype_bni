@@ -1,4 +1,5 @@
-import { createClient } from "@supabase/supabase-js";
+import { google } from "@ai-sdk/google";
+import { generateText } from "ai";
 import * as fs from "fs";
 import * as path from "path";
 
@@ -28,23 +29,31 @@ function loadEnv() {
 
 loadEnv();
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+const modelsToTest = [
+  "gemini-1.5-flash",
+  "gemini-1.5-flash-latest",
+  "gemini-2.0-flash",
+  "gemini-flash-latest"
+];
 
-async function check() {
-  const { data: users } = await supabase.auth.admin.listUsers();
-  console.log("=== ALL AUTH USERS ===");
-  users?.users?.forEach(u => console.log("User:", u.id, u.email, u.phone));
-
-  const { data: parents } = await supabase.from("parents").select("*");
-  console.log("=== ALL PARENTS ===");
-  console.log(parents);
-
-  const { data: mappings } = await supabase.from("guardian_student_map").select("*");
-  console.log("=== ALL GUARDIAN MAPPINGS ===");
-  console.log(mappings);
+async function diagnose() {
+  console.log("=== GEMINI MULTI-MODEL DIAGNOSTICS ===");
+  
+  for (const modelName of modelsToTest) {
+    console.log(`\nTesting model: "${modelName}" ...`);
+    try {
+      const model = google(modelName);
+      const { text } = await generateText({
+        model,
+        prompt: "Respond with exactly 'OK'",
+      });
+      console.log(`🟢 SUCCESS: "${modelName}" worked! Response: ${text.trim()}`);
+    } catch (error: any) {
+      console.log(`🔴 FAILED: "${modelName}" failed!`);
+      console.log(`   Message: ${error.message}`);
+      if (error.status) console.log(`   Status: ${error.status}`);
+    }
+  }
 }
 
-check();
+diagnose();

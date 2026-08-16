@@ -13,7 +13,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
         "Tingkat penagihan SPP satu periode: jumlah invoice, jumlah lunas, tertunggak, " +
         "gagal debit, jatuh tempo, nilai tertagih, dan persentase collection. " +
         "Selalu panggil ini lebih dulu sebelum getUnpaidSPPList.",
-      parameters: z.object({
+      inputSchema: z.object({
         periode: periodeSchema.optional().describe("Default periode berjalan."),
       }),
       execute: async ({ periode }) => {
@@ -26,6 +26,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
             const { data: invoices } = await db
               .from("spp_invoices")
               .select("amount, status")
+              .eq("school_id", scope.schoolId!)
               .eq("period", p);
 
             if (!invoices || invoices.length === 0) {
@@ -95,7 +96,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
       description:
         "Daftar siswa dengan SPP tertunggak pada satu periode. Dapat disaring per tingkat " +
         "kelas dan per nama kelas. Untuk keperluan penagihan. Maksimum 40 baris.",
-      parameters: z.object({
+      inputSchema: z.object({
         periode: periodeSchema.optional(),
         tingkatKelas: z.number().int().min(1).max(13).optional().describe("Contoh 10 untuk kelas 10."),
         namaKelas: z.string().max(16).optional().describe('Contoh "IPA-2". Kosongkan untuk seluruh rombel pada tingkat itu.'),
@@ -107,6 +108,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
           let q = db
             .from("spp_invoices")
             .select("period, amount, status, retry_count, due_date, students!spp_invoices_student_id_fkey(full_name, grade_level, class_name)")
+            .eq("school_id", scope.schoolId!)
             .eq("period", p)
             .in("status", ["UNPAID", "FAILED", "OVERDUE"])
             .order("due_date", { ascending: true })
@@ -153,13 +155,14 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
       description:
         "Ringkasan kegagalan auto-debit SPP pada satu periode, dikelompokkan berdasarkan " +
         "jumlah percobaan retry. Untuk memutuskan eskalasi penagihan manual.",
-      parameters: z.object({ periode: periodeSchema.optional() }),
+      inputSchema: z.object({ periode: periodeSchema.optional() }),
       execute: async ({ periode }) => {
         try {
           const p = periode ?? scope.currentPeriod;
           const { data, error } = await db
             .from("spp_invoices")
             .select("status, retry_count, amount")
+            .eq("school_id", scope.schoolId!)
             .eq("period", p)
             .in("status", ["FAILED", "OVERDUE"])
             .limit(1000);
@@ -196,7 +199,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
         "Saldo escrow sekolah pada ledger double-entry internal VALO, plus tren saldo Giro " +
         "BNI sekolah 30 hari terakhir. Tidak menerima parameter apa pun, scope terkunci " +
         "pada sekolah pengguna.",
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         try {
           const [escrow, giro] = await Promise.all([
@@ -204,6 +207,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
             db
               .from("school_giro_snapshots")
               .select("snapshot_date, giro_balance")
+              .eq("school_id", scope.schoolId!)
               .order("snapshot_date", { ascending: false })
               .limit(30),
           ]);
@@ -246,7 +250,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
         "Statistik enrollment dan provisioning kartu sekolah: total siswa, kartu aktif, " +
         "dilaporkan hilang, diblokir, lulus, pindah, siswa tanpa parental consent aktif, " +
         "dan jumlah kartu diterbitkan 30 hari terakhir.",
-      parameters: z.object({}),
+      inputSchema: z.object({}),
       execute: async () => {
         try {
           const { data, error } = await db.rpc("rpc_school_card_stats");
@@ -282,7 +286,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
       description:
         "Status payout seluruh kantin di bawah sekolah pada rentang tanggal usaha: " +
         "nilai bersih, status pencairan, dan batch yang gagal. Untuk audit vendor settlement.",
-      parameters: z.object({
+      inputSchema: z.object({
         hariTerakhir: z.number().int().min(1).max(31).default(7),
       }),
       execute: async ({ hariTerakhir }) => {
@@ -290,6 +294,7 @@ export function buildSchoolTools(db: Db, scope: AiScope) {
           const { data, error } = await db
             .from("settlement_batches")
             .select("business_date, net_amount, gross_amount, transaction_count, status, failure_reason, merchants!settlement_batches_merchant_id_fkey(name)")
+            .eq("school_id", scope.schoolId!)
             .order("business_date", { ascending: false })
             .limit(hariTerakhir * 10);
 

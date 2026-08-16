@@ -1,6 +1,9 @@
 "use client";
 
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { useState } from "react";
+import { getMessageText } from "@/lib/ai/message-utils";
 import { Bot, Send, Loader2 } from "lucide-react";
 
 const HINTS = [
@@ -11,9 +14,25 @@ const HINTS = [
 ];
 
 export default function ParentAIPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/chat",
+  const [input, setInput] = useState("");
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/chat",
+    }),
   });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] p-4">
@@ -70,7 +89,7 @@ export default function ParentAIPage() {
                 msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
               }`}
             >
-              {msg.content}
+              {getMessageText(msg)}
             </div>
           </div>
         ))}

@@ -1,6 +1,9 @@
 "use client";
 
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
+import { useState } from "react";
+import { getMessageText } from "@/lib/ai/message-utils";
 import { Bot, Send, Loader2, TrendingUp, PieChart, Banknote } from "lucide-react";
 
 const HINTS = [
@@ -11,9 +14,25 @@ const HINTS = [
 ];
 
 export default function SchoolAIPage() {
-  const { messages, input, handleInputChange, handleSubmit, isLoading } = useChat({
-    api: "/api/v1/ai/treasury-advisor",
+  const [input, setInput] = useState("");
+  const { messages, sendMessage, status } = useChat({
+    transport: new DefaultChatTransport({
+      api: "/api/v1/ai/treasury-advisor",
+    }),
   });
+
+  const isLoading = status === "submitted" || status === "streaming";
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
+    setInput(e.target.value);
+  };
+
+  const handleSubmit = (e?: React.FormEvent) => {
+    e?.preventDefault();
+    if (!input.trim()) return;
+    sendMessage({ text: input });
+    setInput("");
+  };
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - 2rem)" }}>
@@ -82,7 +101,7 @@ export default function SchoolAIPage() {
             <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
               msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
             }`}>
-              {msg.content}
+              {getMessageText(msg)}
             </div>
           </div>
         ))}
