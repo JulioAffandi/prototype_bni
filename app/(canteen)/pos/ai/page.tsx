@@ -1,20 +1,24 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
+import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 import { Bot, Send, Loader2, TrendingUp, Package, Star } from "lucide-react";
+import { getMessageText } from "@/lib/ai/message-utils";
 
 const HINTS = [
   "Berapa omzet saya minggu ini?",
   "Stok menu apa yang hampir habis?",
   "Menu terlaris bulan ini apa?",
-  "Rekomendasi bahan baku yang perlu direstok",
+  "Rekomendasikan bahan baku yang perlu direstok",
 ];
 
 export default function MerchantAIPage() {
   const [input, setInput] = useState("");
   const { messages, sendMessage, status } = useChat({
-    api: "/api/v1/ai/merchant-advisor",
+    transport: new DefaultChatTransport({
+      api: "/api/v1/ai/merchant-advisor",
+    }),
   });
 
   const isLoading = status === "submitted" || status === "streaming";
@@ -76,25 +80,20 @@ export default function MerchantAIPage() {
           </div>
         )}
 
-        {messages.map((msg) => {
-          const content = typeof msg.content === "string" && msg.content.length > 0
-            ? msg.content
-            : (msg.parts?.map((p: any) => p.text).join("") || "");
-          return (
-            <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              {msg.role === "assistant" && (
-                <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mr-2 mt-1 shrink-0">
-                  <Bot className="w-3.5 h-3.5 text-primary" />
-                </div>
-              )}
-              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-                msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
-              }`}>
-                {content}
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {msg.role === "assistant" && (
+              <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mr-2 mt-1 shrink-0">
+                <Bot className="w-3.5 h-3.5 text-primary" />
               </div>
+            )}
+            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+              msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
+            }`}>
+              {getMessageText(msg)}
             </div>
-          );
-        })}
+          </div>
+        ))}
 
         {isLoading && (
           <div className="flex justify-start">

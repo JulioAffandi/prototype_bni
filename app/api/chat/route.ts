@@ -1,4 +1,4 @@
-import { streamText, convertToCoreMessages, type UIMessage } from "ai";
+import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { createServerSupabase, createServiceSupabase } from "@/lib/supabase/server";
@@ -39,7 +39,7 @@ function teksTerakhir(messages: UIMessage[]): string {
       .join(" ");
     if (textParts) return textParts.slice(0, 4000);
   }
-  return typeof last.content === "string" ? last.content.slice(0, 4000) : "";
+  return typeof (last as any).content === "string" ? (last as any).content.slice(0, 4000) : "";
 }
 
 export async function POST(req: Request) {
@@ -148,13 +148,20 @@ export async function POST(req: Request) {
       }
     }
 
+    const modelMessages = await convertToModelMessages(messages as any);
+
     const result = streamText({
       model: google(modelName),
       system,
-      messages: convertToCoreMessages(messages as any),
+      messages: modelMessages,
       tools: tools as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      maxSteps: MAX_STEPS[scope.personaType],
+      stopWhen: stepCountIs(MAX_STEPS[scope.personaType]),
       temperature: 0.2,
+      providerOptions: {
+        google: {
+          thinkingConfig: { thinkingBudget: 0 },
+        },
+      },
 
       onFinish: async ({ text, usage, steps, finishReason }) => {
         const toolsInvoked = (steps || []).flatMap((s) => (s.toolCalls || []).map((c) => c.toolName));
@@ -182,12 +189,7 @@ export async function POST(req: Request) {
       },
     });
 
-    return result.toDataStreamResponse({
-      getErrorMessage: (err) => {
-        console.error("❌ [AI Route Error] Stream Response Error:", err);
-        return err instanceof Error ? err.message : "Maaf, terjadi gangguan pada asisten. Silakan coba lagi.";
-      },
-    });
+    return result.toUIMessageStreamResponse();
   } catch (globalErr) {
     console.error("❌ [AI Route Error] POST /api/chat Global Exception:", globalErr);
     return Response.json(

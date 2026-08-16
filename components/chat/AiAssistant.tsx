@@ -3,6 +3,8 @@
 import { useState, useEffect } from 'react';
 import { Bot, X, Send, Sparkles } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
+import { DefaultChatTransport } from "ai";
+import { getMessageText } from "@/lib/ai/message-utils";
 
 export default function AiAssistant({ persona = 'parent' }: { persona?: string }) {
   const [mounted, setMounted] = useState(false);
@@ -14,8 +16,10 @@ export default function AiAssistant({ persona = 'parent' }: { persona?: string }
   }, []);
 
   const { messages, sendMessage, status } = useChat({
-    api: '/api/chat',
-    body: { persona },
+    transport: new DefaultChatTransport({
+      api: '/api/chat',
+      body: { persona },
+    }),
   });
 
   const isLoading = status === 'submitted' || status === 'streaming';
@@ -72,27 +76,22 @@ export default function AiAssistant({ persona = 'parent' }: { persona?: string }
                 <p>Halo! Ada yang bisa saya bantu terkait saldo, pagu jajan anak, atau tagihan SPP?</p>
               </div>
             )}
-            {messages.map((m) => {
-              const content = typeof m.content === 'string' && m.content.length > 0
-                ? m.content
-                : (m.parts?.map((p: any) => p.text).join('') || '');
-              return (
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 <div
-                  key={m.id}
-                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`max-w-[80%] rounded-xl px-3 py-2 ${
+                    m.role === 'user'
+                      ? 'bg-emerald-600 text-white'
+                      : 'bg-slate-800 text-slate-200 border border-slate-700'
+                  }`}
                 >
-                  <div
-                    className={`max-w-[80%] rounded-xl px-3 py-2 ${
-                      m.role === 'user'
-                        ? 'bg-emerald-600 text-white'
-                        : 'bg-slate-800 text-slate-200 border border-slate-700'
-                    }`}
-                  >
-                    {content}
-                  </div>
+                  {getMessageText(m)}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Chat Input */}
