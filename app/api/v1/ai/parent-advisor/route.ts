@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { streamText } from "ai";
+import { streamText, stepCountIs } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { NextRequest } from "next/server";
 import { PARENT_SYSTEM_PROMPT, parentAdvisorTools } from "@/lib/ai/parentPrompt";
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
     system: PARENT_SYSTEM_PROMPT,
     messages,
     tools: parentAdvisorTools,
-    maxSteps: 5,
+    stopWhen: stepCountIs(5),
     onFinish: async ({ text, toolCalls }) => {
       const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
       await service.from("ai_chat_logs").insert({
@@ -59,5 +59,5 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return result.toDataStreamResponse();
+  return result.toUIMessageStreamResponse();
 }
