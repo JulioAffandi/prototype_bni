@@ -230,6 +230,22 @@
   --portal-radius: 0.5rem; /* rounded-lg, crisp/formal */
   --portal-radius-lg: 0.75rem;
   --portal-glow: none;
+
+  /* Executive Financial Redesign (EduConnect Style) Tokens */
+  --color-fin-sidebar-from: #4b3bc4;
+  --color-fin-sidebar-to: #3b2fa0;
+  --color-fin-primary: #5b4bdb;
+  --color-fin-primary-soft: rgba(91, 75, 219, 0.12);
+  --color-fin-outflow: #f97316;
+  --color-fin-outflow-soft: rgba(249, 115, 22, 0.12);
+  --color-fin-net: #84cc16;
+  --color-fin-net-soft: rgba(132, 204, 22, 0.14);
+  --color-fin-critical: #ef4444;
+  --color-fin-attention: #f59e0b;
+  --color-fin-info: #3b82f6;
+  --color-fin-card: #161f30;
+  --color-fin-card-border: #1e293b;
+  --radius-fin: 0.875rem;
 }
 
 /* =====================================================================

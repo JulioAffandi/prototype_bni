@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AiScope } from "../context";
 import { type Db, rupiah, persen, kosong, toolError, tanggalSchema } from "./_shared";
 
-export function buildMerchantTools(db: Db, scope: AiScope) {
+export function buildMerchantTools(db: Db, scope: AiScope): Record<string, any> {
   if (!scope.merchantId) return {};
 
   return {

@@ -1,15 +1,14 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { useState } from "react";
 import { Bot, Send, X, Loader2 } from "lucide-react";
-import { getMessageText } from "@/lib/ai/message-utils";
 
 interface AIChatDrawerProps {
   endpoint: string;
   persona: "merchant" | "treasury" | "parent";
   triggerLabel?: string;
+  initialMessage?: string;
 }
 
 const PERSONA_NAMES: Record<AIChatDrawerProps["persona"], string> = {
@@ -27,28 +26,22 @@ const PERSONA_HINTS: Record<AIChatDrawerProps["persona"], string[]> = {
 export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChatDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [input, setInput] = useState("");
-
   const { messages, sendMessage, status, error } = useChat({
-    transport: new DefaultChatTransport({
-      api: endpoint,
-    }),
+    api: endpoint,
   });
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setInput(e.target.value);
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim()) return;
-    sendMessage({ text: input });
-    setInput("");
-  };
-
   const personaName = PERSONA_NAMES[persona];
   const hints = PERSONA_HINTS[persona];
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    const text = input.trim();
+    setInput("");
+    sendMessage({ text });
+  };
 
   return (
     <>
@@ -105,7 +98,7 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
                         key={hint}
                         id={`ai-hint-${hint.slice(0, 10)}`}
                         onClick={() => {
-                          handleInputChange({ target: { value: hint } } as React.ChangeEvent<HTMLInputElement>);
+                          setInput(hint);
                         }}
                         className="px-3 py-1.5 rounded-full border border-border text-xs text-muted-foreground hover:border-primary hover:text-primary transition-colors"
                       >
@@ -116,20 +109,25 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
                 </div>
               )}
 
-              {messages.map((msg) => (
-                <div
-                  key={msg.id}
-                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
-                >
+              {messages.map((msg) => {
+                const content = typeof msg.content === "string" && msg.content.length > 0
+                  ? msg.content
+                  : (msg.parts?.map((p: any) => p.text).join("") || "");
+                return (
                   <div
-                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                      msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
-                    }`}
+                    key={msg.id}
+                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                   >
-                    {getMessageText(msg)}
+                    <div
+                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                        msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
+                      }`}
+                    >
+                      {content}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
 
               {isLoading && (
                 <div className="flex justify-start">
@@ -155,7 +153,7 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
               <input
                 id="ai-chat-input"
                 value={input}
-                onChange={handleInputChange}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Ketik pertanyaan Anda..."
                 className="flex-1 px-4 py-2.5 rounded-xl bg-muted border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
               />

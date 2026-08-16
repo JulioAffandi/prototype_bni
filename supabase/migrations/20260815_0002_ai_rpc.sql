@@ -49,7 +49,7 @@ LANGUAGE sql STABLE SET search_path = public AS $$
     SELECT ct.id, ct.amount, ct.is_emergency, ct.status, ct.created_at
     FROM public.canteen_transactions ct
     WHERE ct.merchant_id = ANY (public.auth_merchant_ids())
-      AND ct.business_date = p_business_date
+      AND ct.created_at::date = p_business_date
   ),
   ok AS (SELECT * FROM tx WHERE status IN ('SETTLED')),
   jam AS (
@@ -126,7 +126,7 @@ LANGUAGE sql STABLE SET search_path = public AS $$
     WHERE ct.student_id = p_student_id
       AND ct.student_id = ANY (public.auth_ward_ids())
       AND ct.status = 'SETTLED'
-      AND ct.business_date BETWEEN p_from AND p_to
+      AND ct.created_at::date BETWEEN p_from AND p_to
   ),
   tot AS (SELECT coalesce(sum(line_total), 0) AS t FROM rows_)
   SELECT

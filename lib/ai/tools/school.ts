@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AiScope } from "../context";
 import { type Db, rupiah, persen, kosong, toolError, periodeSchema } from "./_shared";
 
-export function buildSchoolTools(db: Db, scope: AiScope) {
+export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
   if (!scope.schoolId) return {};
 
   return {

@@ -1,37 +1,30 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { DefaultChatTransport } from "ai";
 import { useState } from "react";
-import { getMessageText } from "@/lib/ai/message-utils";
 import { Bot, Send, Loader2, TrendingUp, Package, Star } from "lucide-react";
 
 const HINTS = [
   "Berapa omzet saya minggu ini?",
   "Stok menu apa yang hampir habis?",
   "Menu terlaris bulan ini apa?",
-  "Rekomendasikan bahan baku yang perlu direstok",
+  "Rekomendasi bahan baku yang perlu direstok",
 ];
 
 export default function MerchantAIPage() {
   const [input, setInput] = useState("");
   const { messages, sendMessage, status } = useChat({
-    transport: new DefaultChatTransport({
-      api: "/api/v1/ai/merchant-advisor",
-    }),
+    api: "/api/v1/ai/merchant-advisor",
   });
 
   const isLoading = status === "submitted" || status === "streaming";
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement> | { target: { value: string } }) => {
-    setInput(e.target.value);
-  };
-
-  const handleSubmit = (e?: React.FormEvent) => {
-    e?.preventDefault();
-    if (!input.trim()) return;
-    sendMessage({ text: input });
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    const text = input.trim();
     setInput("");
+    sendMessage({ text });
   };
 
   return (
@@ -74,9 +67,7 @@ export default function MerchantAIPage() {
               <button
                 key={hint}
                 id={`merchant-ai-hint-${hint.slice(0, 12).replace(/\s/g, "-")}`}
-                onClick={() =>
-                  handleInputChange({ target: { value: hint } } as React.ChangeEvent<HTMLInputElement>)
-                }
+                onClick={() => setInput(hint)}
                 className="w-full px-4 py-2.5 rounded-xl border border-border text-sm text-left text-muted-foreground hover:border-primary hover:text-primary transition-colors"
               >
                 {hint}
@@ -85,20 +76,25 @@ export default function MerchantAIPage() {
           </div>
         )}
 
-        {messages.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-            {msg.role === "assistant" && (
-              <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mr-2 mt-1 shrink-0">
-                <Bot className="w-3.5 h-3.5 text-primary" />
+        {messages.map((msg) => {
+          const content = typeof msg.content === "string" && msg.content.length > 0
+            ? msg.content
+            : (msg.parts?.map((p: any) => p.text).join("") || "");
+          return (
+            <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+              {msg.role === "assistant" && (
+                <div className="w-6 h-6 rounded-full bg-primary/15 flex items-center justify-center mr-2 mt-1 shrink-0">
+                  <Bot className="w-3.5 h-3.5 text-primary" />
+                </div>
+              )}
+              <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
+                msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
+              }`}>
+                {content}
               </div>
-            )}
-            <div className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm leading-relaxed ${
-              msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
-            }`}>
-              {getMessageText(msg)}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {isLoading && (
           <div className="flex justify-start">
@@ -118,7 +114,7 @@ export default function MerchantAIPage() {
         <input
           id="merchant-ai-input"
           value={input}
-          onChange={handleInputChange}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Tanya tentang omzet, stok, atau menu..."
           className="flex-1 px-4 py-3 rounded-xl bg-muted border border-border text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/50 focus:border-primary transition-colors"
         />

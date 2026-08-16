@@ -48,7 +48,7 @@ export async function GET(
     return NextResponse.json({ error: "INVALID_PAYLOAD", message: "period query param required (YYYY-MM)" }, { status: 400 });
   }
 
-  const { data: invoices, error } = await service
+  const { data: invoices, error } = await (service as any)
     .from("spp_invoices")
     .select(`
       id, student_id, period, amount, amount_paid, status, due_date, paid_at,
@@ -63,7 +63,7 @@ export async function GET(
     return NextResponse.json({ error: "FETCH_FAILED" }, { status: 500 });
   }
 
-  const mapped = (invoices ?? []).map((inv) => {
+  const mapped = (invoices ?? []).map((inv: any) => {
     const studentObj = inv.students as unknown as { full_name?: string } | null;
     return {
       id: inv.id,

@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
   const service = createServiceClient();
 
   // Find invoice by BNI reference
-  const { data: invoice } = await service
+  const { data: invoice } = await (service as any)
     .from("spp_invoices")
     .select("id, student_id, school_id, billed_parent_id, period, amount, status, retry_count")
     .eq("bni_h2h_reference", originalReferenceNo)
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     const today = now.slice(0, 10);
 
     // 1. Mark invoice as PAID
-    await service.from("spp_invoices").update({
+    await (service as any).from("spp_invoices").update({
       status: "PAID",
       amount_paid: paidAmount,
       paid_at: now,
@@ -156,7 +156,7 @@ export async function POST(request: NextRequest) {
             },
           ]);
 
-          await service.from("spp_invoices").update({
+          await (service as any).from("spp_invoices").update({
             ledger_transaction_id: txn.id,
           }).eq("id", invoice.id);
         }

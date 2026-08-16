@@ -15,6 +15,9 @@ import {
 import type { StudentRow, StudentVaultRow, SPPInvoiceRow } from "@/types/database";
 import type { Metadata } from "next";
 import ParentLinkStudentAction from "@/components/parent/ParentLinkStudentAction";
+import ParentWalletCard from "@/components/parent/ParentWalletCard";
+import NotificationBellDropdown from "@/components/parent/NotificationBellDropdown";
+import UnpaidCampaignBanner from "@/components/parent/UnpaidCampaignBanner";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -66,7 +69,7 @@ export default async function ParentDashboardPage() {
   // 1. Resolve parent entity record (checking id and email)
   const { data: parentRecord, error: parentErr } = await service
     .from("parents")
-    .select("id, full_name, email")
+    .select("id, full_name, email, wallet_balance, bni_account_number, bni_account_name")
     .or(`id.eq.${user.id}${user.email ? `,email.eq.${user.email}` : ""}`)
     .maybeSingle();
 
@@ -89,10 +92,9 @@ export default async function ParentDashboardPage() {
   console.log("[DEBUG] Guardian Mappings:", mappings, mapErr);
 
   let students: DisplayStudent[] = [];
+  const linkedStudentIds = (mappings ?? []).map((m) => m.student_id);
 
   if (mappings && mappings.length > 0) {
-    const studentIds = mappings.map((m) => m.student_id);
-
     // 3. Fetch student details with cards, vault, & spp_invoices
     const { data: studentsData, error: studentsErr } = await service
       .from("students")
@@ -101,9 +103,9 @@ export default async function ParentDashboardPage() {
         schools:school_id ( id, name, npsn ),
         student_cards!student_cards_student_id_fkey ( id, uid_last4, status ),
         student_vault!student_vault_student_id_fkey ( student_id, school_id, ledger_account_id, vault_balance, savings_goal_name, savings_goal_target, updated_at ),
-        spp_invoices!spp_invoices_student_id_fkey ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
+        spp_invoices!spp_invoices_student_id_fkey ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at, institution_fee_categories ( label, category ) )
       `)
-      .in("id", studentIds);
+      .in("id", linkedStudentIds);
 
     console.log("[DEBUG] Students Data:", studentsData, studentsErr);
 
@@ -121,6 +123,8 @@ export default async function ParentDashboardPage() {
             .eq("business_date", todayStr)
             .maybeSingle();
 
+          const spent = counter?.spent_amount ?? 0;
+
           const vaultObj = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
           let vaultBalance = vaultObj?.vault_balance ?? 0;
 
@@ -137,7 +141,7 @@ export default async function ParentDashboardPage() {
 
           return {
             ...st,
-            daily_limit_used: counter?.spent_amount ?? 0,
+            daily_limit_used: spent,
             card_status: activeCard?.status ?? "pending_activation",
             student_vault: vaultObj ? { ...vaultObj, vault_balance: vaultBalance } : null,
             spp_invoices: st.spp_invoices || [],
@@ -159,6 +163,35 @@ export default async function ParentDashboardPage() {
         .limit(5)
     : { data: [] };
 
+  // 4. Fetch notifications & unpaid campaign invoices for parent
+  const [notifRes, campaignInvRes] = await Promise.all([
+    (service as any)
+      .from("portal_notifications")
+      .select("*")
+      .in("parent_id", uniqueParentIds)
+      .order("created_at", { ascending: false })
+      .limit(10),
+    (service as any)
+      .from("campaign_invoices")
+      .select(`
+        id, amount, created_at, status,
+        school_billing_campaigns ( title, due_date ),
+        students ( full_name )
+      `)
+      .in("student_id", studentIds.length > 0 ? studentIds : ["00000000-0000-0000-0000-000000000000"])
+      .eq("status", "UNPAID")
+      .order("created_at", { ascending: false }),
+  ]);
+
+  const notifications = notifRes.data ?? [];
+  const unpaidCampaignInvoices = (campaignInvRes.data ?? []).map((inv: any) => ({
+    id: inv.id,
+    amount: inv.amount,
+    student_name: inv.students?.full_name ?? "Siswa",
+    campaign_title: inv.school_billing_campaigns?.title ?? "Iuran Kegiatan",
+    due_date: inv.school_billing_campaigns?.due_date || "2026-08-31",
+  }));
+
   const firstStudent = students[0];
 
   return (
@@ -171,15 +204,19 @@ export default async function ParentDashboardPage() {
         </div>
         <div className="flex items-center gap-2">
           <ParentLinkStudentAction variant="button" />
-          <button
-            id="notif-btn"
-            className="w-10 h-10 rounded-full border border-border flex items-center justify-center hover:bg-muted transition-colors"
-            aria-label="Notifikasi"
-          >
-            <Bell className="w-5 h-5 text-foreground" />
-          </button>
+          <NotificationBellDropdown initialNotifications={notifications as any} />
         </div>
       </div>
+
+      {/* Amber Alert Banner for Unpaid Events */}
+      <UnpaidCampaignBanner unpaidInvoices={unpaidCampaignInvoices} />
+
+      {/* Parent Wallet Card */}
+      <ParentWalletCard
+        initialBalance={parentRecord?.wallet_balance ?? 1500000}
+        bniAccountNumber={parentRecord?.bni_account_number || "0987654321"}
+        bniAccountName={parentRecord?.bni_account_name || (parentRecord?.full_name ?? "Wali Siswa")}
+      />
 
       {/* Student cards */}
       {students.map((student) => {
@@ -307,7 +344,9 @@ export default async function ParentDashboardPage() {
                 <div className="flex items-center gap-2.5">
                   {getSPPStatusIcon(inv.status)}
                   <div>
-                    <p className="text-sm font-semibold text-foreground">SPP {inv.period}</p>
+                    <p className="text-sm font-semibold text-foreground">
+                      {(inv as any).institution_fee_categories?.label || "SPP"} ({inv.period})
+                    </p>
                     <p className="text-xs text-muted-foreground">
                       Jatuh tempo: {new Date(inv.due_date).toLocaleDateString("id-ID")}
                     </p>

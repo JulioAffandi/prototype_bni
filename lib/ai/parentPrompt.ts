@@ -81,7 +81,7 @@ export const simulateReksadanaAllocationTool = tool({
   },
 });
 
-export const parentAdvisorTools = {
+export const parentAdvisorTools: Record<string, any> = {
   get_child_spending_breakdown: getChildSpendingBreakdownTool,
   get_vault_savings_status: getVaultSavingsStatusTool,
   simulate_reksadana_allocation: simulateReksadanaAllocationTool,

@@ -4,7 +4,7 @@ import { z } from "zod";
 import type { AiScope } from "../context";
 import { type Db, rupiah, persen, kosong, toolError, tanggalSchema } from "./_shared";
 
-export function buildParentTools(db: Db, scope: AiScope) {
+export function buildParentTools(db: Db, scope: AiScope): Record<string, any> {
   const ids = scope.children.map((c) => c.id);
   if (ids.length === 0) return {};
 

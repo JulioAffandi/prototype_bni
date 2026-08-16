@@ -1,4 +1,4 @@
-import { streamText, convertToModelMessages, type UIMessage, stepCountIs } from "ai";
+import { streamText, convertToCoreMessages, type UIMessage } from "ai";
 import { createGoogleGenerativeAI } from "@ai-sdk/google";
 import { z } from "zod";
 import { createServerSupabase, createServiceSupabase } from "@/lib/supabase/server";
@@ -23,13 +23,7 @@ const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/
 const resolveModelIdentifier = (rawName?: string) => {
   if (!rawName) return "gemini-flash-latest";
   const clean = rawName.replace(/^models\//, "").trim();
-  if (
-    clean === "gemini-1.5-flash" ||
-    clean === "gemini-2.5-flash" ||
-    clean.includes("1.5-flash") ||
-    clean.includes("2.5-flash") ||
-    clean === "gemini-flash-latest"
-  ) {
+  if (clean === "gemini-1.5-flash" || clean === "gemini-2.5-flash" || clean.includes("1.5-flash") || clean.includes("2.5-flash")) {
     return "gemini-flash-latest";
   }
   return clean || "gemini-flash-latest";
@@ -45,7 +39,7 @@ function teksTerakhir(messages: UIMessage[]): string {
       .join(" ");
     if (textParts) return textParts.slice(0, 4000);
   }
-  return typeof (last as any).content === "string" ? (last as any).content.slice(0, 4000) : "";
+  return typeof last.content === "string" ? last.content.slice(0, 4000) : "";
 }
 
 export async function POST(req: Request) {
@@ -113,8 +107,7 @@ export async function POST(req: Request) {
     const promptTerakhir = teksTerakhir(messages);
 
     const system = buildSystemPrompt(scope);
-    const svcForTools = createServiceSupabase();
-    const tools = buildToolsForScope(svcForTools, scope);
+    const tools = buildToolsForScope(db, scope);
 
     // Determine model based on persona / role
     const rawModel =
@@ -155,20 +148,13 @@ export async function POST(req: Request) {
       }
     }
 
-    const modelMessages = await convertToModelMessages(messages as any);
-
     const result = streamText({
       model: google(modelName),
       system,
-      messages: modelMessages,
+      messages: convertToCoreMessages(messages as any),
       tools: tools as any, // eslint-disable-line @typescript-eslint/no-explicit-any
-      stopWhen: stepCountIs(MAX_STEPS[scope.personaType]),
+      maxSteps: MAX_STEPS[scope.personaType],
       temperature: 0.2,
-      providerOptions: {
-        google: {
-          thinkingConfig: { thinkingBudget: 0 },
-        },
-      },
 
       onFinish: async ({ text, usage, steps, finishReason }) => {
         const toolsInvoked = (steps || []).flatMap((s) => (s.toolCalls || []).map((c) => c.toolName));
@@ -196,7 +182,12 @@ export async function POST(req: Request) {
       },
     });
 
-    return result.toUIMessageStreamResponse();
+    return result.toDataStreamResponse({
+      getErrorMessage: (err) => {
+        console.error("❌ [AI Route Error] Stream Response Error:", err);
+        return err instanceof Error ? err.message : "Maaf, terjadi gangguan pada asisten. Silakan coba lagi.";
+      },
+    });
   } catch (globalErr) {
     console.error("❌ [AI Route Error] POST /api/chat Global Exception:", globalErr);
     return Response.json(

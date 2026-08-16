@@ -83,7 +83,7 @@ export const simulateDepositoAllocationTool = tool({
   },
 });
 
-export const schoolTreasuryTools = {
+export const schoolTreasuryTools: Record<string, any> = {
   get_spp_collection_rate: getSPPCollectionRateTool,
   get_giro_balance_trend: getGiroBalanceTrendTool,
   simulate_deposito_allocation: simulateDepositoAllocationTool,

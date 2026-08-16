@@ -1,6 +1,6 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { streamText, stepCountIs } from "ai";
+import { streamText } from "ai";
 import { openai } from "@ai-sdk/openai";
 import { NextRequest } from "next/server";
 import { MERCHANT_SYSTEM_PROMPT, merchantTools } from "@/lib/ai/merchantPrompt";
@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     system: MERCHANT_SYSTEM_PROMPT,
     messages,
     tools: merchantTools,
-    stopWhen: stepCountIs(5),
+    maxSteps: 5,
     onFinish: async ({ text, toolCalls }) => {
       const lastUserMsg = [...messages].reverse().find((m) => m.role === "user")?.content ?? "";
       await service.from("ai_chat_logs").insert({
@@ -61,5 +61,5 @@ export async function POST(request: NextRequest) {
     },
   });
 
-  return result.toUIMessageStreamResponse();
+  return result.toDataStreamResponse();
 }

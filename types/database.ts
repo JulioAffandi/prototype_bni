@@ -77,6 +77,15 @@ export type consent_type_t = "DATA_PROCESSING_MINOR" | "MARKETING" | "AI_ANALYTI
 export type sync_status_t = "PENDING" | "SYNCED" | "CONFLICT" | "DISCARDED";
 export type idempotency_status_t = "PROCESSING" | "COMPLETED" | "FAILED";
 export type ai_persona_t = "merchant_ai" | "school_treasury_ai" | "parent_ai";
+export type fee_category_t = "SPP_BULANAN" | "UANG_GEDUNG" | "SERAGAM" | "KEGIATAN" | "LAINNYA";
+export type payroll_status_t = "DRAFT" | "PENDING" | "PROCESSING" | "DISBURSED" | "FAILED";
+export type procurement_type_t = "PURCHASE_ORDER" | "REIMBURSEMENT";
+export type procurement_status_t = "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "PAID";
+export type asset_kind_t = "NON_WORKING" | "WORKING";
+export type asset_condition_t = "BAIK" | "PERLU_PERBAIKAN" | "RUSAK";
+export type credit_status_t = "DRAFT" | "SUBMITTED" | "UNDER_REVIEW" | "APPROVED" | "REJECTED" | "DISBURSED" | "CLOSED";
+export type investment_type_t = "BNI_DEPOSITO" | "SUKUK_NEGARA" | "REKSADANA_PASAR_UANG";
+export type investment_status_t = "ACTIVE" | "MATURED" | "WITHDRAWN";
 
 // Legacy type alias mappings for backward compatibility
 export type UserRole = user_role_t;
@@ -189,6 +198,8 @@ export interface Database {
           phone_verified_at: string | null;
           email: string | null;
           bni_account_number: string | null;
+          bni_account_name: string | null;
+          wallet_balance: number;
           bni_link_status: string;
           account_status?: string;
           invited_by_school_id?: string | null;
@@ -203,6 +214,35 @@ export interface Database {
         };
         Update: Partial<Database["public"]["Tables"]["parents"]["Row"]>;
         Relationships: [];
+      };
+      parent_wallet_transactions: {
+        Row: {
+          id: string;
+          parent_id: string;
+          type: string;
+          amount: number;
+          description: string;
+          payment_channel: string | null;
+          bni_reference: string | null;
+          status: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["parent_wallet_transactions"]["Row"]> & {
+          parent_id: string;
+          type: string;
+          amount: number;
+          description: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["parent_wallet_transactions"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "parent_wallet_transactions_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "parents";
+            referencedColumns: ["id"];
+          },
+        ];
       };
       profiles: {
         Row: {
@@ -612,6 +652,9 @@ export interface Database {
           paid_at: string | null;
           bni_h2h_reference: string | null;
           ledger_transaction_id: string | null;
+          fee_category_id: string;
+          receipt_qr_hash: string | null;
+          receipt_issued_at: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -1026,6 +1069,255 @@ export interface Database {
         Update: Partial<Database["public"]["Tables"]["ai_rate_limit_counters"]["Row"]>;
         Relationships: [];
       };
+      institution_fee_categories: {
+        Row: {
+          id: string;
+          school_id: string;
+          category: fee_category_t;
+          label: string;
+          default_amount: number;
+          is_recurring: boolean;
+          is_active: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["institution_fee_categories"]["Row"]> & {
+          school_id: string;
+          category: fee_category_t;
+          label: string;
+          default_amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["institution_fee_categories"]["Row"]>;
+        Relationships: [];
+      };
+      institution_payroll: {
+        Row: {
+          id: string;
+          school_id: string;
+          staff_name: string;
+          nip: string | null;
+          position: string;
+          bni_account_number: string;
+          bni_account_name: string;
+          period: string;
+          basic_salary: number;
+          allowances: number;
+          deductions: number;
+          net_salary: number;
+          breakdown_details: Json;
+          status: payroll_status_t;
+          batch_id: string | null;
+          bni_h2h_reference: string | null;
+          paid_at: string | null;
+          failure_reason: string | null;
+          ledger_transaction_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["institution_payroll"]["Row"]> & {
+          school_id: string;
+          staff_name: string;
+          position: string;
+          bni_account_number: string;
+          bni_account_name: string;
+          period: string;
+          basic_salary: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["institution_payroll"]["Row"]>;
+        Relationships: [];
+      };
+      institution_procurement: {
+        Row: {
+          id: string;
+          school_id: string;
+          type: procurement_type_t;
+          requested_by: string | null;
+          claimed_by_name: string | null;
+          claimed_by_phone: string | null;
+          vendor_name: string;
+          category: string;
+          description: string | null;
+          amount: number;
+          status: procurement_status_t;
+          receipt_file_path: string | null;
+          ocr_raw_json: Json | null;
+          ocr_confidence: number | null;
+          reviewed_vendor_name: string | null;
+          reviewed_date: string | null;
+          reviewed_amount: number | null;
+          approved_by: string | null;
+          approved_at: string | null;
+          rejected_reason: string | null;
+          paid_at: string | null;
+          ledger_transaction_id: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["institution_procurement"]["Row"]> & {
+          school_id: string;
+          type: procurement_type_t;
+          vendor_name: string;
+          category: string;
+          amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["institution_procurement"]["Row"]>;
+        Relationships: [];
+      };
+      institution_assets: {
+        Row: {
+          id: string;
+          school_id: string;
+          kind: asset_kind_t;
+          merchant_id: string | null;
+          asset_name: string;
+          asset_code: string | null;
+          category: string;
+          location: string | null;
+          quantity: number;
+          condition: asset_condition_t;
+          acquisition_date: string | null;
+          acquisition_value: number | null;
+          notes: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["institution_assets"]["Row"]> & {
+          school_id: string;
+          kind: asset_kind_t;
+          asset_name: string;
+          category: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["institution_assets"]["Row"]>;
+        Relationships: [
+          {
+            foreignKeyName: "institution_assets_merchant_id_fkey";
+            columns: ["merchant_id"];
+            isOneToOne: false;
+            referencedRelation: "merchants";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      institution_credit_applications: {
+        Row: {
+          id: string;
+          school_id: string;
+          plafon_amount: number;
+          tenor_months: number;
+          purpose: string;
+          estimated_interest_rate: number;
+          estimated_monthly_installment: number | null;
+          status: credit_status_t;
+          submitted_at: string | null;
+          reviewed_by: string | null;
+          reviewed_at: string | null;
+          rejection_reason: string | null;
+          disbursed_at: string | null;
+          bni_reference: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["institution_credit_applications"]["Row"]> & {
+          school_id: string;
+          plafon_amount: number;
+          tenor_months: number;
+          purpose: string;
+          estimated_interest_rate: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["institution_credit_applications"]["Row"]>;
+        Relationships: [];
+      };
+      institution_investments: {
+        Row: {
+          id: string;
+          school_id: string;
+          investment_type: investment_type_t;
+          principal_amount: number;
+          expected_yield_rate: number;
+          accumulated_yield: number;
+          placement_date: string;
+          maturity_date: string | null;
+          status: investment_status_t;
+          bni_reference: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["institution_investments"]["Row"]> & {
+          school_id: string;
+          investment_type: investment_type_t;
+          principal_amount: number;
+          expected_yield_rate: number;
+          placement_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["institution_investments"]["Row"]>;
+        Relationships: [];
+      };
+      school_billing_campaigns: {
+        Row: {
+          id: string;
+          school_id: string;
+          title: string;
+          category: string;
+          amount: number;
+          due_date: string;
+          target_scope: string;
+          target_filter: Json;
+          description: string | null;
+          is_mandatory: boolean;
+          status: string;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["school_billing_campaigns"]["Row"]> & {
+          school_id: string;
+          title: string;
+          amount: number;
+          due_date: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["school_billing_campaigns"]["Row"]>;
+        Relationships: [];
+      };
+      campaign_invoices: {
+        Row: {
+          id: string;
+          campaign_id: string;
+          school_id: string;
+          student_id: string;
+          amount: number;
+          status: string;
+          paid_at: string | null;
+          paid_by_parent_id: string | null;
+          bni_h2h_reference: string | null;
+          receipt_qr_hash: string | null;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["campaign_invoices"]["Row"]> & {
+          campaign_id: string;
+          school_id: string;
+          student_id: string;
+          amount: number;
+        };
+        Update: Partial<Database["public"]["Tables"]["campaign_invoices"]["Row"]>;
+        Relationships: [];
+      };
+      portal_notifications: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          parent_id: string | null;
+          title: string;
+          message: string;
+          type: string;
+          action_url: string;
+          is_read: boolean;
+          created_at: string;
+        };
+        Insert: Partial<Database["public"]["Tables"]["portal_notifications"]["Row"]> & {
+          title: string;
+          message: string;
+        };
+        Update: Partial<Database["public"]["Tables"]["portal_notifications"]["Row"]>;
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -1133,6 +1425,23 @@ export interface Database {
         Args: Record<string, never>;
         Returns: string;
       };
+      fn_execute_payroll_batch: {
+        Args: {
+          p_idempotency_key: string;
+          p_school_id: string;
+          p_period: string;
+        };
+        Returns: Json;
+      };
+      fn_resolve_procurement: {
+        Args: {
+          p_idempotency_key: string;
+          p_procurement_id: string;
+          p_decision: string;
+          p_rejection_reason?: string | null;
+        };
+        Returns: Json;
+      };
       rpc_ai_consume_rate_limit: {
         Args: {
           p_profile: string;
@@ -1165,6 +1474,15 @@ export interface Database {
       sync_status_t: sync_status_t;
       idempotency_status_t: idempotency_status_t;
       ai_persona_t: ai_persona_t;
+      fee_category_t: fee_category_t;
+      payroll_status_t: payroll_status_t;
+      procurement_type_t: procurement_type_t;
+      procurement_status_t: procurement_status_t;
+      asset_kind_t: asset_kind_t;
+      asset_condition_t: asset_condition_t;
+      credit_status_t: credit_status_t;
+      investment_type_t: investment_type_t;
+      investment_status_t: investment_status_t;
     };
     CompositeTypes: Record<string, never>;
   };

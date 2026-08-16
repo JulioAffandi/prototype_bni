@@ -1,3 +1,4 @@
+// app/(school)/school/spp/page.tsx
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
@@ -5,7 +6,8 @@ import type { Metadata } from "next";
 import SPPReconciliationTable from "@/components/school/SPPReconciliationTable";
 import { FileText } from "lucide-react";
 
-export const metadata: Metadata = { title: "Rekonsiliasi SPP" };
+export const metadata: Metadata = { title: "Rekonsiliasi SPP & Fee Categories" };
+export const dynamic = "force-dynamic";
 
 export default async function SchoolSPPPage() {
   const supabase = await createServerSupabaseClient();
@@ -32,30 +34,36 @@ export default async function SchoolSPPPage() {
   const now = new Date();
   const currentPeriod = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
 
-  // Fetch all periods available
-  const { data: periods } = await service
-    .from("spp_invoices")
-    .select("period")
-    .eq("school_id", schoolId)
-    .order("period", { ascending: false });
+  // Fetch fee categories and invoices for current school
+  const [feeCategoriesRes, periodsRes, invoicesRes] = await Promise.all([
+    service
+      .from("institution_fee_categories")
+      .select("*")
+      .eq("school_id", schoolId)
+      .eq("is_active", true),
+    service
+      .from("spp_invoices")
+      .select("period")
+      .eq("school_id", schoolId)
+      .order("period", { ascending: false }),
+    service
+      .from("spp_invoices")
+      .select(`
+        id, student_id, period, amount, status, due_date, paid_at,
+        retry_count, bni_h2h_reference, fee_category_id, receipt_qr_hash,
+        students ( full_name ),
+        institution_fee_categories ( label, category )
+      `)
+      .eq("school_id", schoolId)
+      .order("status"),
+  ]);
 
-  const uniquePeriods = Array.from(new Set((periods ?? []).map((p) => p.period)));
+  const uniquePeriods = Array.from(new Set((periodsRes.data ?? []).map((p) => p.period)));
   if (!uniquePeriods.includes(currentPeriod)) uniquePeriods.unshift(currentPeriod);
 
-  // Fetch invoices for current period
-  const { data: invoices } = await service
-    .from("spp_invoices")
-    .select(`
-      id, student_id, period, amount, status, due_date, paid_at,
-      retry_count, bni_h2h_reference,
-      students ( full_name )
-    `)
-    .eq("school_id", schoolId)
-    .eq("period", currentPeriod)
-    .order("status");
-
-  const initialList = (invoices ?? []).map((inv) => {
+  const initialList = (invoicesRes.data ?? []).map((inv) => {
     const st = inv.students as unknown as { full_name?: string } | null;
+    const cat = inv.institution_fee_categories as unknown as { label?: string; category?: string } | null;
     return {
       id: inv.id,
       student_id: inv.student_id,
@@ -66,20 +74,24 @@ export default async function SchoolSPPPage() {
       paid_at: inv.paid_at,
       retry_count: inv.retry_count,
       bni_h2h_reference: inv.bni_h2h_reference,
+      fee_category_id: inv.fee_category_id,
+      receipt_qr_hash: inv.receipt_qr_hash,
       student_name: st?.full_name ?? "Siswa",
+      category_label: cat?.label ?? "SPP Bulanan",
+      category_code: cat?.category ?? "SPP_BULANAN",
     };
   });
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6" data-portal="school">
       <div className="flex items-center gap-3">
         <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
           <FileText className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">Rekonsiliasi SPP</h1>
+          <h1 className="text-2xl font-bold">Tagihan &amp; Rekonsiliasi Multi-Kategori Fee</h1>
           <p className="text-sm text-muted-foreground">
-            Manajemen tagihan dan status pembayaran SPP otomatis via BNI H2H (Schema v3)
+            SPP Bulanan, Uang Gedung, Seragam, Kegiatan &amp; Kuitansi Digital BNI H2H SNAP BI
           </p>
         </div>
       </div>
@@ -89,6 +101,7 @@ export default async function SchoolSPPPage() {
         initialPeriod={currentPeriod}
         availablePeriods={uniquePeriods}
         initialInvoices={initialList}
+        feeCategories={feeCategoriesRes.data ?? []}
       />
     </div>
   );

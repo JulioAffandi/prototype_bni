@@ -43,7 +43,7 @@ export async function POST(
   const nowIso = new Date().toISOString();
 
   // Update invoice status to PAID
-  const { data: updated, error: updateErr } = await service
+  const { data: updated, error: updateErr } = await (service as any)
     .from("spp_invoices")
     .update({
       status: "PAID",
