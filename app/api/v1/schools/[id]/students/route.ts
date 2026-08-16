@@ -99,7 +99,8 @@ export async function POST(
     relationship,
   } = parsed.data;
 
-  const finalClassLabel = class_label || (grade_level || class_name ? `Kelas ${grade_level || ''} ${class_name || ''}`.trim() : null);
+  const parsedGradeLevel = grade_level ? parseInt(grade_level) || grade_level : 7;
+  const parsedClassGroup = class_name || class_label || "7A";
 
   // 1. SHA-256 Card UID Tokenization
   const tenantSalt = process.env.TENANT_SALT_SECRET || "default_tenant_salt";
@@ -109,15 +110,18 @@ export async function POST(
   const byteaHash = `\\x${rawHash.toLowerCase()}`;
   const last4 = nfc_uid_last4 || raw_nfc_uid.slice(-4);
 
-  // Check duplicate card UID in tenant
-  const { data: existingCard } = await service
+  // Check duplicate card UID in tenant (Precise .length > 0 check to prevent false positive [] truthy checks)
+  const { data: existingCards, error: checkErr } = await service
     .from("student_cards")
-    .select("id")
+    .select("id, student_id")
     .eq("school_id", schoolId)
-    .eq("uid_hash", byteaHash)
-    .maybeSingle();
+    .or(`uid_hash.eq.${byteaHash},card_uid_hash.eq.${byteaHash}`);
 
-  if (existingCard) {
+  if (checkErr) {
+    console.error("Card check query error:", checkErr);
+  }
+
+  if (existingCards && existingCards.length > 0) {
     return NextResponse.json(
       { error: "CARD_ALREADY_REGISTERED", message: "Kartu NFC dengan UID ini sudah digunakan oleh siswa lain." },
       { status: 409 },
@@ -132,13 +136,16 @@ export async function POST(
       full_name,
       student_number: student_number || null,
       date_of_birth: date_of_birth || null,
-      class_label: finalClassLabel,
-      daily_limit,
-      emergency_approve,
-      emergency_limit,
+      grade_level: parsedGradeLevel,
+      class_group: parsedClassGroup,
+      daily_limit: Number(daily_limit) || 20000,
+      daily_limit_used: 0,
+      emergency_approve: Boolean(emergency_approve),
+      emergency_limit: Number(emergency_limit) || 15000,
+      card_status: "ACTIVE",
       status: "active",
-    })
-    .select("id, school_id, full_name, student_number, date_of_birth, class_label, daily_limit, emergency_approve, emergency_limit, created_at")
+    } as any)
+    .select("id, school_id, full_name, student_number, date_of_birth, grade_level, class_group, daily_limit, emergency_approve, emergency_limit, created_at")
     .single();
 
   if (studentError || !student) {
@@ -175,10 +182,12 @@ export async function POST(
       student_id: student.id,
       school_id: schoolId,
       uid_hash: byteaHash,
+      card_uid_hash: byteaHash,
       uid_last4: last4,
+      card_uid_last4: last4,
       status: "active",
       activated_at: new Date().toISOString(),
-    })
+    } as any)
     .select("id, uid_last4, status")
     .single();
 
@@ -385,7 +394,7 @@ export async function GET(
   const { data: students, error } = await service
     .from("students")
     .select(`
-      id, school_id, full_name, student_number, class_label, status,
+      id, school_id, full_name, student_number, grade_level, class_group, status,
       daily_limit, emergency_approve, emergency_limit, created_at,
       student_cards ( id, uid_last4, status ),
       guardian_student_map (
@@ -412,11 +421,13 @@ export async function GET(
     const primaryMap = maps.find((m) => m.is_primary_guardian) || maps[0];
     const parentObj = primaryMap?.parents || null;
 
+    const classLabel = (s as any).grade_level && (s as any).class_group ? `Kelas ${(s as any).grade_level} ${(s as any).class_group}` : (s as any).class_group || null;
+
     return {
       id: s.id,
       full_name: s.full_name,
       student_number: s.student_number,
-      class_label: s.class_label,
+      class_label: classLabel,
       nfc_uid_last4: activeCard?.uid_last4 ?? "????",
       card_status: activeCard?.status ?? "pending_activation",
       daily_limit: s.daily_limit,

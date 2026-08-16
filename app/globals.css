@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@config "../tailwind.config.ts";
 
 @layer base {
   :root {
@@ -169,3 +170,116 @@
 /* ── Chat bubble ── */
 .chat-user   { background: hsl(var(--valo-teal) / 0.15); border: 1px solid hsl(var(--valo-teal) / 0.25); }
 .chat-ai     { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
+
+/* =====================================================================
+   PARENT — "Nurturing, Reassuring & Modern Fintech"
+   Dark Slate Navy · Emerald Teal · rounded, floating dock
+   ===================================================================== */
+[data-portal="parent"] {
+  --portal-bg: #090d16;
+  --portal-surface: #111827;
+  --portal-surface-alt: #16213a;
+  --portal-border: #1e293b; /* slate-800 */
+
+  --portal-primary: #0d9488; /* teal-500 */
+  --portal-primary-foreground: #f8fafc;
+  --portal-secondary: #6ee7b7; /* soft mint — vault/goals */
+  --portal-accent: #f59e0b; /* warm gold — rewards */
+
+  --portal-success: #22c55e;
+  --portal-warning: #f59e0b;
+  --portal-danger: #ef4444;
+
+  --portal-text: #f1f5f9;
+  --portal-text-muted: #94a3b8;
+
+  --portal-font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+  --portal-font-mono: var(--font-geist-mono, ui-monospace, monospace);
+
+  --portal-radius: 1rem; /* rounded-2xl feel */
+  --portal-radius-lg: 1.5rem;
+  --portal-glow: 0 0 40px -8px rgba(13, 148, 136, 0.45);
+}
+
+/* =====================================================================
+   SCHOOL — "Institutional Authority, Enterprise Treasury"
+   Obsidian Slate · Royal Navy/Cyan · BNI Orange callout · crisp tables
+   ===================================================================== */
+[data-portal="school"] {
+  --portal-bg: #0b0f19;
+  --portal-surface: #161f30;
+  --portal-surface-alt: #1b2540;
+  --portal-border: #1e293b;
+
+  --portal-primary: #0284c7; /* sky-600 */
+  --portal-primary-foreground: #f8fafc;
+  --portal-secondary: #0369a1;
+  --portal-accent: #f15a24; /* BNI brand orange — treasury callout */
+
+  /* Ledger status colors — jangan diubah tanpa audit compliance */
+  --portal-success: #10b981; /* Paid */
+  --portal-warning: #f59e0b; /* Pending */
+  --portal-danger: #f43f5e; /* Dispute/Audit */
+
+  --portal-text: #f1f5f9;
+  --portal-text-muted: #94a3b8;
+
+  --portal-font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+  --portal-font-mono: var(--font-geist-mono, ui-monospace, monospace);
+
+  --portal-radius: 0.5rem; /* rounded-lg, crisp/formal */
+  --portal-radius-lg: 0.75rem;
+  --portal-glow: none;
+}
+
+/* =====================================================================
+   CANTEEN — "High-Contrast, Tactile & Fast-Paced Retail POS"
+   Matte Charcoal · Amber/Tangerine · big touch targets · NFC feedback
+   ===================================================================== */
+[data-portal="canteen"] {
+  --portal-bg: #121214;
+  --portal-surface: #1e1e24;
+  --portal-surface-alt: #26262e;
+  --portal-border: #33333c;
+
+  --portal-primary: #ea580c; /* orange-600 */
+  --portal-primary-foreground: #0b0b0c;
+  --portal-secondary: #f59e0b; /* amber-500 */
+  --portal-accent: #f59e0b;
+
+  --portal-success: #22c55e; /* NFC tap sukses */
+  --portal-warning: #eab308; /* limit warning */
+  --portal-danger: #ef4444; /* blocked / insufficient */
+
+  --portal-text: #fafafa;
+  --portal-text-muted: #a1a1aa;
+
+  --portal-font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+  --portal-font-mono: var(--font-geist-mono, ui-monospace, monospace);
+
+  --portal-radius: 0.75rem;
+  --portal-radius-lg: 1rem;
+  --portal-glow: 0 0 32px -6px rgba(234, 88, 12, 0.5);
+}
+
+/* ---------------------------------------------------------------------
+   Shared base — berlaku di scope manapun yang punya data-portal
+   --------------------------------------------------------------------- */
+[data-portal] {
+  background-color: var(--portal-bg);
+  color: var(--portal-text);
+  font-family: var(--portal-font-sans);
+  min-height: 100vh;
+}
+
+/* Canteen: flash hijau instan saat tap NFC berhasil */
+.nfc-flash-success {
+  animation: nfc-flash 600ms ease-out;
+  background-color: var(--portal-success);
+}
+
+/* Utility kecil: angka tabular untuk saldo/nominal (School & Canteen) */
+.tabular-figures {
+  font-variant-numeric: tabular-nums;
+}
+

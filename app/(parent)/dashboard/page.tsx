@@ -1,6 +1,5 @@
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
-import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import {
   ShieldCheck,
@@ -16,6 +15,9 @@ import {
 import type { StudentRow, StudentVaultRow, SPPInvoiceRow } from "@/types/database";
 import type { Metadata } from "next";
 import ParentLinkStudentAction from "@/components/parent/ParentLinkStudentAction";
+
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -55,76 +57,94 @@ interface DisplayStudent extends StudentRow {
 
 export default async function ParentDashboardPage() {
   const supabase = await createServerSupabaseClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) redirect("/login");
-
-  const parentId = await getOrResolveParentId(user, true);
-  let students: DisplayStudent[] = [];
+  const { data: { user }, error: authErr } = await supabase.auth.getUser();
+  if (!user || authErr) redirect("/login");
 
   const service = createServiceClient();
   const todayStr = new Date().toISOString().slice(0, 10);
 
-  if (parentId) {
-    const { data: mappings, error: mapErr } = await service
-      .from("guardian_student_map")
+  // 1. Resolve parent entity record (checking id and email)
+  const { data: parentRecord, error: parentErr } = await service
+    .from("parents")
+    .select("id, full_name, email")
+    .or(`id.eq.${user.id}${user.email ? `,email.eq.${user.email}` : ""}`)
+    .maybeSingle();
+
+  console.log("[DEBUG] Logged-in User:", { id: user.id, email: user.email });
+  console.log("[DEBUG] Parent Record:", parentRecord, parentErr);
+
+  const parentIds = [user.id];
+  if (parentRecord?.id) parentIds.push(parentRecord.id);
+
+  const uniqueParentIds = Array.from(new Set(parentIds));
+  console.log("[DEBUG] Parent IDs queried:", uniqueParentIds);
+
+  // 2. Query linked student mappings
+  const { data: mappings, error: mapErr } = await service
+    .from("guardian_student_map")
+    .select("id, student_id, parent_id, relationship, status, is_primary_guardian")
+    .in("parent_id", uniqueParentIds)
+    .ilike("status", "active");
+
+  console.log("[DEBUG] Guardian Mappings:", mappings, mapErr);
+
+  let students: DisplayStudent[] = [];
+
+  if (mappings && mappings.length > 0) {
+    const studentIds = mappings.map((m) => m.student_id);
+
+    // 3. Fetch student details with cards, vault, & spp_invoices
+    const { data: studentsData, error: studentsErr } = await service
+      .from("students")
       .select(`
-        student_id, is_primary_guardian, status,
-        students!guardian_student_map_student_id_fkey (
-          id, school_id, full_name, student_number, class_label, date_of_birth, status,
-          daily_limit, emergency_approve, emergency_limit, created_at, updated_at, offboarded_at,
-          student_cards!student_cards_student_id_fkey ( id, uid_last4, status ),
-          student_vault!student_vault_student_id_fkey ( student_id, school_id, ledger_account_id, vault_balance, savings_goal_name, savings_goal_target, updated_at ),
-          spp_invoices!spp_invoices_student_id_fkey ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
-        )
+        *,
+        schools:school_id ( id, name, npsn ),
+        student_cards!student_cards_student_id_fkey ( id, uid_last4, status ),
+        student_vault!student_vault_student_id_fkey ( student_id, school_id, ledger_account_id, vault_balance, savings_goal_name, savings_goal_target, updated_at ),
+        spp_invoices!spp_invoices_student_id_fkey ( id, school_id, student_id, billed_parent_id, period, period_start, amount, amount_paid, status, retry_count, next_retry_at, due_date, paid_at, bni_h2h_reference, ledger_transaction_id, created_at, updated_at )
       `)
-      .eq("parent_id", parentId);
+      .in("id", studentIds);
 
-    if (mapErr) {
-      console.error("Error fetching parent guardian_student_map:", mapErr);
-    }
+    console.log("[DEBUG] Students Data:", studentsData, studentsErr);
 
-    const activeMappings = (mappings ?? []).filter(
-      (m) => !m.status || m.status.toLowerCase() === "active"
-    );
+    if (studentsData) {
+      students = await Promise.all(
+        studentsData.map(async (st: any) => {
+          const cards = st.student_cards || [];
+          const activeCard = cards.find((c: any) => c.status === "active") || cards[0];
 
-    const rawList = activeMappings.map((m) => m.students).filter(Boolean);
-
-    students = await Promise.all(
-      rawList.map(async (st: any) => {
-        const cards = st.student_cards || [];
-        const activeCard = cards.find((c: any) => c.status === "active") || cards[0];
-
-        // Fetch daily counter for spent_amount
-        const { data: counter } = await service
-          .from("student_daily_counters")
-          .select("spent_amount")
-          .eq("student_id", st.id)
-          .eq("business_date", todayStr)
-          .maybeSingle();
-
-        const vaultObj = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
-        let vaultBalance = vaultObj?.vault_balance ?? 0;
-
-        if (vaultObj?.ledger_account_id && (vaultObj.vault_balance === undefined || vaultObj.vault_balance === null)) {
-          const { data: ledgerAcc } = await service
-            .from("ledger_accounts")
-            .select("balance")
-            .eq("id", vaultObj.ledger_account_id)
+          // Fetch daily counter for spent_amount
+          const { data: counter } = await service
+            .from("student_daily_counters")
+            .select("spent_amount")
+            .eq("student_id", st.id)
+            .eq("business_date", todayStr)
             .maybeSingle();
-          if (ledgerAcc) {
-            vaultBalance = ledgerAcc.balance ?? 0;
-          }
-        }
 
-        return {
-          ...st,
-          daily_limit_used: counter?.spent_amount ?? 0,
-          card_status: activeCard?.status ?? "pending_activation",
-          student_vault: vaultObj ? { ...vaultObj, vault_balance: vaultBalance } : null,
-          spp_invoices: st.spp_invoices || [],
-        };
-      }),
-    );
+          const vaultObj = Array.isArray(st.student_vault) ? st.student_vault[0] : st.student_vault;
+          let vaultBalance = vaultObj?.vault_balance ?? 0;
+
+          if (vaultObj?.ledger_account_id && (vaultObj.vault_balance === undefined || vaultObj.vault_balance === null)) {
+            const { data: ledgerAcc } = await service
+              .from("ledger_accounts")
+              .select("balance")
+              .eq("id", vaultObj.ledger_account_id)
+              .maybeSingle();
+            if (ledgerAcc) {
+              vaultBalance = ledgerAcc.balance ?? 0;
+            }
+          }
+
+          return {
+            ...st,
+            daily_limit_used: counter?.spent_amount ?? 0,
+            card_status: activeCard?.status ?? "pending_activation",
+            student_vault: vaultObj ? { ...vaultObj, vault_balance: vaultBalance } : null,
+            spp_invoices: st.spp_invoices || [],
+          };
+        }),
+      );
+    }
   }
 
   // Recent canteen transactions for linked children

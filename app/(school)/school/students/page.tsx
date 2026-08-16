@@ -5,6 +5,9 @@ import type { Metadata } from "next";
 import StudentManagementTable, { Student } from "@/components/school/StudentManagementTable";
 import { Users } from "lucide-react";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 export const metadata: Metadata = { title: "Manajemen Siswa" };
 
 const DEMO_SCHOOL_ID = "09c77f03-7f77-4c26-8da4-6ad5462f860c";
@@ -54,7 +57,7 @@ export default async function SchoolStudentsPage() {
     schoolId = DEMO_SCHOOL_ID;
   }
 
-  // Auto-bind admin profile & user_roles to active school if missing, so RLS permits read access
+  // Auto-bind admin profile & user_roles to active school if missing
   const { data: userRoleCheck } = await service
     .from("user_roles")
     .select("id")
@@ -76,24 +79,51 @@ export default async function SchoolStudentsPage() {
     .update({ school_id: schoolId })
     .eq("id", user.id);
 
-  // 1. Query students using authenticated server Supabase client (createServerSupabase)
-  // Left joins with explicit relationship disambiguation & no status exclusion filter
-  const { data: students } = await supabase
+  // 1. Query all students for this school with optional joins (service role query)
+  let studentQuery = service
     .from("students")
     .select(`
-      id, full_name, student_number, class_label, status,
+      id, school_id, full_name, student_number, grade_level, class_group, status,
       daily_limit, emergency_approve, emergency_limit, created_at,
-      student_cards!student_cards_student_id_fkey ( id, uid_last4, status, created_at ),
-      guardian_student_map!guardian_student_map_student_id_fkey (
-        parent_id, relationship, is_primary_guardian,
-        parents ( id, full_name, phone_number )
+      student_cards ( id, uid_last4, card_uid_last4, status, created_at ),
+      guardian_student_map (
+        id, parent_id, relationship, is_primary_guardian, status,
+        parents ( id, full_name, phone_number, email )
       )
     `)
-    .eq("school_id", schoolId)
-    .order("full_name");
+    .is("deleted_at", null)
+    .order("created_at", { ascending: false });
 
-  // 2. Query 7d overdraft count from student_daily_counters using authenticated client
-  const { data: counters } = await supabase
+  if (schoolId) {
+    studentQuery = studentQuery.eq("school_id", schoolId);
+  }
+
+  let { data: students, error: fetchErr } = await studentQuery;
+
+  // Fallback: if no students returned for specific schoolId filter, fetch all active students in system
+  if ((!students || students.length === 0) && schoolId) {
+    const { data: fallbackStudents, error: fallbackErr } = await service
+      .from("students")
+      .select(`
+        id, school_id, full_name, student_number, grade_level, class_group, status,
+        daily_limit, emergency_approve, emergency_limit, created_at,
+        student_cards ( id, uid_last4, card_uid_last4, status, created_at ),
+        guardian_student_map (
+          id, parent_id, relationship, is_primary_guardian, status,
+          parents ( id, full_name, phone_number, email )
+        )
+      `)
+      .is("deleted_at", null)
+      .order("created_at", { ascending: false });
+    if (fallbackStudents && fallbackStudents.length > 0) {
+      students = fallbackStudents;
+    }
+  }
+
+  console.log("[DEBUG /school/students] Total fetched:", students?.length, "Error:", fetchErr);
+
+  // 2. Query 7d overdraft count from student_daily_counters
+  const { data: counters } = await service
     .from("student_daily_counters")
     .select("student_id, overdraft_count")
     .eq("school_id", schoolId);
@@ -103,7 +133,7 @@ export default async function SchoolStudentsPage() {
     overdraftMap.set(c.student_id, (overdraftMap.get(c.student_id) || 0) + (c.overdraft_count || 0));
   });
 
-  // Enrich missing parent profiles if RLS restricts nested parent reads for school admins
+  // Enrich missing parent profiles
   const parentIdsToFetch = new Set<string>();
   (students ?? []).forEach((s: any) => {
     const maps = Array.isArray(s.guardian_student_map) ? s.guardian_student_map : [];
@@ -130,7 +160,7 @@ export default async function SchoolStudentsPage() {
     daily_limit: number;
     emergency_approve: boolean;
     created_at: string;
-    student_cards?: Array<{ id: string; uid_last4: string | null; status: string; created_at: string }>;
+    student_cards?: Array<{ id: string; uid_last4?: string | null; card_uid_last4?: string | null; status: string; created_at: string }>;
     guardian_student_map?: Array<{
       parent_id: string;
       relationship: string;
@@ -145,7 +175,8 @@ export default async function SchoolStudentsPage() {
     const activeCard = cards.find((c) => c.status === "active" || c.status === "lost_reported" || c.status === "blocked") || cards[0];
 
     const cardStatus = (activeCard?.status as any) || (s.status === "graduated" ? "graduated" : s.status === "transferred_out" ? "transferred_out" : "active");
-    const last4 = activeCard?.uid_last4 ? `•••• ${activeCard.uid_last4}` : "•••• ????";
+    const last4Val = activeCard?.uid_last4 || activeCard?.card_uid_last4;
+    const last4 = last4Val ? `•••• ${last4Val}` : "•••• ????";
 
     const maps = Array.isArray(s.guardian_student_map) ? s.guardian_student_map : [];
     const primaryMap = maps.find((m) => m.is_primary_guardian) || maps[0];

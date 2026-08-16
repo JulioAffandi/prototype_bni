@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import ParentBottomNav from "@/components/parent/ParentBottomNav";
+import { BottomDock } from "./_components/BottomDock";
 import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
@@ -39,12 +39,24 @@ export default async function ParentLayout({
   if (!isParent) redirect("/login");
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <main className="flex-1 pb-20 overflow-y-auto">
+    <div data-portal="parent" className="relative min-h-screen pb-28">
+      {/* Soft radial glow di belakang hero balance — signature Parent Hub */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-72 animate-glow-pulse"
+        style={{
+          background:
+            "radial-gradient(circle at 50% 0%, var(--portal-primary) 0%, transparent 70%)",
+        }}
+      />
+
+      <main className="relative mx-auto w-full max-w-md px-4 pt-6">
         {children}
       </main>
-      <ParentBottomNav />
+
+      <BottomDock />
       <AiAssistant persona="parent" />
     </div>
   );
 }
+

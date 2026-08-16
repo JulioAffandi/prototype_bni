@@ -40,11 +40,11 @@ export async function getOrResolveParentId(user: User, autoCreate = true): Promi
     if (validParent) return validParent.id;
   }
 
-  // 3. Check parents table directly by id = user.id
+  // 3. Check parents table directly by auth_user_id = user.id or id = user.id
   const { data: byDirectId } = await service
     .from("parents")
     .select("id")
-    .eq("id", user.id)
+    .or(`auth_user_id.eq.${user.id},id.eq.${user.id}`)
     .maybeSingle();
 
   if (byDirectId) {

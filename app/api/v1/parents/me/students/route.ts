@@ -45,7 +45,8 @@ export async function GET() {
         id,
         full_name,
         student_number,
-        class_label,
+        grade_level,
+        class_group,
         daily_limit,
         emergency_approve,
         emergency_limit,
@@ -73,7 +74,8 @@ export async function GET() {
         id: string;
         full_name: string;
         student_number: string | null;
-        class_label: string | null;
+        grade_level: number | string | null;
+        class_group: string | null;
         daily_limit: number;
         emergency_approve: boolean;
         emergency_limit: number;
@@ -97,12 +99,13 @@ export async function GET() {
         .maybeSingle();
 
       const spentAmount = counter?.spent_amount ?? 0;
+      const classLabel = st.grade_level && st.class_group ? `Kelas ${st.grade_level} ${st.class_group}` : st.class_group || null;
 
       return {
         id: st.id,
         full_name: st.full_name,
         student_number: st.student_number,
-        class_label: st.class_label,
+        class_label: classLabel,
         daily_limit: st.daily_limit,
         daily_limit_used: spentAmount,
         emergency_approve: st.emergency_approve,

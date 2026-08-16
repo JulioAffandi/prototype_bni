@@ -221,7 +221,7 @@ export async function resolveAiScope(
   if (parentId) {
     const { data: childMappings } = await service
       .from("guardian_student_map")
-      .select("student_id, students!guardian_student_map_student_id_fkey(id, full_name, class_label, status)")
+      .select("student_id, students!guardian_student_map_student_id_fkey(id, full_name, grade_level, class_group, status)")
       .eq("parent_id", parentId);
 
     const activeMappings = (childMappings ?? []).filter(
@@ -230,10 +230,11 @@ export async function resolveAiScope(
 
     children = activeMappings.map((row: any) => {
       const st = row.students;
+      const classLabel = st?.grade_level && st?.class_group ? `Kelas ${st.grade_level} ${st.class_group}` : st?.class_group || null;
       return {
         id: st?.id || row.student_id,
         name: st?.full_name || "Siswa",
-        classLabel: st?.class_label || null,
+        classLabel: classLabel,
         cardStatus: st?.status || "active",
       };
     });

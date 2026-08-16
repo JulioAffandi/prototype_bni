@@ -71,15 +71,14 @@ export async function POST(
   const last4 = nfc_uid_last4 || raw_nfc_uid.slice(-4);
 
   // Check if UID is already active in tenant
-  const { data: existingCard } = await service
+  const { data: existingCards } = await service
     .from("student_cards")
     .select("id")
     .eq("school_id", schoolId)
-    .eq("uid_hash", byteaHash)
-    .in("status", ["active", "pending_activation"])
-    .maybeSingle();
+    .or(`uid_hash.eq.${byteaHash},card_uid_hash.eq.${byteaHash}`)
+    .in("status", ["active", "pending_activation"]);
 
-  if (existingCard) {
+  if (existingCards && existingCards.length > 0) {
     return NextResponse.json(
       { error: "CARD_ALREADY_BOUND", message: "UID kartu ini sudah digunakan oleh siswa lain." },
       { status: 409 },

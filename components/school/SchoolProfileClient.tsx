@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Building2, Hash, MapPin, Loader2, CheckCircle2, ShieldCheck, User } from "lucide-react";
+import { Building2, MapPin, Loader2, CheckCircle2, AlertCircle, User, CreditCard, Hash, ShieldCheck } from "lucide-react";
 
 interface SchoolProfileProps {
   user: {
@@ -23,17 +23,20 @@ interface SchoolProfileProps {
 
 export default function SchoolProfileClient({ user, school }: SchoolProfileProps) {
   const [schoolName, setSchoolName] = useState(school.name || "");
+  const [npsn, setNpsn] = useState(school.npsn || "");
+  const [bniGiroAccount, setBniGiroAccount] = useState(school.bni_giro_account || "");
   const [address, setAddress] = useState(school.address || "");
+  const [status, setStatus] = useState(school.status || "active");
   const [dailyLimit, setDailyLimit] = useState(school.default_daily_limit || 20000);
   const [emergencyLimit, setEmergencyLimit] = useState(school.default_emergency_limit || 15000);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
-    setError(null);
-    setSuccess(false);
+    setErrorMsg(null);
+    setSuccessMsg(null);
     setLoading(true);
 
     try {
@@ -42,22 +45,25 @@ export default function SchoolProfileClient({ user, school }: SchoolProfileProps
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           school_name: schoolName.trim(),
+          npsn: npsn.trim() || null,
+          bni_giro_account: bniGiroAccount.trim(),
           address: address.trim() || null,
+          status,
           default_daily_limit: Number(dailyLimit),
           default_emergency_limit: Number(emergencyLimit),
         }),
       });
 
-      const data = await res.json() as { success?: boolean; message?: string; error?: string };
+      const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
 
       if (!res.ok) {
         throw new Error(data.message ?? data.error ?? "Gagal memperbarui profil sekolah");
       }
 
-      setSuccess(true);
-      setTimeout(() => setSuccess(false), 3000);
+      setSuccessMsg("Profil sekolah berhasil diperbarui!");
+      setTimeout(() => setSuccessMsg(null), 4000);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Terjadi kesalahan");
+      setErrorMsg(err instanceof Error ? err.message : "Terjadi kesalahan saat menyimpan data");
     } finally {
       setLoading(false);
     }
@@ -74,23 +80,50 @@ export default function SchoolProfileClient({ user, school }: SchoolProfileProps
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <h1 className="text-xl font-bold text-foreground">{schoolName}</h1>
+                <h1 className="text-xl font-bold text-foreground">{schoolName || "Sekolah"}</h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-accent/15 border border-accent/30 text-accent text-[11px] font-bold">
                   Terdaftar di VALO BNI
                 </span>
+                <span
+                  className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize border ${
+                    status === "active"
+                      ? "bg-emerald-500/15 border-emerald-500/30 text-emerald-400"
+                      : status === "suspended"
+                      ? "bg-amber-500/15 border-amber-500/30 text-amber-400"
+                      : "bg-destructive/15 border-destructive/30 text-destructive"
+                  }`}
+                >
+                  {status}
+                </span>
               </div>
-              <p className="text-xs text-muted-foreground mt-0.5 font-mono">
-                NPSN: <strong className="text-foreground">{school.npsn || "20101234"}</strong> · Tenant ID: <span className="text-muted-foreground">{school.id.slice(0, 8)}...</span>
+              <p className="text-xs text-muted-foreground mt-1 font-mono">
+                NPSN: <strong className="text-foreground">{npsn || "Belum diatur"}</strong> · Tenant ID:{" "}
+                <span className="text-muted-foreground">{school.id.slice(0, 8)}...</span>
               </p>
               <div className="flex items-center gap-3 mt-1.5 text-xs text-muted-foreground">
                 <span className="flex items-center gap-1 font-mono">
-                  Giro Escrow BNI: <strong className="text-foreground">{school.bni_giro_account}</strong>
+                  Giro Escrow BNI: <strong className="text-foreground">{bniGiroAccount || "Belum diatur"}</strong>
                 </span>
               </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Notifications / Toast */}
+      {successMsg && (
+        <div className="p-4 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-400 text-sm font-semibold flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <CheckCircle2 className="w-5 h-5 shrink-0" />
+          <span>{successMsg}</span>
+        </div>
+      )}
+
+      {errorMsg && (
+        <div className="p-4 rounded-2xl bg-destructive/15 border border-destructive/30 text-destructive text-sm font-semibold flex items-center gap-3 animate-in fade-in slide-in-from-top-2">
+          <AlertCircle className="w-5 h-5 shrink-0" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
       {/* PIC Admin Card */}
       <div className="glass rounded-2xl p-5 border border-border/80 shadow-lg space-y-2">
@@ -116,20 +149,71 @@ export default function SchoolProfileClient({ user, school }: SchoolProfileProps
       </div>
 
       {/* Profile Form */}
-      <form onSubmit={handleSave} className="glass rounded-2xl p-6 border border-border/80 shadow-xl space-y-4">
-        <h2 className="font-bold text-base text-foreground border-b border-border pb-3">
-          Edit Informasi Sekolah &amp; Batas Default Pagu
-        </h2>
+      <form onSubmit={handleSave} className="glass rounded-2xl p-6 border border-border/80 shadow-xl space-y-5">
+        <div className="flex items-center justify-between border-b border-border pb-3">
+          <h2 className="font-bold text-base text-foreground flex items-center gap-2">
+            <ShieldCheck className="w-5 h-5 text-primary" />
+            Detail &amp; Pengaturan Profil Sekolah
+          </h2>
+          <span className="text-xs text-muted-foreground font-mono">ID: {school.id}</span>
+        </div>
 
-        <div>
-          <label className="block text-xs font-semibold text-foreground mb-1">Nama Resmi Sekolah</label>
-          <input
-            type="text"
-            value={schoolName}
-            onChange={(e) => setSchoolName(e.target.value)}
-            required
-            className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 shadow-sm"
-          />
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1">Nama Resmi Sekolah</label>
+            <input
+              type="text"
+              value={schoolName}
+              onChange={(e) => setSchoolName(e.target.value)}
+              required
+              placeholder="Contoh: SMA Negeri 1 Jakarta"
+              className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 shadow-sm"
+            />
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1">NPSN (Nomor Pokok Sekolah Nasional)</label>
+            <div className="relative">
+              <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={npsn}
+                onChange={(e) => setNpsn(e.target.value)}
+                placeholder="20101234"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 shadow-sm"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1">Nomor Rekening Giro BNI (Escrow)</label>
+            <div className="relative">
+              <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <input
+                type="text"
+                value={bniGiroAccount}
+                onChange={(e) => setBniGiroAccount(e.target.value)}
+                required
+                placeholder="00123456789"
+                className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-accent/50 shadow-sm"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-xs font-semibold text-foreground mb-1">Status Operasional Sekolah</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full px-3.5 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 shadow-sm capitalize"
+            >
+              <option value="active">Active (Aktif)</option>
+              <option value="suspended">Suspended (Ditangguhkan)</option>
+              <option value="offboarded">Offboarded (Nonaktif)</option>
+            </select>
+          </div>
         </div>
 
         <div>
@@ -140,13 +224,13 @@ export default function SchoolProfileClient({ user, school }: SchoolProfileProps
               type="text"
               value={address}
               onChange={(e) => setAddress(e.target.value)}
-              placeholder="Jl. Pemuda No. 100, Jakarta"
+              placeholder="Jl. Pemuda No. 100, Rawamangun, Jakarta Timur"
               className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-accent/50 shadow-sm"
             />
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/60">
           <div>
             <label className="block text-xs font-semibold text-foreground mb-1">Default Pagu Harian Siswa (Rp)</label>
             <input
@@ -172,20 +256,7 @@ export default function SchoolProfileClient({ user, school }: SchoolProfileProps
           </div>
         </div>
 
-        {success && (
-          <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-semibold flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4" />
-            Profil sekolah berhasil disimpan!
-          </div>
-        )}
-
-        {error && (
-          <p className="text-xs text-destructive bg-destructive/10 border border-destructive/25 p-3 rounded-xl font-medium">
-            {error}
-          </p>
-        )}
-
-        <div className="pt-2 flex justify-end">
+        <div className="pt-3 flex justify-end">
           <button
             type="submit"
             disabled={loading}

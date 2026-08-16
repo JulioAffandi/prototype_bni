@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import CanteenHeader from "@/components/canteen/CanteenHeader";
+import { TopBar } from "./_components/TopBar";
 import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
@@ -54,8 +54,8 @@ export default async function CanteenLayout({
     : { data: null };
 
   return (
-    <div className="min-h-screen bg-background flex flex-col">
-      <CanteenHeader merchantName={merchant?.name ?? "Kantin"} />
+    <div data-portal="canteen" className="min-h-screen flex flex-col">
+      <TopBar merchantName={merchant?.name ?? "Kantin"} />
       <main className="flex-1 overflow-y-auto">
         {children}
       </main>
@@ -63,3 +63,4 @@ export default async function CanteenLayout({
     </div>
   );
 }
+

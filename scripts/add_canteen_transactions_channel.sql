@@ -1,0 +1,1 @@
+ALTER TABLE public.canteen_transactions ADD COLUMN IF NOT EXISTS channel VARCHAR DEFAULT 'ONLINE_TAP';

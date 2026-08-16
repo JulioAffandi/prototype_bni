@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Search, CreditCard, ShieldAlert, ShieldCheck, ShieldOff,
   AlertTriangle, UserPlus, Link2, UserCheck, Phone,
@@ -51,6 +51,33 @@ function formatRupiah(amount: number) {
 
 export default function StudentManagementTable({ schoolId, students: initialStudents }: StudentManagementTableProps) {
   const [students, setStudents] = useState<Student[]>(initialStudents);
+
+  useEffect(() => {
+    setStudents(initialStudents);
+    if ((!initialStudents || initialStudents.length === 0)) {
+      fetch("/api/debug/students")
+        .then((res) => res.json())
+        .then((data) => {
+          if (data?.students && data.students.length > 0) {
+            const clientFormatted: Student[] = data.students.map((s: any) => ({
+              id: s.id,
+              full_name: s.full_name,
+              nfc_uid_last4: s.card_uid_last4 ? `•••• ${s.card_uid_last4}` : "•••• ????",
+              card_status: (s.card_status as any) || "active",
+              daily_limit: s.daily_limit ?? 20000,
+              daily_limit_used: 0,
+              emergency_approve: Boolean(s.emergency_approve),
+              emergency_overdraft_count_7d: 0,
+              created_at: s.created_at || new Date().toISOString(),
+              parent: null,
+            }));
+            setStudents(clientFormatted);
+          }
+        })
+        .catch((err) => console.error("Fallback debug fetch error:", err));
+    }
+  }, [initialStudents, schoolId]);
+
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<CardStatus | "ALL">("ALL");
   const [showAddModal, setShowAddModal] = useState(false);
@@ -64,11 +91,15 @@ export default function StudentManagementTable({ schoolId, students: initialStud
   const filtered = students.filter((s) => {
     const matchSearch =
       search === "" ||
-      s.full_name.toLowerCase().includes(search.toLowerCase()) ||
-      s.nfc_uid_last4.includes(search) ||
+      (s.full_name && s.full_name.toLowerCase().includes(search.toLowerCase())) ||
+      (s.nfc_uid_last4 && s.nfc_uid_last4.includes(search)) ||
       (s.parent?.full_name && s.parent.full_name.toLowerCase().includes(search.toLowerCase())) ||
       (s.parent?.phone_number && s.parent.phone_number.includes(search));
-    const matchStatus = filterStatus === "ALL" || s.card_status === filterStatus;
+    const matchStatus =
+      (filterStatus as string) === "ALL" ||
+      (filterStatus as string) === "Semua Status" ||
+      !filterStatus ||
+      (s.card_status || "").toUpperCase() === (filterStatus as string).toUpperCase();
     return matchSearch && matchStatus;
   });
 

@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { createServerSupabaseClient } from "@/lib/supabase/server";
 import { createServiceClient } from "@/lib/supabase/service";
 import { redirect } from "next/navigation";
-import SchoolSidebar from "@/components/school/SchoolSidebar";
+import { Sidebar } from "./_components/Sidebar";
 import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
@@ -54,9 +54,9 @@ export default async function SchoolLayout({
     : { data: null };
 
   return (
-    <div className="min-h-screen bg-background flex">
-      <SchoolSidebar schoolName={school?.name ?? "Sekolah"} />
-      <main className="flex-1 ml-64 overflow-y-auto">
+    <div data-portal="school" className="min-h-screen flex">
+      <Sidebar schoolName={school?.name ?? "Sekolah"} />
+      <main className="flex-1 overflow-y-auto">
         <div className="p-6 max-w-6xl mx-auto">
           {children}
         </div>
@@ -65,3 +65,4 @@ export default async function SchoolLayout({
     </div>
   );
 }
+

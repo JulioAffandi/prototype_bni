@@ -1,0 +1,1 @@
+ALTER TABLE public.students ADD COLUMN IF NOT EXISTS status VARCHAR NOT NULL DEFAULT 'active';
