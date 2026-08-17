@@ -70,25 +70,20 @@ export default function SchoolAIPage() {
           </div>
         )}
 
-        {messages.map((msg) => {
-          const content = typeof msg.content === "string" && msg.content.length > 0
-            ? msg.content
-            : (msg.parts?.map((p: any) => p.text).join("") || "");
-          return (
-            <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
-              {msg.role === "assistant" && (
-                <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center mr-3 mt-1 shrink-0">
-                  <Bot className="w-4 h-4 text-primary" />
-                </div>
-              )}
-              <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
-                msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
-              }`}>
-                {content}
+        {messages.map((msg) => (
+          <div key={msg.id} className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}>
+            {msg.role === "assistant" && (
+              <div className="w-7 h-7 rounded-full bg-primary/15 flex items-center justify-center mr-3 mt-1 shrink-0">
+                <Bot className="w-4 h-4 text-primary" />
               </div>
+            )}
+            <div className={`max-w-[80%] rounded-2xl px-5 py-3.5 text-sm leading-relaxed ${
+              msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
+            }`}>
+              {getMessageText(msg)}
             </div>
-          );
-        })}
+          </div>
+        ))}
 
         {isLoading && (
           <div className="flex justify-start">

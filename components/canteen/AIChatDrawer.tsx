@@ -4,6 +4,7 @@ import { useChat } from "@ai-sdk/react";
 import { useState } from "react";
 import { Bot, Send, X, Loader2 } from "lucide-react";
 import EduConnectLogo from "@/components/shared/EduConnectLogo";
+import { getMessageText } from "@/lib/ai/message-utils";
 
 interface AIChatDrawerProps {
   endpoint: string;
@@ -100,25 +101,20 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
                 </div>
               )}
 
-              {messages.map((msg) => {
-                const content = typeof msg.content === "string" && msg.content.length > 0
-                  ? msg.content
-                  : (msg.parts?.map((p: any) => p.text).join("") || "");
-                return (
+              {messages.map((msg) => (
+                <div
+                  key={msg.id}
+                  className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                >
                   <div
-                    key={msg.id}
-                    className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
+                    className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
+                      msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
+                    }`}
                   >
-                    <div
-                      className={`max-w-[85%] rounded-2xl px-4 py-3 text-sm ${
-                        msg.role === "user" ? "chat-user rounded-tr-sm" : "chat-ai rounded-tl-sm"
-                      }`}
-                    >
-                      {content}
-                    </div>
+                    {getMessageText(msg)}
                   </div>
-                );
-              })}
+                </div>
+              ))}
 
               {isLoading && (
                 <div className="flex justify-start">

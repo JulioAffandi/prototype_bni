@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bot, X, Send, Sparkles } from 'lucide-react';
 import { useChat } from '@ai-sdk/react';
 import EduConnectLogo from '@/components/shared/EduConnectLogo';
+import { getMessageText } from '@/lib/ai/message-utils';
 
 export default function AiAssistant({ persona = 'parent' }: { persona?: string }) {
   const [mounted, setMounted] = useState(false);
@@ -69,28 +70,22 @@ export default function AiAssistant({ persona = 'parent' }: { persona?: string }
                 </p>
               </div>
             )}
-            {messages.map((m) => {
-              const content =
-                typeof m.content === 'string' && m.content.length > 0
-                  ? m.content
-                  : (m.parts?.map((p: any) => p.text).join('') || '');
-              return (
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+              >
                 <div
-                  key={m.id}
-                  className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}
+                  className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm ${
+                    m.role === 'user'
+                      ? 'bg-portal-primary text-white font-medium rounded-br-none'
+                      : 'bg-portal-surface text-portal-text border border-portal-border rounded-bl-none'
+                  }`}
                 >
-                  <div
-                    className={`max-w-[82%] rounded-2xl px-3.5 py-2.5 leading-relaxed shadow-sm ${
-                      m.role === 'user'
-                        ? 'bg-portal-primary text-white font-medium rounded-br-none'
-                        : 'bg-portal-surface text-portal-text border border-portal-border rounded-bl-none'
-                    }`}
-                  >
-                    {content}
-                  </div>
+                  {getMessageText(m)}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
 
           {/* Chat Input */}
