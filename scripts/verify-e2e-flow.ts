@@ -63,7 +63,7 @@ function logResult(phase: string, testCase: string, status: "PASS" | "FAIL", det
 
 async function runE2EVerification() {
   console.log("\n=======================================================");
-  console.log("🚀 VALO CLOSED-LOOP ECOSYSTEM E2E VERIFICATION SCRIPT");
+  console.log("🚀 BNI EDUCONNECT CLOSED-LOOP ECOSYSTEM E2E VERIFICATION SCRIPT");
   console.log("=======================================================\n");
 
   const timestamp = Date.now();
@@ -553,7 +553,7 @@ async function runE2EVerification() {
   // PRINT SUMMARY REPORT
   // =========================================================================
   console.log("\n=======================================================");
-  console.log("📊 VALO E2E SYSTEM FLOW AUDIT REPORT SUMMARY");
+  console.log("📊 BNI EDUCONNECT E2E SYSTEM FLOW AUDIT REPORT SUMMARY");
   console.log("=======================================================\n");
 
   const total = results.length;

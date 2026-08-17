@@ -89,6 +89,13 @@
   background-clip: text;
 }
 
+.gradient-text-brand {
+  background: var(--portal-gradient-primary, linear-gradient(135deg, #7357C7 0%, #F97316 100%));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
 /* ── NFC wave animation ── */
 @keyframes nfc-pulse {
   0%   { transform: scale(1); opacity: 0.8; }
@@ -172,33 +179,39 @@
 .chat-ai     { background: hsl(var(--card)); border: 1px solid hsl(var(--border)); }
 
 /* =====================================================================
-   PARENT — "Nurturing, Reassuring & Modern Fintech"
-   Dark Slate Navy · Emerald Teal · rounded, floating dock
+   PARENT — "EduConnect Brand · Modern Fintech for Parents"
+   Light Slate / White · Primary Purple #7357C7 · Accent Orange #F97316 · Lime #C6E63A
    ===================================================================== */
 [data-portal="parent"] {
-  --portal-bg: #090d16;
-  --portal-surface: #111827;
-  --portal-surface-alt: #16213a;
-  --portal-border: #1e293b; /* slate-800 */
+  /* Surface — Light Theme */
+  --portal-bg: #F8FAFC;
+  --portal-surface: #FFFFFF;
+  --portal-surface-alt: #F1F5F9;
+  --portal-border: #E2E8F0;
 
-  --portal-primary: #0d9488; /* teal-500 */
-  --portal-primary-foreground: #f8fafc;
-  --portal-secondary: #6ee7b7; /* soft mint — vault/goals */
-  --portal-accent: #f59e0b; /* warm gold — rewards */
+  /* Brand Colors */
+  --portal-primary: #7357C7;           /* Primary Purple */
+  --portal-primary-foreground: #FFFFFF;
+  --portal-secondary: #C6E63A;         /* Lime Green — status/progress accents */
+  --portal-accent: #F97316;            /* Accent Orange — CTA sekunder, warning limit */
 
-  --portal-success: #22c55e;
-  --portal-warning: #f59e0b;
-  --portal-danger: #ef4444;
+  --portal-success: #10B981;           /* Emerald */
+  --portal-warning: #F97316;
+  --portal-danger: #EF4444;
 
-  --portal-text: #f1f5f9;
-  --portal-text-muted: #94a3b8;
+  --portal-text: #111827;              /* Navy / Dark Text */
+  --portal-text-muted: #64748B;
 
-  --portal-font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
+  --portal-font-sans: var(--font-plus-jakarta-sans), ui-sans-serif, system-ui, sans-serif;
   --portal-font-mono: var(--font-geist-mono, ui-monospace, monospace);
 
-  --portal-radius: 1rem; /* rounded-2xl feel */
-  --portal-radius-lg: 1.5rem;
-  --portal-glow: 0 0 40px -8px rgba(13, 148, 136, 0.45);
+  --portal-radius: 1.25rem;            /* rounded-3xl feel — fintech modern */
+  --portal-radius-lg: 1.75rem;
+  --portal-glow: 0 8px 24px -6px rgba(115, 87, 199, 0.25);
+
+  /* Token tambahan khusus brand EduConnect */
+  --portal-gradient-primary: linear-gradient(135deg, #7357C7 0%, #F97316 100%);
+  --portal-card-shadow: 0 4px 20px -2px rgba(17, 24, 39, 0.07), 0 2px 6px -1px rgba(17, 24, 39, 0.04);
 }
 
 /* =====================================================================

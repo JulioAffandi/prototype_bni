@@ -15,6 +15,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { handleLogout } from "@/lib/auth/actions";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 interface SchoolSidebarProps {
   schoolName: string;
@@ -37,15 +38,7 @@ export default function SchoolSidebar({ schoolName }: SchoolSidebarProps) {
     <aside className="fixed left-0 top-0 h-full w-64 border-r border-border bg-card/95 backdrop-blur-md flex flex-col z-40">
       {/* Logo */}
       <div className="p-5 border-b border-border">
-        <div className="flex items-center gap-3">
-          <div className="w-9 h-9 rounded-xl bg-primary/15 border border-primary/25 flex items-center justify-center">
-            <GraduationCap className="w-5 h-5 text-primary" />
-          </div>
-          <div>
-            <p className="text-xs text-muted-foreground">VALO</p>
-            <p className="font-semibold text-sm truncate max-w-32">{schoolName}</p>
-          </div>
-        </div>
+        <EduConnectLogo variant="full" width={145} height={40} href="/school" />
       </div>
 
       {/* Navigation */}

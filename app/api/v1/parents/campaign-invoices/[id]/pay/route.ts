@@ -71,7 +71,7 @@ export async function POST(
 
   const newBalance = currentBalance - amountToPay;
   const bniRef = `BNI-EVENT-${Date.now()}-${invoiceId.slice(-6)}`;
-  const qrHash = `VALO-EVENT-QR-${invoiceId.slice(0, 8)}-${Date.now()}`;
+  const qrHash = `EduConnect-EVENT-QR-${invoiceId.slice(0, 8)}-${Date.now()}`;
   const nowIso = new Date().toISOString();
   const campaignTitle = invoice.school_billing_campaigns?.title || "Iuran Sekolah";
   const studentName = invoice.students?.full_name || "Siswa";

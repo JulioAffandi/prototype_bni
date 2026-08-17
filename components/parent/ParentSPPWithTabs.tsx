@@ -27,16 +27,16 @@ export default function ParentSPPWithTabs({
   }, [searchParams]);
 
   return (
-    <div className="space-y-5">
+    <div className="space-y-4">
       {/* Tab Controls */}
-      <div className="flex items-center gap-2 border-b border-portal-border pb-3 overflow-x-auto">
+      <div className="flex items-center gap-2 p-1 bg-portal-surface rounded-2xl border border-portal-border shadow-sm">
         <button
           type="button"
           onClick={() => setActiveTab("spp")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "spp"
-              ? "bg-portal-primary text-portal-primary-foreground shadow-sm"
-              : "bg-portal-surface-alt text-portal-muted hover:text-portal-text border border-portal-border"
+              ? "bg-portal-primary text-white shadow-sm"
+              : "text-portal-muted hover:text-portal-text"
           }`}
         >
           <FileText className="w-4 h-4" />
@@ -46,14 +46,14 @@ export default function ParentSPPWithTabs({
         <button
           type="button"
           onClick={() => setActiveTab("kegiatan")}
-          className={`flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition-all ${
+          className={`flex-1 flex items-center justify-center gap-2 py-2.5 px-3 rounded-xl text-xs font-bold transition-all ${
             activeTab === "kegiatan"
-              ? "bg-portal-primary text-portal-primary-foreground shadow-sm"
-              : "bg-portal-surface-alt text-portal-muted hover:text-portal-text border border-portal-border"
+              ? "bg-portal-primary text-white shadow-sm"
+              : "text-portal-muted hover:text-portal-text"
           }`}
         >
           <Megaphone className="w-4 h-4" />
-          <span>Iuran &amp; Kegiatan Sekolah ({campaignInvoices.length})</span>
+          <span>Iuran Kegiatan ({campaignInvoices.length})</span>
         </button>
       </div>
 

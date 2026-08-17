@@ -246,7 +246,7 @@ export default function ClaimStudentModal({
               />
               <span>
                 <Lock className="w-3 h-3 text-primary inline mr-1" />
-                Saya menyetujui pemrosesan data pribadi spesifik anak (NFC UID, NISN, Tanggal Lahir) sesuai <strong>UU No. 27/2022 (UU PDP)</strong> untuk ekosistem VALO.
+                Saya menyetujui pemrosesan data pribadi spesifik anak (NFC UID, NISN, Tanggal Lahir) sesuai <strong>UU No. 27/2022 (UU PDP)</strong> untuk ekosistem BNI EduConnect.
               </span>
             </label>
           </div>

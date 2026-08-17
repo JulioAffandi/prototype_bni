@@ -21,15 +21,19 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: schoolId } = await params;
+  const { id: rawSchoolId } = await params;
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
 
   const service = createServiceClient();
-  const { data: campaigns, error } = await (service as any)
+  const schoolId = !rawSchoolId || rawSchoolId === "demo" || rawSchoolId === "undefined"
+    ? "09c77f03-7f77-4c26-8da4-6ad5462f860c"
+    : rawSchoolId;
+
+  const { data: campaigns, error } = await service
     .from("school_billing_campaigns")
-    .select("*, campaign_invoices(id, status, amount)")
+    .select("*")
     .eq("school_id", schoolId)
     .order("created_at", { ascending: false });
 
@@ -37,14 +41,72 @@ export async function GET(
     return NextResponse.json({ error: "QUERY_FAILED", detail: error.message }, { status: 500 });
   }
 
-  return NextResponse.json({ campaigns: campaigns ?? [] });
+  const campaignIds = (campaigns ?? []).map((campaign) => campaign.id);
+  if (campaignIds.length === 0) {
+    return NextResponse.json({ campaigns: [] });
+  }
+
+  const { data: invoices, error: invoiceError } = await service
+    .from("campaign_invoices")
+    .select("campaign_id, amount, status")
+    .in("campaign_id", campaignIds);
+
+  if (invoiceError) {
+    return NextResponse.json({ error: "INVOICE_STATS_FAILED", detail: invoiceError.message }, { status: 500 });
+  }
+
+  const statsMap = new Map<string, {
+    totalStudents: number;
+    paidStudents: number;
+    totalCollected: number;
+    targetAmount: number;
+  }>();
+
+  for (const invoice of invoices ?? []) {
+    const stats = statsMap.get(invoice.campaign_id) ?? {
+      totalStudents: 0,
+      paidStudents: 0,
+      totalCollected: 0,
+      targetAmount: 0,
+    };
+    const invoiceAmount = Number(invoice.amount);
+    stats.totalStudents += 1;
+    stats.targetAmount += invoiceAmount;
+    if (invoice.status === "PAID") {
+      stats.paidStudents += 1;
+      stats.totalCollected += invoiceAmount;
+    }
+    statsMap.set(invoice.campaign_id, stats);
+  }
+
+  const enrichedCampaigns = (campaigns ?? []).map((campaign) => {
+    const stats = statsMap.get(campaign.id) ?? {
+      totalStudents: 0,
+      paidStudents: 0,
+      totalCollected: 0,
+      targetAmount: 0,
+    };
+
+    return {
+      ...campaign,
+      stats: {
+        ...stats,
+        progressPct: stats.totalStudents > 0
+          ? Math.round((stats.paidStudents / stats.totalStudents) * 100)
+          : 0,
+      },
+    };
+  });
+
+  return NextResponse.json({ campaigns: enrichedCampaigns });
 }
 
 export async function POST(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const { id: schoolId } = await params;
+  const { id: rawSchoolId } = await params;
+  const service = createServiceClient();
   const supabase = await createServerSupabaseClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return NextResponse.json({ error: "UNAUTHENTICATED" }, { status: 401 });
@@ -59,10 +121,12 @@ export async function POST(
   }
 
   const { title, category, amount, due_date, target_scope, target_filter, description, is_mandatory } = parsed.data;
-  const service = createServiceClient();
+  let schoolId = rawSchoolId;
+  if (!schoolId || schoolId === "demo" || schoolId === "undefined") {
+    schoolId = "09c77f03-7f77-4c26-8da4-6ad5462f860c";
+  }
 
-  // 1. Insert into school_billing_campaigns
-  const { data: campaign, error: campaignErr } = await (service as any)
+  const { data: campaign, error: campaignErr } = await service
     .from("school_billing_campaigns")
     .insert({
       school_id: schoolId,
@@ -80,55 +144,60 @@ export async function POST(
     .single();
 
   if (campaignErr || !campaign) {
-    return NextResponse.json({ error: "CAMPAIGN_CREATE_FAILED", detail: campaignErr?.message }, { status: 500 });
+    return NextResponse.json({ error: "CAMPAIGN_INSERT_FAILED", detail: campaignErr?.message }, { status: 500 });
   }
 
-  // 2. Query targeted students
-  let studentQuery = service
+  // Do not rely on status casing; non-deleted students are eligible for ad-hoc billing.
+  let studentQuery = (service as any)
     .from("students")
-    .select("id, full_name, grade_level, class_label")
-    .eq("school_id", schoolId)
-    .eq("status", "active");
+    .select("id, full_name, school_id, status, grade_level, class_group")
+    .is("deleted_at", null)
+    .or(`school_id.eq.${schoolId},school_id.is.null`);
 
   if (target_scope === "GRADE_LEVEL" && target_filter?.grade_level) {
     studentQuery = studentQuery.eq("grade_level", target_filter.grade_level);
+  } else if (target_scope === "CLASS_GROUP" && target_filter?.class_group) {
+    studentQuery = studentQuery.eq("class_group", target_filter.class_group);
   }
 
-  const { data: targetedStudents, error: studentErr } = await studentQuery;
+  const { data: matchedStudents, error: studentErr } = await studentQuery;
 
-  if (studentErr || !targetedStudents || targetedStudents.length === 0) {
+  if (studentErr) {
+    return NextResponse.json({ error: "STUDENTS_QUERY_FAILED", detail: studentErr.message }, { status: 500 });
+  }
+
+  const targetStudents = matchedStudents ?? [];
+  if (targetStudents.length === 0) {
     return NextResponse.json({
       success: true,
       campaign,
-      total_students: 0,
-      message: "Kampanye dibuat, namun tidak ada siswa aktif yang cocok dengan filter target.",
+      invoices_created: 0,
+      warning: "Kampanye dibuat, namun tidak ada siswa yang ditemukan di sekolah ini.",
     });
   }
 
-  // 3. Batch insert campaign_invoices
-  const invoiceRows = targetedStudents.map((st) => ({
+  const invoiceRows = targetStudents.map((student: { id: string; school_id: string | null }) => ({
     campaign_id: campaign.id,
-    school_id: schoolId,
-    student_id: st.id,
+    school_id: student.school_id || schoolId,
+    student_id: student.id,
     amount,
     status: "UNPAID",
   }));
 
-  const { error: invBatchErr } = await (service as any)
+  const { data: createdInvoices, error: invBatchErr } = await service
     .from("campaign_invoices")
-    .insert(invoiceRows);
+    .insert(invoiceRows)
+    .select();
 
   if (invBatchErr) {
-    console.warn("[Campaign API] Invoice batch warning:", invBatchErr.message);
+    return NextResponse.json({ error: "INVOICE_GENERATION_FAILED", detail: invBatchErr.message }, { status: 500 });
   }
 
-  // 4. Query linked parents and insert portal_notifications
-  const studentIds = targetedStudents.map((s) => s.id);
+  const studentIds = targetStudents.map((student: { id: string }) => student.id);
   const { data: mapRows } = await service
     .from("guardian_student_map")
-    .select("parent_id")
-    .in("student_id", studentIds)
-    .ilike("status", "active");
+    .select("parent_id, student_id")
+    .in("student_id", studentIds);
 
   const parentIds = Array.from(new Set((mapRows ?? []).map((m) => m.parent_id)));
 
@@ -143,14 +212,14 @@ export async function POST(
       is_read: false,
     }));
 
-    await (service as any).from("portal_notifications").insert(notifRows);
+    await service.from("portal_notifications").insert(notifRows);
   }
 
   return NextResponse.json({
     success: true,
-    campaign_id: campaign.id,
-    total_students: targetedStudents.length,
+    campaign,
+    invoices_created: createdInvoices?.length ?? invoiceRows.length,
     notifications_sent: parentIds.length,
-    message: `Berhasil menerbitkan tagihan ${title} ke ${targetedStudents.length} siswa`,
+    message: `Berhasil menerbitkan tagihan kepada ${invoiceRows.length} siswa.`,
   }, { status: 201 });
 }

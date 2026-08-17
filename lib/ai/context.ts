@@ -208,7 +208,7 @@ export async function resolveAiScope(
   }
 
   // 5. Ensure profile row exists in public.profiles
-  const displayName = user.user_metadata?.full_name || user.email || "VALO User";
+  const displayName = user.user_metadata?.full_name || user.email || "EduConnect User";
   await service.from("profiles").upsert({
     id: user.id,
     display_name: displayName,

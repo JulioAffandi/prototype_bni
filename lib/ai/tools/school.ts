@@ -13,7 +13,7 @@ export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
         "Tingkat penagihan SPP satu periode: jumlah invoice, jumlah lunas, tertunggak, " +
         "gagal debit, jatuh tempo, nilai tertagih, dan persentase collection. " +
         "Selalu panggil ini lebih dulu sebelum getUnpaidSPPList.",
-      inputSchema: z.object({
+      parameters: z.object({
         periode: periodeSchema.optional().describe("Default periode berjalan."),
       }),
       execute: async ({ periode }) => {
@@ -96,7 +96,7 @@ export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
       description:
         "Daftar siswa dengan SPP tertunggak pada satu periode. Dapat disaring per tingkat " +
         "kelas dan per nama kelas. Untuk keperluan penagihan. Maksimum 40 baris.",
-      inputSchema: z.object({
+      parameters: z.object({
         periode: periodeSchema.optional(),
         tingkatKelas: z.number().int().min(1).max(13).optional().describe("Contoh 10 untuk kelas 10."),
         namaKelas: z.string().max(16).optional().describe('Contoh "IPA-2". Kosongkan untuk seluruh rombel pada tingkat itu.'),
@@ -155,7 +155,7 @@ export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
       description:
         "Ringkasan kegagalan auto-debit SPP pada satu periode, dikelompokkan berdasarkan " +
         "jumlah percobaan retry. Untuk memutuskan eskalasi penagihan manual.",
-      inputSchema: z.object({ periode: periodeSchema.optional() }),
+      parameters: z.object({ periode: periodeSchema.optional() }),
       execute: async ({ periode }) => {
         try {
           const p = periode ?? scope.currentPeriod;
@@ -196,10 +196,10 @@ export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
 
     getEscrowLedgerBalance: tool({
       description:
-        "Saldo escrow sekolah pada ledger double-entry internal VALO, plus tren saldo Giro " +
+        "Saldo escrow sekolah pada ledger double-entry internal EduConnect, plus tren saldo Giro " +
         "BNI sekolah 30 hari terakhir. Tidak menerima parameter apa pun, scope terkunci " +
         "pada sekolah pengguna.",
-      inputSchema: z.object({}),
+      parameters: z.object({}),
       execute: async () => {
         try {
           const [escrow, giro] = await Promise.all([
@@ -250,7 +250,7 @@ export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
         "Statistik enrollment dan provisioning kartu sekolah: total siswa, kartu aktif, " +
         "dilaporkan hilang, diblokir, lulus, pindah, siswa tanpa parental consent aktif, " +
         "dan jumlah kartu diterbitkan 30 hari terakhir.",
-      inputSchema: z.object({}),
+      parameters: z.object({}),
       execute: async () => {
         try {
           const { data, error } = await db.rpc("rpc_school_card_stats");
@@ -286,7 +286,7 @@ export function buildSchoolTools(db: Db, scope: AiScope): Record<string, any> {
       description:
         "Status payout seluruh kantin di bawah sekolah pada rentang tanggal usaha: " +
         "nilai bersih, status pencairan, dan batch yang gagal. Untuk audit vendor settlement.",
-      inputSchema: z.object({
+      parameters: z.object({
         hariTerakhir: z.number().int().min(1).max(31).default(7),
       }),
       execute: async ({ hariTerakhir }) => {

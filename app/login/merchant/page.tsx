@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Store, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, Zap } from "lucide-react";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 export default function MerchantLoginPage() {
   const [email, setEmail] = useState("");
@@ -112,14 +113,14 @@ export default function MerchantLoginPage() {
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-16 h-16 rounded-2xl bg-orange-500/15 border border-orange-500/30 flex items-center justify-center mb-3 shadow-lg shadow-orange-950/40">
-            <Store className="w-8 h-8 text-orange-400" />
+          <div className="mb-3">
+            <EduConnectLogo variant="full" width={160} height={46} priority />
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold mb-2">
             <Zap className="w-3.5 h-3.5" />
             <span>POS Terminal Mode</span>
           </div>
-          <h1 className="text-2xl font-bold tracking-tight text-white">VALO POS Merchant</h1>
+          <h1 className="text-xl font-bold tracking-tight text-white">Terminal Kasir &amp; POS Kantin</h1>
           <p className="text-xs text-orange-400/90 font-medium mt-0.5">Terminal Kasir Kantin Sekolah</p>
           <p className="text-xs text-slate-400 mt-2 max-w-xs leading-relaxed">
             Masuk ke terminal kasir untuk memproses transaksi tap-and-pay NFC siswa.

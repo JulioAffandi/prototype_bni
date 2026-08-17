@@ -136,6 +136,6 @@ export async function notifyTestMessage(params: {
 }) {
   const html =
     `✅ <b>Koneksi Berhasil</b>\n` +
-    `Akun VALO Anda kini terhubung dengan Telegram. Notifikasi akan dikirim ke chat ini.`;
+    `Akun EduConnect Anda kini terhubung dengan Telegram. Notifikasi akan dikirim ke chat ini.`;
   return dispatch(params.entityType, params.entityId, params.chatId, html);
 }

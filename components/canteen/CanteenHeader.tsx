@@ -15,6 +15,7 @@ import {
 import Link from "next/link";
 import OfflineQueueIndicator from "./OfflineQueueIndicator";
 import { handleLogout } from "@/lib/auth/actions";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 interface CanteenHeaderProps {
   merchantName: string;
@@ -38,11 +39,12 @@ export default function CanteenHeader({ merchantName }: CanteenHeaderProps) {
   return (
     <header className="sticky top-0 z-40 border-b border-border bg-card/95 backdrop-blur-md">
       <div className="flex items-center justify-between px-4 h-14">
-        {/* Left — merchant info */}
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-xl bg-accent/15 border border-accent/25 flex items-center justify-center">
-            <Store className="w-4 h-4 text-accent" />
-          </div>
+        {/* Left — brand logo & merchant info */}
+        <div className="flex items-center gap-3">
+          <EduConnectLogo variant="full" width={130} height={38} href="/pos" priority />
+
+          <div className="hidden sm:block h-6 w-[1px] bg-border" />
+
           <div>
             <p className="text-sm font-semibold leading-none">{merchantName}</p>
             <div className="flex items-center gap-1 mt-0.5">

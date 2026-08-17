@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, Landmark, Zap } from "lucide-react";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 export default function SchoolLoginPage() {
   const [email, setEmail] = useState("");
@@ -112,14 +113,14 @@ export default function SchoolLoginPage() {
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-blue-600/15 border border-blue-500/30 flex items-center justify-center mb-3 shadow-lg shadow-blue-950/20">
-            <Building2 className="w-7 h-7 text-blue-400" />
+          <div className="mb-3">
+            <EduConnectLogo variant="full" width={160} height={46} priority />
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/10 border border-amber-500/20 text-amber-400 text-xs font-semibold mb-2">
             <Landmark className="w-3.5 h-3.5" />
             <span>B2B Institutional Portal</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">VALO School Portal</h1>
+          <h1 className="text-xl font-bold text-foreground">Portal Admin &amp; Keuangan Sekolah</h1>
           <p className="text-xs text-blue-400/90 font-medium mt-0.5">B2B Institutional &amp; Treasury Management</p>
           <p className="text-xs text-muted-foreground mt-2 max-w-xs leading-relaxed">
             Portal manajemen siswa, auto-debit SPP H2H BNI, dan tata kelola ekosistem sekolah.

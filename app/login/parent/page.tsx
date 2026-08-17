@@ -5,6 +5,7 @@ import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Users, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, HeartHandshake, Zap } from "lucide-react";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 export default function ParentLoginPage() {
   const [email, setEmail] = useState("");
@@ -102,14 +103,14 @@ export default function ParentLoginPage() {
 
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
-          <div className="w-14 h-14 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center mb-3 shadow-lg shadow-emerald-950/20">
-            <Users className="w-7 h-7 text-emerald-400" />
+          <div className="mb-3">
+            <EduConnectLogo variant="full" width={160} height={46} priority />
           </div>
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
             <HeartHandshake className="w-3.5 h-3.5" />
             <span>Portal Orang Tua</span>
           </div>
-          <h1 className="text-2xl font-bold text-foreground">VALO Parent Hub</h1>
+          <h1 className="text-xl font-bold text-foreground">Parent Hub &amp; Manajemen Pagu</h1>
           <p className="text-xs text-emerald-400/90 font-medium mt-0.5">Kontrol Pagu &amp; Tabungan Siswa</p>
           <p className="text-xs text-muted-foreground mt-2 max-w-xs leading-relaxed">
             Masuk untuk memantau pengeluaran harian, tabungan vault, dan tagihan SPP anak Anda.

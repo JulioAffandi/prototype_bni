@@ -1,13 +1,25 @@
 {
-  "name": "VALO Education",
-  "short_name": "VALO",
-  "description": "Closed-Loop Institutional Banking Ecosystem for Schools — Parent Control, Canteen POS, School B2B Portal",
+  "name": "EduConnect Education",
+  "short_name": "EduConnect",
+  "description": "BNI Closed-Loop Education Ecosystem for Schools — Parent Control, Canteen POS, School B2B Portal",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#060d1a",
-  "theme_color": "#0d9488",
+  "theme_color": "#7357C7",
   "orientation": "portrait-primary",
   "icons": [
+    {
+      "src": "/img/logo_raw.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/img/logo.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
     {
       "src": "/icons/icon-72x72.png",
       "sizes": "72x72",

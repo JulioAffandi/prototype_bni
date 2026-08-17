@@ -3,7 +3,7 @@
 import { createClient } from "@/lib/supabase/client";
 
 /**
- * Universal logout handler across all VALO portals (Parent, School, Canteen).
+ * Universal logout handler across all EduConnect portals (Parent, School, Canteen).
  * Clears Supabase auth session, browser storage caches, and redirects to /login.
  */
 export async function handleLogout(redirectTo: string = "/login") {

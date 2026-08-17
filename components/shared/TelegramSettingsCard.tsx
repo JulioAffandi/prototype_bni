@@ -202,7 +202,7 @@ export default function TelegramSettingsCard({ role }: TelegramSettingsCardProps
           <div>
             <p className="font-medium">Pengiriman pesan Telegram gagal (HTTP 403 Forbidden)</p>
             <p className="text-xs text-amber-700/80 dark:text-amber-300/80 mt-0.5">
-              Pesan tidak dapat terkirim karena bot VALO diblokir atau obrolan terhapus. Silakan cari bot Telegram VALO, kirim perintah <code className="bg-amber-500/20 px-1 py-0.5 rounded text-amber-900 dark:text-amber-100 font-mono">/start</code>, kemudian simpan ulang Chat ID.
+              Pesan tidak dapat terkirim karena bot EduConnect diblokir atau obrolan terhapus. Silakan cari bot Telegram EduConnect, kirim perintah <code className="bg-amber-500/20 px-1 py-0.5 rounded text-amber-900 dark:text-amber-100 font-mono">/start</code>, kemudian simpan ulang Chat ID.
             </p>
           </div>
         </div>
@@ -308,7 +308,7 @@ export default function TelegramSettingsCard({ role }: TelegramSettingsCardProps
           <p className="font-semibold text-foreground text-sm">Langkah Mudah Mendapatkan Chat ID:</p>
           <ol className="list-decimal list-inside space-y-1.5 pl-1">
             <li>
-              Buka aplikasi Telegram dan cari bot bernama <code className="bg-background px-1.5 py-0.5 rounded border border-border text-foreground font-mono">@userinfobot</code> atau bot resmi VALO.
+              Buka aplikasi Telegram dan cari bot bernama <code className="bg-background px-1.5 py-0.5 rounded border border-border text-foreground font-mono">@userinfobot</code> atau bot resmi EduConnect.
             </li>
             <li>
               Klik <strong>Start</strong> atau kirim pesan apa saja ke bot tersebut.

@@ -10,9 +10,9 @@ export const CHAT_COPY: Record<
   }
 > = {
   parent: {
-    judul: "VALO Family Advisor",
+    judul: "EduConnect Family Advisor",
     sapaan:
-      "Halo! Saya asisten finansial keluarga Anda. Ada yang ingin Anda tanyakan tentang jajan, tabungan, atau SPP anak?",
+      "Halo! Saya EduConnect AI, asisten finansial keluarga Anda dalam ekosistem BNI EduConnect. Ada yang ingin Anda tanyakan tentang jajan, tabungan, atau SPP anak?",
     placeholder: "Tanya sisa pagu, tabungan vault, atau SPP...",
     chips: [
       "Berapa sisa pagu jajan anak saya hari ini?",
@@ -22,9 +22,9 @@ export const CHAT_COPY: Record<
     ],
   },
   merchant: {
-    judul: "VALO Kantin Advisor",
+    judul: "EduConnect Kantin Advisor",
     sapaan:
-      "Halo! Asisten kantin siap membantu. Tanyakan omzet, menu terlaris, stok, atau status pencairan BNI.",
+      "Halo! Saya EduConnect AI, asisten kantin Anda dalam ekosistem BNI EduConnect. Tanyakan omzet, menu terlaris, stok, atau status pencairan BNI.",
     placeholder: "Tanya omzet, stok menu, pencairan...",
     chips: [
       "Berapa omzet dan jumlah transaksi hari ini?",
@@ -34,9 +34,9 @@ export const CHAT_COPY: Record<
     ],
   },
   school: {
-    judul: "VALO Treasury Advisor",
+    judul: "EduConnect Treasury Advisor",
     sapaan:
-      "Selamat datang. Asisten treasury siap menyajikan statistik SPP, saldo escrow, dan status kartu sekolah.",
+      "Selamat datang di BNI EduConnect. Saya EduConnect Treasury Advisor, siap menyajikan statistik SPP, saldo escrow, dan status kartu sekolah.",
     placeholder: "Tanya tingkat penagihan SPP, saldo escrow, kartu...",
     chips: [
       "Berapa persentase penagihan SPP bulan ini?",

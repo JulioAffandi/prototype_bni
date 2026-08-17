@@ -32,8 +32,8 @@ export async function POST(request: NextRequest) {
   }).format(sisaPagu);
 
   const message = isEmergency
-    ? `[VALO] NOTIF DARURAT: Anak Anda baru saja bertransaksi ${formattedAmount} menggunakan mode Emergency Auto-Approval. Sisa pagu: ${formattedSisa}. Silakan periksa aplikasi VALO.`
-    : `[VALO] Transaksi berhasil: ${formattedAmount}. Sisa pagu hari ini: ${formattedSisa}.`;
+    ? `[EduConnect] NOTIF DARURAT: Anak Anda baru saja bertransaksi ${formattedAmount} menggunakan mode Emergency Auto-Approval. Sisa pagu: ${formattedSisa}. Silakan periksa aplikasi EduConnect.`
+    : `[EduConnect] Transaksi berhasil: ${formattedAmount}. Sisa pagu hari ini: ${formattedSisa}.`;
 
   // Send via Fonnte (or any WA gateway)
   const fonnteToken = process.env.FONNTE_API_TOKEN;

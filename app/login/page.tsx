@@ -1,10 +1,11 @@
 import Link from "next/link";
-import { GraduationCap, Users, Building2, Store, ArrowRight, ShieldCheck, CreditCard, Sparkles } from "lucide-react";
+import { Users, Building2, Store, ArrowRight, ShieldCheck, CreditCard, Sparkles } from "lucide-react";
 import type { Metadata } from "next";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 export const metadata: Metadata = {
-  title: "Pilih Portal Masuk | VALO",
-  description: "Portal Akses Terpadu VALO — Pilih persona login Anda.",
+  title: "Pilih Portal Masuk | EduConnect",
+  description: "Portal Akses Terpadu EduConnect — Pilih persona login Anda.",
 };
 
 export default function LoginGatewayPage() {
@@ -68,21 +69,18 @@ export default function LoginGatewayPage() {
       <div className="relative w-full max-w-5xl z-10 py-8">
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-10">
-          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-semibold mb-4">
+          <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-semibold mb-5">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Ekosistem Closed-Loop Banking Sekolah</span>
           </div>
           
-          <div className="flex items-center gap-3 mb-3">
-            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-primary to-accent p-0.5 shadow-lg shadow-primary/20">
-              <div className="w-full h-full bg-background rounded-[14px] flex items-center justify-center">
-                <GraduationCap className="w-7 h-7 text-primary" />
-              </div>
-            </div>
-            <h1 className="text-3xl sm:text-4xl font-extrabold tracking-tight">
-              VALO <span className="gradient-text">Gateway</span>
-            </h1>
+          <div className="mb-4">
+            <EduConnectLogo variant="full" width={180} height={52} priority />
           </div>
+
+          <h1 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-2">
+            Gateway Akses Terpadu
+          </h1>
           <p className="text-muted-foreground text-sm sm:text-base max-w-lg">
             Pilih portal masuk yang sesuai dengan peran Anda dalam ekosistem perbankan dan transaksi sekolah.
           </p>

@@ -1,5 +1,5 @@
 // =============================================================
-// VALO Offline-First Queue — IndexedDB Local Storage
+// EduConnect Offline-First Queue — IndexedDB Local Storage
 // Reference: PRODUCT_SPECIFICATION_v2.md §8.2, §8.3
 // Uses: idb library (https://github.com/jakearchibald/idb)
 // =============================================================

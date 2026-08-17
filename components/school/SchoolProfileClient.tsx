@@ -82,7 +82,7 @@ export default function SchoolProfileClient({ user, school }: SchoolProfileProps
               <div className="flex items-center gap-2">
                 <h1 className="text-xl font-bold text-foreground">{schoolName || "Sekolah"}</h1>
                 <span className="px-2.5 py-0.5 rounded-full bg-accent/15 border border-accent/30 text-accent text-[11px] font-bold">
-                  Terdaftar di VALO BNI
+                  Terdaftar di BNI EduConnect
                 </span>
                 <span
                   className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold capitalize border ${

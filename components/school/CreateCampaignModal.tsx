@@ -46,18 +46,23 @@ export default function CreateCampaignModal({
         body: JSON.stringify(payload),
       });
 
-      if (res.ok) {
-        const json = await res.json();
+      const json = await res.json();
+
+      if (res.ok && json.invoices_created > 0) {
         setToastMessage({
           type: "success",
-          text: json.message || "Event berhasil diterbitkan ke siswa & ortu.",
+          text: `Berhasil membuat event dan menerbitkan tagihan ke ${json.invoices_created} siswa.`,
         });
         setTimeout(() => {
           onSuccess();
           onClose();
-        }, 1200);
+        }, 1500);
+      } else if (res.ok) {
+        setToastMessage({
+          type: "error",
+          text: json.warning || "Kampanye dibuat, namun tidak ada siswa yang ditemukan di sekolah ini.",
+        });
       } else {
-        const json = await res.json();
         setToastMessage({ type: "error", text: json.detail || json.error || "Gagal menerbitkan event." });
       }
     } catch {

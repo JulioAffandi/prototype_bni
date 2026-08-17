@@ -21,6 +21,7 @@ import {
   ArrowRight,
 } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 interface PublicSchool {
   id: string;
@@ -318,14 +319,17 @@ function RegisterForm() {
   return (
     <div className="min-h-screen bg-background flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
       <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center space-y-3">
+        <div className="mb-2">
+          <EduConnectLogo variant="full" width={160} height={46} showTagline={true} priority className="mx-auto" />
+        </div>
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-bold">
-          <ShieldCheck className="w-4 h-4" /> VALO BNI Closed-Loop Ecosystem
+          <ShieldCheck className="w-4 h-4" /> BNI EduConnect Closed-Loop Ecosystem
         </div>
         <h1 className="text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl">
-          Pendaftaran &amp; Registrasi VALO
+          Pendaftaran &amp; Registrasi Akun
         </h1>
         <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
-          Pilih kategori pendaftaran di bawah ini untuk memulai registrasi di ekosistem perbankan sekolah VALO.
+          Pilih kategori pendaftaran di bawah ini untuk memulai registrasi di ekosistem perbankan sekolah BNI EduConnect.
         </p>
       </div>
 
@@ -359,7 +363,7 @@ function RegisterForm() {
             {tab === "school_entity" && (
               <>
                 <SchoolIcon className="w-4 h-4 text-[#00A396] shrink-0" />
-                <span>Registrasi <strong>Entitas Sekolah Baru</strong> (NPSN &amp; Giro BNI) ke direktori VALO.</span>
+                <span>Registrasi <strong>Entitas Sekolah Baru</strong> (NPSN &amp; Giro BNI) ke direktori BNI EduConnect.</span>
               </>
             )}
             {tab === "school_admin" && (

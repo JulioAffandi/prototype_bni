@@ -3,6 +3,7 @@
 import { useChat } from "@ai-sdk/react";
 import { useState } from "react";
 import { Bot, Send, X, Loader2 } from "lucide-react";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 interface AIChatDrawerProps {
   endpoint: string;
@@ -12,9 +13,9 @@ interface AIChatDrawerProps {
 }
 
 const PERSONA_NAMES: Record<AIChatDrawerProps["persona"], string> = {
-  merchant: "VALO Kantin Advisor",
-  treasury: "VALO Treasury Advisor",
-  parent: "VALO Family Advisor",
+  merchant: "EduConnect Kantin Advisor",
+  treasury: "EduConnect Treasury Advisor",
+  parent: "EduConnect Family Advisor",
 };
 
 const PERSONA_HINTS: Record<AIChatDrawerProps["persona"], string[]> = {
@@ -25,34 +26,24 @@ const PERSONA_HINTS: Record<AIChatDrawerProps["persona"], string[]> = {
 
 export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChatDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
-  const [input, setInput] = useState("");
-  const { messages, sendMessage, status, error } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading, error } = useChat({
     api: endpoint,
   });
 
-  const isLoading = status === "submitted" || status === "streaming";
-
   const personaName = PERSONA_NAMES[persona];
   const hints = PERSONA_HINTS[persona];
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    const text = input.trim();
-    setInput("");
-    sendMessage({ text });
-  };
 
   return (
     <>
       {/* Floating trigger button */}
       <button
+        type="button"
         id="ai-chat-open-btn"
         onClick={() => setIsOpen(true)}
-        className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-primary/15 border border-primary/30 text-primary text-sm font-medium hover:bg-primary/25 transition-all"
+        aria-label="Buka AI Kantin Advisor"
+        className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl hover:bg-emerald-500 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 md:bottom-8 md:right-8 md:h-14 md:w-14"
       >
-        <Bot className="w-4 h-4" />
-        <span>{triggerLabel ?? personaName}</span>
+        <Bot size={24} />
       </button>
 
       {/* Drawer overlay */}
@@ -68,8 +59,8 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border shrink-0">
               <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-primary/15 flex items-center justify-center">
-                  <Bot className="w-4 h-4 text-primary" />
+                <div className="w-8 h-8 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
+                  <EduConnectLogo variant="icon" width={22} height={22} />
                 </div>
                 <div>
                   <p className="font-semibold text-sm">{personaName}</p>

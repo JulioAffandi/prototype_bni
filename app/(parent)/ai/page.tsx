@@ -1,31 +1,19 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { getMessageText } from "@/lib/ai/message-utils";
 import { Bot, Send, Loader2 } from "lucide-react";
 
 const HINTS = [
-  "Anak saya jajan apa saja minggu ini?",
-  "Berapa saldo Vault si Akbar sekarang?",
-  "Apakah pola makannya sehat?",
-  "Rekomendasi alokasi tabungan ke reksa dana",
+  "Berapa sisa pagu jajan Budi hari ini?",
+  "Berapa pengeluaran kantin anak saya bulan ini?",
+  "Apakah ada tagihan SPP yang belum dibayar?",
 ];
 
 export default function ParentAIPage() {
-  const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat({
     api: "/api/chat",
   });
-
-  const isLoading = status === "submitted" || status === "streaming";
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    const text = input.trim();
-    setInput("");
-    sendMessage({ text });
-  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-5rem)] p-4">
@@ -35,7 +23,7 @@ export default function ParentAIPage() {
           <Bot className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">VALO Family Advisor</h1>
+          <h1 className="text-lg font-bold">EduConnect Family Advisor</h1>
           <p className="text-xs text-primary">GPT-4o mini · Grounded pada data nyata</p>
         </div>
       </div>
@@ -45,7 +33,7 @@ export default function ParentAIPage() {
         {messages.length === 0 && (
           <div className="space-y-3">
             <p className="text-sm text-muted-foreground text-center">
-              Halo! Saya VALO Family Advisor. Saya dapat membantu Anda memahami pola jajan
+              Halo! Saya EduConnect Family Advisor, asisten kecerdasan buatan terpercaya dalam ekosistem BNI EduConnect. Saya dapat membantu Anda memahami pola jajan
               anak, memantau tabungan Vault, dan memberikan rekomendasi finansial keluarga.
             </p>
             <div className="grid grid-cols-1 gap-2">

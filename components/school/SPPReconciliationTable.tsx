@@ -1,8 +1,10 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import type { FeeCategory } from "@/types/institution";
 import CreateCampaignModal from "./CreateCampaignModal";
+import CampaignManagementList from "./CampaignManagementList";
 import {
   FileText,
   CheckCircle2,
@@ -15,6 +17,7 @@ import {
   Search,
   Plus,
   Megaphone,
+  ListChecks,
 } from "lucide-react";
 
 interface FormattedInvoice {
@@ -57,11 +60,14 @@ export default function SPPReconciliationTable({
   initialInvoices,
   feeCategories,
 }: SPPReconciliationTableProps) {
+  const router = useRouter();
   const [selectedPeriod, setSelectedPeriod] = useState(initialPeriod);
   const [selectedCategoryCode, setSelectedCategoryCode] = useState<string>("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedReceipt, setSelectedReceipt] = useState<FormattedInvoice | null>(null);
   const [showCampaignModal, setShowCampaignModal] = useState(false);
+  const [viewMode, setViewMode] = useState<"reconciliation" | "campaigns">("reconciliation");
+  const [campaignRefreshKey, setCampaignRefreshKey] = useState(0);
 
   const filteredInvoices = initialInvoices.filter((inv) => {
     const matchesPeriod = inv.period === selectedPeriod;
@@ -82,6 +88,35 @@ export default function SPPReconciliationTable({
 
   return (
     <div className="space-y-6">
+      <div className="inline-flex w-full rounded-2xl border border-portal-border bg-portal-surface-alt p-1.5 sm:w-auto">
+        <button
+          type="button"
+          onClick={() => setViewMode("reconciliation")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all sm:flex-none ${
+            viewMode === "reconciliation"
+              ? "bg-portal-primary text-portal-primary-foreground shadow-sm"
+              : "text-portal-muted hover:text-portal-text"
+          }`}
+        >
+          <ListChecks className="h-4 w-4" />
+          Rekonsiliasi Tagihan Siswa
+        </button>
+        <button
+          type="button"
+          onClick={() => setViewMode("campaigns")}
+          className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-2 text-xs font-bold transition-all sm:flex-none ${
+            viewMode === "campaigns"
+              ? "bg-portal-primary text-portal-primary-foreground shadow-sm"
+              : "text-portal-muted hover:text-portal-text"
+          }`}
+        >
+          <Megaphone className="h-4 w-4" />
+          Daftar Event &amp; Iuran Kegiatan
+        </button>
+      </div>
+
+      {viewMode === "reconciliation" ? (
+        <>
       {/* Category Tabs & Filter Bar */}
       <div className="glass p-5 rounded-2xl space-y-4 border border-portal-border">
         {/* Category Tabs */}
@@ -289,7 +324,7 @@ export default function SPPReconciliationTable({
           <div className="bg-portal-surface text-portal-text rounded-2xl p-6 max-w-md w-full space-y-4 border border-portal-border shadow-2xl">
             <div className="flex items-start justify-between border-b border-portal-border pb-3">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-portal-muted">VALO School · BNI H2H Receipt</p>
+                <p className="text-[10px] uppercase tracking-wider text-portal-muted">EduConnect School · BNI H2H Receipt</p>
                 <h3 className="text-base font-bold text-portal-text">Kuitansi Pembayaran Digital</h3>
               </div>
               <button onClick={() => setSelectedReceipt(null)} className="p-1 text-portal-muted hover:text-portal-text">
@@ -307,7 +342,7 @@ export default function SPPReconciliationTable({
               </div>
 
               <p className="text-[11px] font-mono text-portal-muted break-all">
-                Hash: {selectedReceipt.receipt_qr_hash || `VALO-RECEIPT-${selectedReceipt.id.slice(0, 12)}`}
+                Hash: {selectedReceipt.receipt_qr_hash || `EDUCONNECT-RECEIPT-${selectedReceipt.id.slice(0, 12)}`}
               </p>
             </div>
 
@@ -348,12 +383,23 @@ export default function SPPReconciliationTable({
           </div>
         </div>
       )}
+        </>
+      ) : (
+        <CampaignManagementList
+          schoolId={schoolId}
+          refreshKey={campaignRefreshKey}
+          onCreate={() => setShowCampaignModal(true)}
+        />
+      )}
 
       {showCampaignModal && (
         <CreateCampaignModal
           schoolId={schoolId}
           onClose={() => setShowCampaignModal(false)}
-          onSuccess={() => window.location.reload()}
+          onSuccess={() => {
+            setCampaignRefreshKey((current) => current + 1);
+            router.refresh();
+          }}
         />
       )}
     </div>

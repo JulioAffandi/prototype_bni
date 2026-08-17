@@ -214,7 +214,7 @@ export async function POST(request: NextRequest) {
     consent_token: consentToken,
     granted_at: nowIso,
     evidence_ip: clientIp,
-    evidence_user_agent: request.headers.get("user-agent") || "VALO-Parent-Portal",
+    evidence_user_agent: request.headers.get("user-agent") || "EduConnect-Parent-Portal",
   });
 
   // Record Successful Claim Attempt

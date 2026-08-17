@@ -10,24 +10,42 @@ const inter = Inter({
 
 export const metadata: Metadata = {
   title: {
-    default: "VALO Education",
-    template: "%s | VALO Education",
+    default: "EduConnect — BNI Closed-Loop Education Ecosystem",
+    template: "%s | EduConnect — BNI Closed-Loop Education Ecosystem",
   },
   description:
-    "Closed-Loop Institutional Banking Ecosystem — kontrol pagu jajan, pembayaran SPP otomatis, dan manajemen keuangan sekolah dalam satu platform.",
-  applicationName: "VALO Education",
+    "BNI Closed-Loop Education Ecosystem — kontrol pagu jajan, pembayaran SPP otomatis, dan manajemen keuangan sekolah dalam satu platform terpadu.",
+  applicationName: "EduConnect",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "black-translucent",
-    title: "VALO Education",
+    title: "EduConnect",
   },
   formatDetection: { telephone: false },
+  icons: {
+    icon: [
+      { url: "/icon.png" },
+      { url: "/img/logo_raw.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [
+      { url: "/img/logo_raw.png", sizes: "180x180", type: "image/png" },
+    ],
+    shortcut: ["/icon.png"],
+  },
   openGraph: {
     type: "website",
-    siteName: "VALO Education",
-    title: "VALO Education Ecosystem",
-    description: "Closed-Loop Institutional Banking for Schools",
+    siteName: "EduConnect",
+    title: "EduConnect — BNI Closed-Loop Education Ecosystem",
+    description: "BNI Closed-Loop Education Ecosystem for Schools & Universities",
+    images: [
+      {
+        url: "/img/logo.png",
+        width: 800,
+        height: 240,
+        alt: "EduConnect Logo",
+      },
+    ],
   },
 };
 

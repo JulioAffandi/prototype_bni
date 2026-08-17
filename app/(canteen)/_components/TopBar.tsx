@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import OfflineQueueIndicator from "@/components/canteen/OfflineQueueIndicator";
 import { handleLogout } from "@/lib/auth/actions";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 interface TopBarProps {
   merchantName?: string;
@@ -36,13 +37,17 @@ export function TopBar({ merchantName = "Kantin" }: TopBarProps) {
 
   return (
     <header className="flex h-16 shrink-0 items-center justify-between border-b border-portal-border bg-portal-surface px-4 z-40 sticky top-0">
-      {/* Left: Merchant Info & Connection Status */}
+      {/* Left: Brand Logo, Merchant Info & Connection Status */}
       <div className="flex items-center gap-3">
-        <Link href="/pos" className="flex items-center gap-2">
-          <span className="rounded-portal bg-portal-primary px-3 py-1.5 text-sm font-bold text-portal-primary-foreground">
+        <EduConnectLogo variant="full" width={130} height={38} href="/pos" priority />
+
+        <div className="hidden md:block h-6 w-[1px] bg-portal-border" />
+
+        <Link href="/pos" className="hidden sm:flex items-center gap-2">
+          <span className="rounded-portal bg-portal-primary px-3 py-1.5 text-xs font-bold text-portal-primary-foreground">
             {merchantName}
           </span>
-          <span className="font-portal-mono text-xs text-portal-muted hidden sm:inline">
+          <span className="font-portal-mono text-[11px] text-portal-muted hidden lg:inline">
             Kasir #01
           </span>
         </Link>
@@ -55,7 +60,7 @@ export function TopBar({ merchantName = "Kantin" }: TopBarProps) {
           }`}
         >
           {isOnline ? <Wifi size={14} /> : <WifiOff size={14} />}
-          <span className="hidden xs:inline">{isOnline ? "H+0 Settlement Aktif" : "Offline"}</span>
+          <span className="hidden xs:inline">{isOnline ? "H+0 Aktif" : "Offline"}</span>
         </span>
       </div>
 

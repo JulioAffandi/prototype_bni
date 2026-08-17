@@ -1,7 +1,7 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { getMessageText } from "@/lib/ai/message-utils";
 import { Bot, Send, Loader2, TrendingUp, Package, Star } from "lucide-react";
 
 const HINTS = [
@@ -12,20 +12,9 @@ const HINTS = [
 ];
 
 export default function MerchantAIPage() {
-  const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat({
     api: "/api/v1/ai/merchant-advisor",
   });
-
-  const isLoading = status === "submitted" || status === "streaming";
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    const text = input.trim();
-    setInput("");
-    sendMessage({ text });
-  };
 
   return (
     <div className="flex flex-col h-[calc(100vh-3.5rem)] p-4">
@@ -35,7 +24,7 @@ export default function MerchantAIPage() {
           <Bot className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-lg font-bold">VALO Kantin Advisor</h1>
+          <h1 className="text-lg font-bold">EduConnect Kantin Advisor</h1>
           <p className="text-xs text-primary">GPT-4o mini · Analisis penjualan real-time</p>
         </div>
       </div>

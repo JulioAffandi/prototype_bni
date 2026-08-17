@@ -14,7 +14,7 @@ export function buildMerchantTools(db: Db, scope: AiScope): Record<string, any> 
         "rata-rata nilai transaksi, jam paling ramai, jumlah transaksi emergency, " +
         "jumlah transaksi ditolak, dan estimasi harga pokok bila data biaya tersedia. " +
         "Default hari ini.",
-      inputSchema: z.object({
+      parameters: z.object({
         tanggal: tanggalSchema.optional().describe("Opsional, YYYY-MM-DD. Default hari ini."),
       }),
       execute: async ({ tanggal }) => {
@@ -59,7 +59,7 @@ export function buildMerchantTools(db: Db, scope: AiScope): Record<string, any> 
       description:
         "Menu terlaris berdasarkan kuantitas terjual dalam N hari terakhir, beserta omzet " +
         "per menu dan sisa stok saat ini. Untuk rekomendasi restok bahan baku.",
-      inputSchema: z.object({
+      parameters: z.object({
         hariTerakhir: z.number().int().min(1).max(90).default(7),
         jumlahBaris: z.number().int().min(1).max(15).default(8),
       }),
@@ -92,7 +92,7 @@ export function buildMerchantTools(db: Db, scope: AiScope): Record<string, any> 
       description:
         "Sisa stok seluruh menu aktif. Gunakan ambangStokMenipis untuk menyaring hanya " +
         "menu yang perlu segera direstok.",
-      inputSchema: z.object({
+      parameters: z.object({
         ambangStokMenipis: z.number().int().min(0).max(100).default(5),
         hanyaYangMenipis: z.boolean().default(true),
       }),
@@ -136,7 +136,7 @@ export function buildMerchantTools(db: Db, scope: AiScope): Record<string, any> 
         "Status settlement H+0 ke rekening merchant BNI untuk beberapa hari terakhir: " +
         "nilai kotor, potongan platform, nilai bersih, status pencairan, dan waktu cair. " +
         'Gunakan untuk pertanyaan "uang saya kapan cair" atau "berapa yang belum cair".',
-      inputSchema: z.object({
+      parameters: z.object({
         hariTerakhir: z.number().int().min(1).max(31).default(7),
       }),
       execute: async ({ hariTerakhir }) => {
@@ -178,7 +178,7 @@ export function buildMerchantTools(db: Db, scope: AiScope): Record<string, any> 
         "Diagnosis masalah tap dalam N jam terakhir: jumlah transaksi ditolak karena pagu " +
         "habis, ditolak karena kartu diblokir, masih tertahan di antrean offline, dan " +
         "ditolak saat rekonsiliasi. Data bersifat AGREGAT dan ANONIM, tidak memuat identitas siswa.",
-      inputSchema: z.object({
+      parameters: z.object({
         jamTerakhir: z.number().int().min(1).max(72).default(8),
       }),
       execute: async ({ jamTerakhir }) => {

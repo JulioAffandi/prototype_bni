@@ -7,8 +7,8 @@ import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
   title: {
-    default: "VALO School Portal",
-    template: "%s | VALO School Portal",
+    default: "EduConnect School Portal",
+    template: "%s | EduConnect School Portal",
   },
   description: "Portal B2B Sekolah — Rekonsiliasi SPP, Manajemen Siswa, dan Treasury AI",
 };

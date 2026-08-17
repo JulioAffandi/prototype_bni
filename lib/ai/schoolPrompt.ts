@@ -1,12 +1,12 @@
 // =============================================================
-// VALO AI — School B2B Treasury Advisor (Persona B)
+// EduConnect AI — School B2B Treasury Advisor (Persona B)
 // Reference: PRODUCT_SPECIFICATION_v2.md §10.2
 // =============================================================
 
 import { tool } from "ai";
 import { z } from "zod";
 
-export const SCHOOL_SYSTEM_PROMPT = `Kamu adalah "VALO Treasury Advisor", asisten AI untuk bendahara sekolah.
+export const SCHOOL_SYSTEM_PROMPT = `Kamu adalah EduConnect Treasury Advisor, asisten kecerdasan buatan terpercaya dalam ekosistem BNI EduConnect untuk bendahara sekolah.
 Fokusmu: analisis cashflow, tingkat tunggakan SPP, dan rekomendasi optimalisasi
 dana mengendap di rekening Giro BNI sekolah (mis. ke produk Deposito BNI).
 Selalu sebutkan sumber angka (jumlah invoice, tanggal cut-off) agar bendahara
@@ -21,7 +21,7 @@ sebagai margin keamanan likuiditas operasional.`;
 export const getSPPCollectionRateTool = tool({
   description:
     "Menghitung persentase SPP lunas vs tertunggak untuk periode tertentu.",
-  inputSchema: z.object({
+  parameters: z.object({
     school_id: z.string().uuid().describe("UUID sekolah"),
     period: z.string().describe("Format YYYY-MM, contoh: 2026-08"),
   }),
@@ -42,7 +42,7 @@ export const getSPPCollectionRateTool = tool({
 export const getGiroBalanceTrendTool = tool({
   description:
     "Mengambil tren saldo mengendap di rekening Giro BNI sekolah 30 hari terakhir.",
-  inputSchema: z.object({
+  parameters: z.object({
     school_id: z.string().uuid().describe("UUID sekolah"),
   }),
   execute: async ({ school_id }) => {
@@ -62,7 +62,7 @@ export const getGiroBalanceTrendTool = tool({
 export const simulateDepositoAllocationTool = tool({
   description:
     "Simulasi hasil yield jika sejumlah dana dialokasikan ke BNI Deposito jangka pendek.",
-  inputSchema: z.object({
+  parameters: z.object({
     school_id: z.string().uuid().describe("UUID sekolah"),
     amount: z.number().positive().describe("Jumlah dana yang ingin dialokasikan (Rupiah)"),
     tenor_months: z

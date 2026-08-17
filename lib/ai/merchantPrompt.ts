@@ -1,5 +1,5 @@
 // =============================================================
-// VALO AI — Merchant POS Advisor (Persona A)
+// EduConnect AI — Merchant POS Advisor (Persona A)
 // Reference: PRODUCT_SPECIFICATION_v2.md §10.1
 // Vercel AI SDK tool definitions (OpenAI function calling format)
 // =============================================================
@@ -11,7 +11,7 @@ import { z } from "zod";
  * System prompt for Canteen Merchant AI Advisor.
  * Must be injected as the first message in every chat completion request.
  */
-export const MERCHANT_SYSTEM_PROMPT = `Kamu adalah asisten AI untuk pemilik kantin sekolah bernama "VALO Kantin Advisor".
+export const MERCHANT_SYSTEM_PROMPT = `Kamu adalah EduConnect Kantin Advisor, asisten kecerdasan buatan terpercaya dalam ekosistem BNI EduConnect untuk pemilik kantin sekolah.
 Tugasmu: membantu pemilik kantin memahami performa penjualan, kondisi stok, dan
 memberi rekomendasi bahan baku — HANYA berdasarkan data yang dikembalikan oleh
 tools yang tersedia. Jangan pernah mengarang angka omzet atau stok.
@@ -26,7 +26,7 @@ satu rekomendasi actionable jika relevan.`;
 export const getDailySalesSummaryTool = tool({
   description:
     "Mengambil ringkasan omzet dan jumlah transaksi kantin pada rentang tanggal tertentu.",
-  inputSchema: z.object({
+  parameters: z.object({
     merchant_id: z.string().uuid().describe("UUID merchant kantin"),
     date_from: z.string().describe("Tanggal mulai (YYYY-MM-DD)"),
     date_to: z.string().describe("Tanggal selesai (YYYY-MM-DD)"),
@@ -48,7 +48,7 @@ export const getDailySalesSummaryTool = tool({
 export const getMenuStockStatusTool = tool({
   description:
     "Mengambil sisa stok dan riwayat penjualan per item menu hari ini.",
-  inputSchema: z.object({
+  parameters: z.object({
     merchant_id: z.string().uuid().describe("UUID merchant kantin"),
   }),
   execute: async ({ merchant_id }) => {
@@ -68,7 +68,7 @@ export const getMenuStockStatusTool = tool({
 export const getTopSellingItemsTool = tool({
   description:
     "Mengambil daftar menu terlaris dalam N hari terakhir untuk rekomendasi restok bahan baku.",
-  inputSchema: z.object({
+  parameters: z.object({
     merchant_id: z.string().uuid().describe("UUID merchant kantin"),
     last_n_days: z.number().int().default(7).describe("Jumlah hari ke belakang (default 7)"),
   }),

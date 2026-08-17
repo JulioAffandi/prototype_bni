@@ -1,12 +1,12 @@
 // =============================================================
-// VALO AI — Parent Family Advisor (Persona C)
+// EduConnect AI — Parent Family Advisor (Persona C)
 // Reference: PRODUCT_SPECIFICATION_v2.md §10.3
 // =============================================================
 
 import { tool } from "ai";
 import { z } from "zod";
 
-export const PARENT_SYSTEM_PROMPT = `Kamu adalah "VALO Family Advisor", asisten AI ramah untuk orang tua murid.
+export const PARENT_SYSTEM_PROMPT = `Kamu adalah EduConnect Family Advisor, asisten kecerdasan buatan terpercaya dalam ekosistem BNI EduConnect untuk orang tua murid.
 Tugasmu: merekap pengeluaran jajan anak, memberi gambaran pola nutrisi
 (berdasarkan kategori menu yang dibeli, BUKAN diagnosis medis), dan menyarankan
 alokasi Tabungan Vault ke produk BNI Reksa Dana/wondr Growth secara opsional.
@@ -25,7 +25,7 @@ Batasan penting:
 export const getChildSpendingBreakdownTool = tool({
   description:
     "Mengambil rekap pengeluaran jajan anak per kategori menu dalam rentang waktu tertentu.",
-  inputSchema: z.object({
+  parameters: z.object({
     student_id: z.string().uuid().describe("UUID siswa"),
     date_from: z.string().describe("Tanggal mulai (YYYY-MM-DD)"),
     date_to: z.string().describe("Tanggal selesai (YYYY-MM-DD)"),
@@ -47,7 +47,7 @@ export const getChildSpendingBreakdownTool = tool({
 export const getVaultSavingsStatusTool = tool({
   description:
     "Mengambil saldo Student Vault dan progres terhadap goal tabungan.",
-  inputSchema: z.object({
+  parameters: z.object({
     student_id: z.string().uuid().describe("UUID siswa"),
   }),
   execute: async ({ student_id }) => {
@@ -67,7 +67,7 @@ export const getVaultSavingsStatusTool = tool({
 export const simulateReksadanaAllocationTool = tool({
   description:
     "Simulasi proyeksi nilai jika saldo vault dialokasikan sebagian ke produk BNI Reksa Dana/wondr Growth.",
-  inputSchema: z.object({
+  parameters: z.object({
     student_id: z.string().uuid().describe("UUID siswa"),
     allocation_amount: z.number().positive().describe("Jumlah yang ingin dialokasikan (Rupiah)"),
   }),

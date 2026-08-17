@@ -7,8 +7,8 @@ import AiAssistant from "@/components/chat/AiAssistant";
 
 export const metadata: Metadata = {
   title: {
-    default: "VALO POS",
-    template: "%s | VALO POS",
+    default: "EduConnect POS",
+    template: "%s | EduConnect POS",
   },
   description: "Kasir Kantin Digital — NFC tap, offline queue, dan AI Inventory Advisor",
 };

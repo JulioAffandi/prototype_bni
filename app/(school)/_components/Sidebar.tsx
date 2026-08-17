@@ -25,6 +25,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { handleLogout } from "@/lib/auth/actions";
+import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 interface SidebarProps {
   schoolName?: string;
@@ -149,7 +150,7 @@ const SECONDARY_ITEMS: NavLeaf[] = [
   },
 ];
 
-export function Sidebar({ schoolName = "VALO School" }: SidebarProps) {
+export function Sidebar({ schoolName = "EduConnect School" }: SidebarProps) {
   const [collapsed, setCollapsed] = useState(false);
   const pathname = usePathname();
   const [openGroups, setOpenGroups] = useState<Record<string, boolean>>({});
@@ -194,18 +195,10 @@ export function Sidebar({ schoolName = "VALO School" }: SidebarProps) {
       {/* Header */}
       <div className="flex h-14 items-center justify-between border-b border-white/10 px-4">
         {!collapsed ? (
-          <div className="flex items-center gap-2.5 truncate">
-            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 border border-white/20 text-white">
-              <GraduationCap size={18} />
-            </div>
-            <div className="truncate">
-              <p className="text-[10px] uppercase tracking-wider text-white/60 font-medium">EduConnect</p>
-              <p className="truncate text-xs font-semibold text-white">{schoolName}</p>
-            </div>
-          </div>
+          <EduConnectLogo variant="full" width={145} height={40} href="/school" />
         ) : (
-          <div className="mx-auto flex h-8 w-8 items-center justify-center rounded-lg bg-white/15 border border-white/20 text-white">
-            <GraduationCap size={18} />
+          <div className="mx-auto">
+            <EduConnectLogo variant="icon" width={32} height={32} href="/school" />
           </div>
         )}
 

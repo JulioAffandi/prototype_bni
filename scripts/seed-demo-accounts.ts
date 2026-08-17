@@ -44,7 +44,7 @@ const supabase = createClient<Database>(supabaseUrl, serviceRoleKey, {
 });
 
 async function main() {
-  console.log("🌱 Starting VALO Ecosystem Schema v3 Seed Process...\n");
+  console.log("🌱 Starting EduConnect Ecosystem Schema v3 Seed Process...\n");
 
   // 1. Create or retrieve School
   console.log("🏫 Provisioning School: SMA BNI Harapan Bangsa...");
@@ -439,7 +439,7 @@ async function main() {
     85000,
   );
 
-  console.log("\n✅ VALO Ecosystem Demo Accounts Successfully Seeded!\n");
+  console.log("\n✅ EduConnect Ecosystem Demo Accounts Successfully Seeded!\n");
 
   console.table([
     {

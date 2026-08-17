@@ -5,10 +5,13 @@ import { getOrResolveParentId } from "@/lib/supabase/parent-resolver";
 import { redirect } from "next/navigation";
 import ParentSPPWithTabs from "@/components/parent/ParentSPPWithTabs";
 import type { Metadata } from "next";
-import { FileText } from "lucide-react";
+import { Receipt } from "lucide-react";
 import { Suspense } from "react";
 
-export const metadata: Metadata = { title: "Status Tagihan & Iuran" };
+export const metadata: Metadata = {
+  title: "Tagihan SPP & Iuran",
+  description: "Status Tagihan SPP Bulanan & Iuran Kegiatan Sekolah BNI",
+};
 export const dynamic = "force-dynamic";
 
 export default async function SPPPage() {
@@ -102,20 +105,15 @@ export default async function SPPPage() {
   }));
 
   return (
-    <div className="p-4 space-y-6">
-      <div className="flex items-center gap-3">
-        <div className="w-9 h-9 rounded-xl bg-primary/15 flex items-center justify-center">
-          <FileText className="w-5 h-5 text-primary" />
-        </div>
-        <div>
-          <h1 className="text-xl font-bold">Tagihan, SPP &amp; Iuran Kegiatan</h1>
-          <p className="text-xs text-muted-foreground">
-            Status autodebet BNI H2H SNAP BI, iuran event/kegiatan sekolah &amp; kuitansi digital
-          </p>
-        </div>
+    <div className="space-y-4">
+      <div className="pt-1 pb-1">
+        <h1 className="text-xl font-extrabold text-portal-text tracking-tight">Tagihan &amp; SPP</h1>
+        <p className="text-xs text-portal-muted mt-0.5">
+          Autodebet BNI H2H, iuran kegiatan sekolah &amp; kuitansi digital terverifikasi
+        </p>
       </div>
 
-      <Suspense fallback={<div className="text-xs text-muted-foreground">Memuat tagihan...</div>}>
+      <Suspense fallback={<div className="text-xs text-portal-muted p-4">Memuat tagihan...</div>}>
         <ParentSPPWithTabs
           sppInvoices={formattedSPPInvoices}
           campaignInvoices={formattedCampaignInvoices}

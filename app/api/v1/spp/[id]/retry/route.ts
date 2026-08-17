@@ -63,7 +63,7 @@ export async function POST(
 
   if (invoice.retry_count >= 3) {
     return NextResponse.json(
-      { error: "MAX_RETRY_EXCEEDED", message: "Batas percobaan ulang (3x) telah tercapai. Hubungi tim VALO." },
+      { error: "MAX_RETRY_EXCEEDED", message: "Batas percobaan ulang (3x) telah tercapai. Hubungi tim EduConnect." },
       { status: 429 },
     );
   }

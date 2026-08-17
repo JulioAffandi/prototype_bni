@@ -28,7 +28,7 @@ import {
 } from "@/lib/school/dashboard-queries";
 
 export const metadata: Metadata = {
-  title: "Executive Financial Dashboard | EduConnect VALO",
+  title: "Executive Financial Dashboard | BNI EduConnect",
   description: "Dashboard Manajemen Keuangan & Treasury Sekolah BNI H2H",
 };
 

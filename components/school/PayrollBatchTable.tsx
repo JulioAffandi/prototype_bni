@@ -283,7 +283,7 @@ export default function PayrollBatchTable({
           <div className="bg-portal-surface text-portal-text rounded-2xl p-6 max-w-lg w-full space-y-5 border border-portal-border shadow-2xl">
             <div className="flex items-start justify-between border-b border-portal-border pb-4">
               <div>
-                <p className="text-[10px] uppercase tracking-wider text-portal-muted">VALO School · Slip Gaji Digital</p>
+                <p className="text-[10px] uppercase tracking-wider text-portal-muted">EduConnect School · Slip Gaji Digital</p>
                 <h3 className="text-lg font-bold text-portal-text">{selectedPayslip.staff_name}</h3>
                 <p className="text-xs text-portal-muted">{selectedPayslip.position} · NIP: {selectedPayslip.nip || "-"}</p>
               </div>

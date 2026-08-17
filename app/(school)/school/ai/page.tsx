@@ -1,31 +1,19 @@
 "use client";
 
 import { useChat } from "@ai-sdk/react";
-import { useState } from "react";
+import { getMessageText } from "@/lib/ai/message-utils";
 import { Bot, Send, Loader2, TrendingUp, PieChart, Banknote } from "lucide-react";
 
 const HINTS = [
-  "Berapa tingkat pembayaran SPP bulan ini?",
-  "Ada berapa dana mengendap di Giro BNI?",
-  "Simulasikan penempatan Rp300 juta ke deposito 3 bulan",
-  "Buatkan ringkasan cashflow semester ini",
+  "Bagaimana tingkat penagihan SPP bulan ini?",
+  "Berapa saldo mengendap di rekening Giro BNI?",
+  "Berapa proyeksi yield jika 500juta dialokasikan ke Deposito BNI 3 bulan?",
 ];
 
 export default function SchoolAIPage() {
-  const [input, setInput] = useState("");
-  const { messages, sendMessage, status } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, setInput, isLoading } = useChat({
     api: "/api/v1/ai/treasury-advisor",
   });
-
-  const isLoading = status === "submitted" || status === "streaming";
-
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!input.trim() || isLoading) return;
-    const text = input.trim();
-    setInput("");
-    sendMessage({ text });
-  };
 
   return (
     <div className="flex flex-col" style={{ height: "calc(100vh - 2rem)" }}>
@@ -35,7 +23,7 @@ export default function SchoolAIPage() {
           <Bot className="w-5 h-5 text-primary" />
         </div>
         <div>
-          <h1 className="text-2xl font-bold">VALO Treasury Advisor</h1>
+          <h1 className="text-2xl font-bold">EduConnect Treasury Advisor</h1>
           <p className="text-sm text-primary">GPT-4o mini · Analisis keuangan sekolah real-time</p>
         </div>
       </div>
@@ -62,9 +50,9 @@ export default function SchoolAIPage() {
           <div className="space-y-3">
             <div className="glass rounded-2xl p-5">
               <p className="text-sm text-muted-foreground leading-relaxed">
-                Halo! Saya adalah <strong>VALO Treasury Advisor</strong>, asisten AI untuk membantu
+                Halo! Saya adalah <strong>EduConnect Treasury Advisor</strong>, asisten kecerdasan buatan terpercaya dalam ekosistem BNI EduConnect untuk membantu
                 bendahara sekolah menganalisis cashflow, memantau tingkat pembayaran SPP, dan
-                mengoptimalkan penempatan dana BNI. Semua data bersumber dari sistem VALO secara real-time.
+                mengoptimalkan penempatan dana BNI. Semua data bersumber dari sistem EduConnect secara real-time.
               </p>
             </div>
             <div className="grid grid-cols-1 gap-2">
