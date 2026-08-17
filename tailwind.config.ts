@@ -50,8 +50,8 @@ const config: Config = {
         "portal-gradient": "var(--portal-gradient-primary)",
       },
       boxShadow: {
-        "portal-glow": "var(--portal-glow)",
-        "portal-card": "var(--portal-card-shadow)",
+        'portal-card': 'var(--portal-card-shadow, 0 4px 16px -4px rgba(17, 24, 39, 0.06))',
+        'portal-glow': 'var(--portal-glow, 0 8px 24px -6px rgba(115, 87, 199, 0.25))',
       },
       minHeight: {
         // Oversized touch target — wajib untuk Canteen POS (48-64px)

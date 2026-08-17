@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Store, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, Zap } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, Zap, Store } from "lucide-react";
 import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 export default function MerchantLoginPage() {
@@ -92,19 +92,19 @@ export default function MerchantLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-950 text-slate-50 p-4 relative overflow-hidden font-sans">
-      {/* Energetic orange & cyan ambient kiosk background */}
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden font-sans selection:bg-orange-100 selection:text-orange-900">
+      {/* Orange & Amber ambient background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[550px] h-[550px] rounded-full bg-orange-500/15 blur-[130px]" />
-        <div className="absolute -bottom-40 -right-40 w-[550px] h-[550px] rounded-full bg-cyan-500/15 blur-[130px]" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-orange-200/40 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-amber-200/40 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md z-10">
+      <div className="relative w-full max-w-md z-10 py-6">
         {/* Back Link */}
         <div className="mb-4">
           <Link
             href="/login"
-            className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-orange-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-orange-600 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Kembali ke Pilihan Portal</span>
@@ -114,49 +114,49 @@ export default function MerchantLoginPage() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="mb-3">
-            <EduConnectLogo variant="full" width={160} height={46} priority />
+            <EduConnectLogo variant="full" width={170} height={48} priority />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-500/10 border border-orange-500/20 text-orange-400 text-xs font-semibold mb-2">
-            <Zap className="w-3.5 h-3.5" />
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-orange-50 border border-orange-200 text-orange-700 text-xs font-semibold mb-2">
+            <Store className="w-3.5 h-3.5" />
             <span>POS Terminal Mode</span>
           </div>
-          <h1 className="text-xl font-bold tracking-tight text-white">Terminal Kasir &amp; POS Kantin</h1>
-          <p className="text-xs text-orange-400/90 font-medium mt-0.5">Terminal Kasir Kantin Sekolah</p>
-          <p className="text-xs text-slate-400 mt-2 max-w-xs leading-relaxed">
-            Masuk ke terminal kasir untuk memproses transaksi tap-and-pay NFC siswa.
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Terminal Kasir &amp; POS Kantin</h1>
+          <p className="text-xs text-orange-700 font-semibold mt-0.5">Terminal Kasir Kantin Digital</p>
+          <p className="text-xs text-slate-600 mt-2 max-w-xs leading-relaxed">
+            Masuk ke terminal kasir untuk memproses transaksi tap-and-pay NFC siswa dan rekomendasi menu.
           </p>
         </div>
 
-        {/* POS Kiosk Login Card */}
-        <div className="bg-slate-900/90 backdrop-blur-xl rounded-3xl p-6 sm:p-7 border border-slate-800 shadow-2xl shadow-black/80 space-y-4">
+        {/* Login Card */}
+        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl space-y-4">
           {/* Quick Fill Demo Credentials Banner */}
           <button
             type="button"
             onClick={handleQuickFill}
             id="merchant-quick-fill-btn"
-            className="w-full p-3.5 rounded-2xl bg-orange-500/10 hover:bg-orange-500/20 border border-orange-500/30 text-left transition-all group flex items-center justify-between"
+            className="w-full p-3 rounded-xl bg-orange-50 hover:bg-orange-100/70 border border-orange-200 text-left transition-all group flex items-center justify-between"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-8 h-8 rounded-xl bg-orange-500/20 flex items-center justify-center text-orange-400 group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-orange-100 text-orange-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                 <Zap className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold text-orange-400">Gunakan Akun Demo Kasir Kantin</p>
-                <p className="text-[11px] text-slate-400">Kantin Bu Nur · kantin.demo@merchant.valo.id</p>
+                <p className="text-xs font-bold text-orange-800">Gunakan Akun Demo Kasir Kantin</p>
+                <p className="text-[11px] text-slate-500">Kantin Bu Nur · kantin.demo@merchant.valo.id</p>
               </div>
             </div>
-            <span className="text-[11px] font-semibold px-2 py-1 rounded-lg bg-orange-500/20 text-orange-400 border border-orange-500/30 shrink-0">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-orange-100 text-orange-700 border border-orange-200 shrink-0">
               Isi Otomatis
             </span>
           </button>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-slate-300">
+              <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-slate-700">
                 Email / ID Kasir Kantin
               </label>
               <div className="relative">
-                <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="email"
                   type="email"
@@ -164,17 +164,17 @@ export default function MerchantLoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="kasir@kantin.ac.id"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-950/80 border border-slate-700/80 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/60 focus:border-orange-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-semibold mb-1.5 text-slate-300">
+              <label htmlFor="password" className="block text-xs font-semibold mb-1.5 text-slate-700">
                 PIN / Kata Sandi Kasir
               </label>
               <div className="relative">
-                <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="password"
                   type="password"
@@ -182,15 +182,15 @@ export default function MerchantLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-11 pr-4 py-3 rounded-2xl bg-slate-950/80 border border-slate-700/80 text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-orange-500/60 focus:border-orange-500 transition-all"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-orange-500/20 focus:border-orange-500 transition-colors"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 p-3.5 rounded-2xl bg-red-500/15 border border-red-500/30">
-                <AlertCircle className="w-4 h-4 text-red-400 mt-0.5 shrink-0" />
-                <p className="text-xs font-medium text-red-400 leading-relaxed">{error}</p>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs font-medium text-red-600 leading-relaxed">{error}</p>
               </div>
             )}
 
@@ -198,11 +198,11 @@ export default function MerchantLoginPage() {
               type="submit"
               disabled={loading}
               id="merchant-login-btn"
-              className="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-orange-500 to-amber-500 hover:from-orange-400 hover:to-amber-400 text-slate-950 text-sm font-extrabold shadow-lg shadow-orange-950/50 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 rounded-xl bg-orange-500 hover:bg-orange-600 text-white text-sm font-bold shadow-md shadow-orange-500/20 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin text-slate-950" />
+                  <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Membuka Terminal POS...</span>
                 </>
               ) : (
@@ -211,16 +211,16 @@ export default function MerchantLoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-slate-800 flex items-center justify-between text-xs">
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
             <Link
               href="/login"
-              className="text-slate-400 hover:text-orange-400 font-medium transition-colors"
+              className="text-slate-500 hover:text-orange-700 font-medium transition-colors"
             >
               Ganti Portal
             </Link>
             <Link
               href="/register?role=merchant_staff"
-              className="text-orange-400 hover:underline font-bold transition-colors"
+              className="text-orange-600 hover:underline font-bold transition-colors"
             >
               Daftar Merchant Kantin
             </Link>
@@ -229,7 +229,7 @@ export default function MerchantLoginPage() {
 
         {/* Security footnote */}
         <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
-          <ShieldCheck className="w-3.5 h-3.5 text-cyan-400" />
+          <ShieldCheck className="w-3.5 h-3.5 text-orange-600" />
           <span>Tap-and-Pay NFC Offline Queue Ready</span>
         </div>
       </div>

@@ -4,7 +4,7 @@ import { createClient } from "@/lib/supabase/client";
 import { useState, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Users, Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, HeartHandshake, Zap } from "lucide-react";
+import { Mail, Lock, Loader2, AlertCircle, ArrowLeft, ShieldCheck, HeartHandshake, Zap } from "lucide-react";
 import EduConnectLogo from "@/components/shared/EduConnectLogo";
 
 export default function ParentLoginPage() {
@@ -82,19 +82,19 @@ export default function ParentLoginPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background p-4 relative overflow-hidden">
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4 relative overflow-hidden font-sans selection:bg-emerald-100 selection:text-emerald-900">
       {/* Emerald ambient background */}
       <div className="absolute inset-0 pointer-events-none overflow-hidden">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] rounded-full bg-emerald-500/10 blur-[120px]" />
-        <div className="absolute -bottom-40 -right-40 w-[500px] h-[500px] rounded-full bg-teal-500/10 blur-[120px]" />
+        <div className="absolute -top-40 -left-40 w-96 h-96 rounded-full bg-emerald-200/40 blur-3xl" />
+        <div className="absolute -bottom-40 -right-40 w-96 h-96 rounded-full bg-teal-200/40 blur-3xl" />
       </div>
 
-      <div className="relative w-full max-w-md z-10">
+      <div className="relative w-full max-w-md z-10 py-6">
         {/* Back Link */}
         <div className="mb-4">
           <Link
             href="/login"
-            className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-emerald-400 transition-colors"
+            className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-emerald-600 transition-colors"
           >
             <ArrowLeft className="w-3.5 h-3.5" />
             <span>Kembali ke Pilihan Portal</span>
@@ -104,49 +104,49 @@ export default function ParentLoginPage() {
         {/* Brand Header */}
         <div className="flex flex-col items-center text-center mb-6">
           <div className="mb-3">
-            <EduConnectLogo variant="full" width={160} height={46} priority />
+            <EduConnectLogo variant="full" width={170} height={48} priority />
           </div>
-          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 text-xs font-semibold mb-2">
+          <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold mb-2">
             <HeartHandshake className="w-3.5 h-3.5" />
             <span>Portal Orang Tua</span>
           </div>
-          <h1 className="text-xl font-bold text-foreground">Parent Hub &amp; Manajemen Pagu</h1>
-          <p className="text-xs text-emerald-400/90 font-medium mt-0.5">Kontrol Pagu &amp; Tabungan Siswa</p>
-          <p className="text-xs text-muted-foreground mt-2 max-w-xs leading-relaxed">
+          <h1 className="text-xl sm:text-2xl font-extrabold text-slate-900 tracking-tight">Parent Hub &amp; Manajemen Pagu</h1>
+          <p className="text-xs text-emerald-700 font-semibold mt-0.5">Kontrol Pagu &amp; Tabungan Siswa</p>
+          <p className="text-xs text-slate-600 mt-2 max-w-xs leading-relaxed">
             Masuk untuk memantau pengeluaran harian, tabungan vault, dan tagihan SPP anak Anda.
           </p>
         </div>
 
         {/* Login Card */}
-        <div className="glass rounded-2xl p-6 border border-emerald-500/20 shadow-2xl space-y-4">
+        <div className="bg-white rounded-2xl p-6 sm:p-7 border border-slate-200 shadow-xl space-y-4">
           {/* Quick Fill Demo Credentials Banner */}
           <button
             type="button"
             onClick={handleQuickFill}
             id="parent-quick-fill-btn"
-            className="w-full p-3 rounded-xl bg-emerald-500/10 hover:bg-emerald-500/20 border border-emerald-500/30 text-left transition-all group flex items-center justify-between"
+            className="w-full p-3 rounded-xl bg-emerald-50 hover:bg-emerald-100/70 border border-emerald-200 text-left transition-all group flex items-center justify-between"
           >
             <div className="flex items-center gap-2.5">
-              <div className="w-7 h-7 rounded-lg bg-emerald-500/20 flex items-center justify-center text-emerald-400 group-hover:scale-105 transition-transform shrink-0">
+              <div className="w-8 h-8 rounded-lg bg-emerald-100 text-emerald-700 flex items-center justify-center group-hover:scale-105 transition-transform shrink-0">
                 <Zap className="w-4 h-4" />
               </div>
               <div>
-                <p className="text-xs font-bold text-emerald-400">Gunakan Akun Demo Orang Tua</p>
-                <p className="text-[11px] text-muted-foreground">Hendra Wijaya · parent.demo@gmail.com</p>
+                <p className="text-xs font-bold text-emerald-800">Gunakan Akun Demo Orang Tua</p>
+                <p className="text-[11px] text-slate-500">Hendra Wijaya · parent.demo@gmail.com</p>
               </div>
             </div>
-            <span className="text-[11px] font-semibold px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shrink-0">
+            <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-emerald-100 text-emerald-700 border border-emerald-200 shrink-0">
               Isi Otomatis
             </span>
           </button>
 
           <form onSubmit={handleLogin} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-foreground/90">
+              <label htmlFor="email" className="block text-xs font-semibold mb-1.5 text-slate-700">
                 Email Orang Tua
               </label>
               <div className="relative">
-                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="email"
                   type="email"
@@ -154,17 +154,17 @@ export default function ParentLoginPage() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="orangtua@email.com"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/60 border border-border text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                 />
               </div>
             </div>
 
             <div>
-              <label htmlFor="password" className="block text-xs font-semibold mb-1.5 text-foreground/90">
+              <label htmlFor="password" className="block text-xs font-semibold mb-1.5 text-slate-700">
                 Kata Sandi
               </label>
               <div className="relative">
-                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                 <input
                   id="password"
                   type="password"
@@ -172,15 +172,15 @@ export default function ParentLoginPage() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-muted/60 border border-border text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/50 focus:border-emerald-500 transition-colors"
+                  className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 border border-slate-300 text-slate-900 placeholder:text-slate-400 text-sm focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 transition-colors"
                 />
               </div>
             </div>
 
             {error && (
-              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-destructive/15 border border-destructive/30">
-                <AlertCircle className="w-4 h-4 text-destructive mt-0.5 shrink-0" />
-                <p className="text-xs font-medium text-destructive leading-relaxed">{error}</p>
+              <div className="flex items-start gap-2.5 p-3 rounded-xl bg-red-50 border border-red-200 text-red-700">
+                <AlertCircle className="w-4 h-4 text-red-500 mt-0.5 shrink-0" />
+                <p className="text-xs font-medium text-red-600 leading-relaxed">{error}</p>
               </div>
             )}
 
@@ -188,7 +188,7 @@ export default function ParentLoginPage() {
               type="submit"
               disabled={loading}
               id="parent-login-btn"
-              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-sm font-semibold shadow-lg shadow-emerald-950/40 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              className="w-full py-2.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-bold shadow-md shadow-emerald-600/20 active:scale-[0.98] transition-all disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2"
             >
               {loading ? (
                 <>
@@ -201,16 +201,16 @@ export default function ParentLoginPage() {
             </button>
           </form>
 
-          <div className="pt-4 border-t border-border/50 flex items-center justify-between text-xs">
+          <div className="pt-4 border-t border-slate-100 flex items-center justify-between text-xs">
             <Link
               href="/login"
-              className="text-muted-foreground hover:text-emerald-400 font-medium transition-colors"
+              className="text-slate-500 hover:text-emerald-700 font-medium transition-colors"
             >
               Ganti Portal
             </Link>
             <Link
               href="/register?role=parent"
-              className="text-emerald-400 hover:underline font-bold transition-colors"
+              className="text-emerald-600 hover:underline font-bold transition-colors"
             >
               Belum punya akun? Daftar
             </Link>
@@ -218,8 +218,8 @@ export default function ParentLoginPage() {
         </div>
 
         {/* Security footnote */}
-        <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-muted-foreground">
-          <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+        <div className="mt-4 flex items-center justify-center gap-1.5 text-[11px] text-slate-500">
+          <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
           <span>Keamanan Terenkripsi Supabase Auth</span>
         </div>
       </div>

@@ -45,6 +45,7 @@ export default async function ParentLayout({
   return (
     <div
       data-portal="parent"
+      suppressHydrationWarning
       className={`${plusJakartaSans.variable} font-portal-sans relative min-h-screen bg-portal-bg text-portal-text antialiased pb-28 selection:bg-portal-primary/20 selection:text-portal-primary`}
     >
       {/* Soft gradient aura glow at the top for premium light fintech vibe */}

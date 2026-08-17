@@ -105,7 +105,7 @@ function RegisterForm() {
       setFetchingSchools(true);
       const res = await fetch("/api/v1/schools/public-list");
       if (!res.ok) throw new Error("Gagal memuat direktori sekolah");
-      const data = await res.json() as { schools: PublicSchool[] };
+      const data = (await res.json()) as { schools: PublicSchool[] };
       const list = data.schools && data.schools.length > 0 ? data.schools : DEFAULT_FALLBACK_SCHOOLS;
       setSchools(list);
       if (list.length > 0) {
@@ -158,7 +158,7 @@ function RegisterForm() {
           }),
         });
 
-        const data = await res.json() as {
+        const data = (await res.json()) as {
           success?: boolean;
           school?: PublicSchool;
           message?: string;
@@ -183,7 +183,7 @@ function RegisterForm() {
           setSuccessMsg(`Institusi "${data.school?.name}" berhasil didaftarkan. Silakan lengkapi akun Admin Sekolah.`);
         }, 1200);
 
-      // TAB 2: ADMIN SEKOLAH (school_admin)
+        // TAB 2: ADMIN SEKOLAH (school_admin)
       } else if (tab === "school_admin") {
         if (!adminSelectedSchoolId || !adminPicName.trim() || !email.trim() || !password || !phoneNumber.trim()) {
           throw new Error("Mohon lengkapi Sekolah Terdaftar, Nama Admin, Email, Nomor HP, dan Password.");
@@ -201,7 +201,7 @@ function RegisterForm() {
           }),
         });
 
-        const data = await res.json() as { success?: boolean; message?: string; error?: string };
+        const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
         if (!res.ok) {
           throw new Error(data.message ?? data.error ?? "Gagal mendaftarkan akun Admin Sekolah");
         }
@@ -222,9 +222,16 @@ function RegisterForm() {
           }
         }, 1200);
 
-      // TAB 3: STAF KANTIN (merchant_staff)
+        // TAB 3: STAF KANTIN (merchant_staff)
       } else if (tab === "merchant_staff") {
-        if (!merchantSelectedSchoolId || !merchantPicName.trim() || !stallName.trim() || !email.trim() || !password || !phoneNumber.trim()) {
+        if (
+          !merchantSelectedSchoolId ||
+          !merchantPicName.trim() ||
+          !stallName.trim() ||
+          !email.trim() ||
+          !password ||
+          !phoneNumber.trim()
+        ) {
           throw new Error("Mohon lengkapi Sekolah, Nama PIC, Nama Gerai, Email, Nomor HP, dan Password.");
         }
 
@@ -242,7 +249,7 @@ function RegisterForm() {
           }),
         });
 
-        const data = await res.json() as { success?: boolean; message?: string; error?: string };
+        const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
         if (!res.ok) {
           throw new Error(data.message ?? data.error ?? "Gagal mendaftarkan Stand Kantin");
         }
@@ -263,7 +270,7 @@ function RegisterForm() {
           }
         }, 1200);
 
-      // TAB 4: ORANG TUA (parent)
+        // TAB 4: ORANG TUA (parent)
       } else if (tab === "parent") {
         if (!parentFullName.trim() || !email.trim() || !password || !phoneNumber.trim()) {
           throw new Error("Mohon lengkapi Nama Lengkap Wali, Email, Nomor HP, dan Password.");
@@ -281,7 +288,7 @@ function RegisterForm() {
           }),
         });
 
-        const data = await res.json() as { success?: boolean; message?: string; error?: string };
+        const data = (await res.json()) as { success?: boolean; message?: string; error?: string };
         if (!res.ok) {
           throw new Error(data.message ?? data.error ?? "Gagal mendaftarkan akun Orang Tua");
         }
@@ -317,26 +324,26 @@ function RegisterForm() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-background flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-slate-50 flex flex-col justify-center py-10 px-4 sm:px-6 lg:px-8 font-sans selection:bg-emerald-100 selection:text-emerald-900">
       <div className="sm:mx-auto sm:w-full sm:max-w-xl text-center space-y-3">
         <div className="mb-2">
-          <EduConnectLogo variant="full" width={160} height={46} showTagline={true} priority className="mx-auto" />
+          <EduConnectLogo variant="full" width={170} height={48} showTagline={true} priority className="mx-auto" />
         </div>
-        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-primary/15 border border-primary/30 text-primary text-xs font-bold">
-          <ShieldCheck className="w-4 h-4" /> BNI EduConnect Closed-Loop Ecosystem
+        <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-bold">
+          <ShieldCheck className="w-4 h-4 text-emerald-600" /> BNI EduConnect Closed-Loop Ecosystem
         </div>
-        <h1 className="text-2xl font-extrabold text-foreground tracking-tight sm:text-3xl">
+        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight sm:text-3xl">
           Pendaftaran &amp; Registrasi Akun
         </h1>
-        <p className="text-xs sm:text-sm text-muted-foreground max-w-md mx-auto">
+        <p className="text-xs sm:text-sm text-slate-600 max-w-md mx-auto">
           Pilih kategori pendaftaran di bawah ini untuk memulai registrasi di ekosistem perbankan sekolah BNI EduConnect.
         </p>
       </div>
 
       <div className="mt-6 sm:mx-auto sm:w-full sm:max-w-xl">
-        <div className="glass p-6 sm:p-8 rounded-2xl shadow-2xl border border-border/80 space-y-6">
+        <div className="bg-white p-6 sm:p-8 rounded-2xl shadow-xl border border-slate-200 space-y-6">
           {/* 4-Tab Navigation Selector */}
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-900/90 p-1.5 rounded-xl border border-slate-800 text-xs font-semibold">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 p-1.5 rounded-xl border border-slate-200 text-xs font-semibold">
             {TABS.map(({ id: tabId, label, icon: Icon }) => {
               const isActive = tab === tabId;
               return (
@@ -347,8 +354,8 @@ function RegisterForm() {
                   onClick={() => handleTabChange(tabId)}
                   className={`flex items-center justify-center gap-1.5 py-2.5 px-2 rounded-lg transition-all duration-200 ${
                     isActive
-                      ? "bg-[#00A396] text-white shadow-md shadow-[#00A396]/25 font-bold"
-                      : "text-slate-400 hover:bg-slate-800/60 hover:text-slate-200"
+                      ? "bg-emerald-600 text-white shadow-md shadow-emerald-600/20 font-bold"
+                      : "text-slate-600 hover:bg-white hover:text-slate-900"
                   }`}
                 >
                   <Icon className="w-4 h-4 shrink-0" />
@@ -359,29 +366,37 @@ function RegisterForm() {
           </div>
 
           {/* Form Banner */}
-          <div className="p-3.5 bg-muted/40 border border-border/70 rounded-xl text-xs flex items-center gap-2.5 text-muted-foreground">
+          <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-xl text-xs flex items-center gap-2.5 text-slate-700">
             {tab === "school_entity" && (
               <>
-                <SchoolIcon className="w-4 h-4 text-[#00A396] shrink-0" />
-                <span>Registrasi <strong>Entitas Sekolah Baru</strong> (NPSN &amp; Giro BNI) ke direktori BNI EduConnect.</span>
+                <SchoolIcon className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Registrasi <strong>Entitas Sekolah Baru</strong> (NPSN &amp; Giro BNI) ke direktori BNI EduConnect.
+                </span>
               </>
             )}
             {tab === "school_admin" && (
               <>
-                <Building2 className="w-4 h-4 text-[#00A396] shrink-0" />
-                <span>Registrasi <strong>Akun Admin Sekolah</strong> (Pilih dari sekolah terdaftar).</span>
+                <Building2 className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Registrasi <strong>Akun Admin Sekolah</strong> (Pilih dari sekolah terdaftar).
+                </span>
               </>
             )}
             {tab === "merchant_staff" && (
               <>
-                <Utensils className="w-4 h-4 text-[#00A396] shrink-0" />
-                <span>Registrasi <strong>Kasir Stand Kantin</strong> untuk kasir POS &amp; pencairan BNI.</span>
+                <Utensils className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Registrasi <strong>Kasir Stand Kantin</strong> untuk kasir POS &amp; pencairan BNI.
+                </span>
               </>
             )}
             {tab === "parent" && (
               <>
-                <UserCheck className="w-4 h-4 text-[#00A396] shrink-0" />
-                <span>Registrasi <strong>Wali Murid</strong> untuk pengawasan pagu harian &amp; vault anak.</span>
+                <UserCheck className="w-4 h-4 text-emerald-600 shrink-0" />
+                <span>
+                  Registrasi <strong>Wali Murid</strong> untuk pengawasan pagu harian &amp; vault anak.
+                </span>
               </>
             )}
           </div>
@@ -391,11 +406,11 @@ function RegisterForm() {
             {tab === "school_entity" && (
               <>
                 <div>
-                  <label htmlFor="reg-entity-name" className="block text-xs font-semibold text-foreground mb-1">
-                    Nama Institusi Sekolah <span className="text-destructive">*</span>
+                  <label htmlFor="reg-entity-name" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nama Institusi Sekolah <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Building2 className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-entity-name"
                       type="text"
@@ -403,18 +418,18 @@ function RegisterForm() {
                       onChange={(e) => setEntitySchoolName(e.target.value)}
                       placeholder="Contoh: SMA BNI Harapan Bangsa"
                       required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="reg-entity-npsn" className="block text-xs font-semibold text-foreground mb-1">
-                      NPSN (8 Digit Angka) <span className="text-destructive">*</span>
+                    <label htmlFor="reg-entity-npsn" className="block text-xs font-semibold text-slate-700 mb-1">
+                      NPSN (8 Digit Angka) <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Hash className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         id="reg-entity-npsn"
                         type="text"
@@ -423,17 +438,17 @@ function RegisterForm() {
                         placeholder="20260001"
                         maxLength={8}
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono font-bold focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm font-mono font-bold placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="reg-entity-giro" className="block text-xs font-semibold text-foreground mb-1">
-                      No. Rekening Giro BNI Sekolah <span className="text-destructive">*</span>
+                    <label htmlFor="reg-entity-giro" className="block text-xs font-semibold text-slate-700 mb-1">
+                      No. Rekening Giro BNI Sekolah <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         id="reg-entity-giro"
                         type="text"
@@ -441,25 +456,25 @@ function RegisterForm() {
                         onChange={(e) => setEntityGiroAccount(e.target.value)}
                         placeholder="0123456789"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="reg-entity-address" className="block text-xs font-semibold text-foreground mb-1">
+                  <label htmlFor="reg-entity-address" className="block text-xs font-semibold text-slate-700 mb-1">
                     Alamat Sekolah (Opsional)
                   </label>
                   <div className="relative">
-                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <MapPin className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-entity-address"
                       type="text"
                       value={entityAddress}
                       onChange={(e) => setEntityAddress(e.target.value)}
                       placeholder="Jl. Jend. Sudirman No. 1, Jakarta"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
@@ -470,43 +485,43 @@ function RegisterForm() {
             {tab === "school_admin" && (
               <>
                 <div>
-                  <label htmlFor="reg-admin-school" className="block text-xs font-semibold text-foreground mb-1">
-                    Pilih Sekolah Terdaftar <span className="text-destructive">*</span>
+                  <label htmlFor="reg-admin-school" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Pilih Sekolah Terdaftar <span className="text-red-500">*</span>
                   </label>
                   {fetchingSchools ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground p-2.5 bg-background border border-border/60 rounded-xl">
-                      <Loader2 className="w-4 h-4 animate-spin text-[#00A396]" /> Memuat daftar sekolah...
+                    <div className="flex items-center gap-2 text-xs text-slate-500 p-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> Memuat daftar sekolah...
                     </div>
                   ) : schools.length > 0 ? (
                     <div className="relative">
-                      <SchoolIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                      <SchoolIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
                       <select
                         id="reg-admin-school"
                         value={adminSelectedSchoolId}
                         onChange={(e) => setAdminSelectedSchoolId(e.target.value)}
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 cursor-pointer shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-xs font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-sm"
                       >
                         {schools.map((s) => (
-                          <option key={s.id} value={s.id} className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+                          <option key={s.id} value={s.id} className="bg-white text-slate-900">
                             {s.name} {s.npsn ? `(NPSN: ${s.npsn})` : ""}
                           </option>
                         ))}
                       </select>
                     </div>
                   ) : (
-                    <p className="text-xs text-amber-500 bg-amber-500/10 p-2.5 rounded-xl border border-amber-500/20">
+                    <p className="text-xs text-amber-700 bg-amber-50 p-2.5 rounded-xl border border-amber-200">
                       Belum ada sekolah terdaftar. Silakan daftarkan sekolah terlebih dahulu pada tab &quot;Daftarkan Sekolah&quot;.
                     </p>
                   )}
                 </div>
 
                 <div>
-                  <label htmlFor="reg-admin-pic" className="block text-xs font-semibold text-foreground mb-1">
-                    Nama Lengkap Admin Sekolah <span className="text-destructive">*</span>
+                  <label htmlFor="reg-admin-pic" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nama Lengkap Admin Sekolah <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-admin-pic"
                       type="text"
@@ -514,7 +529,7 @@ function RegisterForm() {
                       onChange={(e) => setAdminPicName(e.target.value)}
                       placeholder="Contoh: Bpk. Bambang Sujatmiko"
                       required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
@@ -525,25 +540,25 @@ function RegisterForm() {
             {tab === "merchant_staff" && (
               <>
                 <div>
-                  <label htmlFor="reg-merchant-school" className="block text-xs font-semibold text-foreground mb-1">
-                    Pilih Sekolah Tempat Stand Kantin <span className="text-destructive">*</span>
+                  <label htmlFor="reg-merchant-school" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Pilih Sekolah Tempat Stand Kantin <span className="text-red-500">*</span>
                   </label>
                   {fetchingSchools ? (
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground p-2.5 bg-background border border-border/60 rounded-xl">
-                      <Loader2 className="w-4 h-4 animate-spin text-[#00A396]" /> Memuat daftar sekolah...
+                    <div className="flex items-center gap-2 text-xs text-slate-500 p-2.5 bg-slate-50 border border-slate-300 rounded-xl">
+                      <Loader2 className="w-4 h-4 animate-spin text-emerald-600" /> Memuat daftar sekolah...
                     </div>
                   ) : (
                     <div className="relative">
-                      <SchoolIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none z-10" />
+                      <SchoolIcon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400 pointer-events-none z-10" />
                       <select
                         id="reg-merchant-school"
                         value={merchantSelectedSchoolId}
                         onChange={(e) => setMerchantSelectedSchoolId(e.target.value)}
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 cursor-pointer shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-xs font-medium focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 cursor-pointer shadow-sm"
                       >
                         {schools.map((s) => (
-                          <option key={s.id} value={s.id} className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+                          <option key={s.id} value={s.id} className="bg-white text-slate-900">
                             {s.name} {s.npsn ? `(NPSN: ${s.npsn})` : ""}
                           </option>
                         ))}
@@ -554,11 +569,11 @@ function RegisterForm() {
 
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
-                    <label htmlFor="reg-merchant-pic" className="block text-xs font-semibold text-foreground mb-1">
-                      Nama PIC / Kasir <span className="text-destructive">*</span>
+                    <label htmlFor="reg-merchant-pic" className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nama PIC / Kasir <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         id="reg-merchant-pic"
                         type="text"
@@ -566,17 +581,17 @@ function RegisterForm() {
                         onChange={(e) => setMerchantPicName(e.target.value)}
                         placeholder="Contoh: Ibu Siti Hajar"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="reg-stall-name" className="block text-xs font-semibold text-foreground mb-1">
-                      Nama Gerai / Kantin <span className="text-destructive">*</span>
+                    <label htmlFor="reg-stall-name" className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nama Gerai / Kantin <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <Utensils className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Utensils className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         id="reg-stall-name"
                         type="text"
@@ -584,25 +599,25 @@ function RegisterForm() {
                         onChange={(e) => setStallName(e.target.value)}
                         placeholder="Contoh: Kantin Berkah Stand #02"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="reg-merchant-bni" className="block text-xs font-semibold text-foreground mb-1">
+                  <label htmlFor="reg-merchant-bni" className="block text-xs font-semibold text-slate-700 mb-1">
                     No. Rekening Merchant BNI (Settlement H+0)
                   </label>
                   <div className="relative">
-                    <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-merchant-bni"
                       type="text"
                       value={merchantBniAccount}
                       onChange={(e) => setMerchantBniAccount(e.target.value)}
                       placeholder="Contoh: 88800002222"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
@@ -613,11 +628,11 @@ function RegisterForm() {
             {tab === "parent" && (
               <>
                 <div>
-                  <label htmlFor="reg-parent-name" className="block text-xs font-semibold text-foreground mb-1">
-                    Nama Lengkap Wali <span className="text-destructive">*</span>
+                  <label htmlFor="reg-parent-name" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Nama Lengkap Wali <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-parent-name"
                       type="text"
@@ -625,24 +640,24 @@ function RegisterForm() {
                       onChange={(e) => setParentFullName(e.target.value)}
                       placeholder="Contoh: Hendra Pratama"
                       required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="reg-parent-bni" className="block text-xs font-semibold text-foreground mb-1">
+                  <label htmlFor="reg-parent-bni" className="block text-xs font-semibold text-slate-700 mb-1">
                     Nomor Rekening Tabungan BNI (Opsional)
                   </label>
                   <div className="relative">
-                    <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <CreditCard className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-parent-bni"
                       type="text"
                       value={parentBniAccount}
                       onChange={(e) => setParentBniAccount(e.target.value)}
                       placeholder="Contoh: 888012345678"
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
@@ -652,13 +667,13 @@ function RegisterForm() {
             {/* LOGIN CREDENTIAL FIELDS (EXCEPT FOR SCHOOL ENTITY REGISTRATION) */}
             {tab !== "school_entity" && (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-border/60">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-slate-100">
                   <div>
-                    <label htmlFor="reg-email" className="block text-xs font-semibold text-foreground mb-1">
-                      Email Akun <span className="text-destructive">*</span>
+                    <label htmlFor="reg-email" className="block text-xs font-semibold text-slate-700 mb-1">
+                      Email Akun <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         id="reg-email"
                         type="email"
@@ -666,17 +681,17 @@ function RegisterForm() {
                         onChange={(e) => setEmail(e.target.value)}
                         placeholder="nama@email.com"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                       />
                     </div>
                   </div>
 
                   <div>
-                    <label htmlFor="reg-phone" className="block text-xs font-semibold text-foreground mb-1">
-                      Nomor HP WhatsApp <span className="text-destructive">*</span>
+                    <label htmlFor="reg-phone" className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nomor HP WhatsApp <span className="text-red-500">*</span>
                     </label>
                     <div className="relative">
-                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                      <Phone className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                       <input
                         id="reg-phone"
                         type="tel"
@@ -684,18 +699,18 @@ function RegisterForm() {
                         onChange={(e) => setPhoneNumber(e.target.value)}
                         placeholder="081234567890"
                         required
-                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                        className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm font-mono placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                       />
                     </div>
                   </div>
                 </div>
 
                 <div>
-                  <label htmlFor="reg-password" className="block text-xs font-semibold text-foreground mb-1">
-                    Kata Sandi <span className="text-destructive">*</span>
+                  <label htmlFor="reg-password" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Kata Sandi <span className="text-red-500">*</span>
                   </label>
                   <div className="relative">
-                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
                     <input
                       id="reg-password"
                       type="password"
@@ -704,7 +719,7 @@ function RegisterForm() {
                       placeholder="Minimal 6 karakter"
                       minLength={6}
                       required
-                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-background text-foreground border border-border/80 text-sm focus:outline-none focus:ring-2 focus:ring-[#00A396]/50 shadow-sm"
+                      className="w-full pl-10 pr-4 py-2.5 rounded-xl bg-slate-50 text-slate-900 border border-slate-300 text-sm placeholder:text-slate-400 focus:outline-none focus:bg-white focus:ring-2 focus:ring-emerald-500/20 focus:border-emerald-500 shadow-sm"
                     />
                   </div>
                 </div>
@@ -712,14 +727,14 @@ function RegisterForm() {
             )}
 
             {successMsg && (
-              <div className="p-3.5 rounded-xl bg-emerald-500/15 border border-emerald-500/30 text-emerald-500 text-xs font-semibold flex items-center gap-2">
-                <CheckCircle2 className="w-4 h-4 shrink-0" />
+              <div className="p-3.5 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-xs font-semibold flex items-center gap-2">
+                <CheckCircle2 className="w-4 h-4 shrink-0 text-emerald-600" />
                 {successMsg}
               </div>
             )}
 
             {error && (
-              <p className="text-xs text-destructive bg-destructive/10 border border-destructive/25 p-3 rounded-xl font-medium">
+              <p className="text-xs text-red-600 bg-red-50 border border-red-200 p-3 rounded-xl font-medium">
                 {error}
               </p>
             )}
@@ -728,7 +743,7 @@ function RegisterForm() {
               id="submit-register-btn"
               type="submit"
               disabled={loading}
-              className="w-full py-3 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60 text-white bg-[#00A396] hover:bg-[#008f84] active:scale-[0.99]"
+              className="w-full py-3 rounded-xl text-sm font-bold transition-all shadow-md flex items-center justify-center gap-2 disabled:opacity-60 text-white bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99]"
             >
               {loading ? (
                 <>
@@ -744,10 +759,10 @@ function RegisterForm() {
             </button>
           </form>
 
-          <div className="text-center pt-2 border-t border-border/60">
-            <p className="text-xs text-muted-foreground">
+          <div className="text-center pt-2 border-t border-slate-100">
+            <p className="text-xs text-slate-600">
               Sudah memiliki akun?{" "}
-              <Link href="/login" className="font-bold text-[#00A396] hover:underline">
+              <Link href="/login" className="font-bold text-emerald-600 hover:underline">
                 Masuk di sini
               </Link>
             </p>
@@ -760,11 +775,13 @@ function RegisterForm() {
 
 export default function RegisterPage() {
   return (
-    <Suspense fallback={
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <Loader2 className="w-8 h-8 animate-spin text-[#00A396]" />
-      </div>
-    }>
+    <Suspense
+      fallback={
+        <div className="min-h-screen bg-slate-50 flex items-center justify-center p-4">
+          <Loader2 className="w-8 h-8 animate-spin text-emerald-600" />
+        </div>
+      }
+    >
       <RegisterForm />
     </Suspense>
   );
