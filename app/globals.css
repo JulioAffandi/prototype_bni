@@ -126,7 +126,9 @@
 .nfc-wave-ring {
   position: absolute;
   border-radius: 50%;
-  border: 2px solid hsl(var(--valo-teal));
+  /* currentColor so each portal tints its own waves (teal parent, orange POS) */
+  border: 2px solid currentColor;
+  color: hsl(var(--valo-teal));
 }
 .nfc-wave-ring:nth-child(1) { animation: nfc-wave-1 2s ease-out infinite; }
 .nfc-wave-ring:nth-child(2) { animation: nfc-wave-2 2s ease-out 0.4s infinite; }
@@ -262,33 +264,83 @@
 }
 
 /* =====================================================================
-   CANTEEN — "High-Contrast, Tactile & Fast-Paced Retail POS"
-   Matte Charcoal · Amber/Tangerine · big touch targets · NFC feedback
+   CANTEEN — "EduConnect Modern Light Fintech POS"
+   Clean Slate #F8FAFC · Pure White cards · Merchant Orange #F97316
+   · Purple #7357C7 accent · big touch targets · NFC feedback
    ===================================================================== */
 [data-portal="canteen"] {
-  --portal-bg: #121214;
-  --portal-surface: #1e1e24;
-  --portal-surface-alt: #26262e;
-  --portal-border: #33333c;
+  /* Surface — Light Theme */
+  --portal-bg: #F8FAFC;
+  --portal-surface: #FFFFFF;
+  --portal-surface-alt: #F1F5F9;
+  --portal-border: #E2E8F0;
 
-  --portal-primary: #ea580c; /* orange-600 */
-  --portal-primary-foreground: #0b0b0c;
-  --portal-secondary: #f59e0b; /* amber-500 */
-  --portal-accent: #f59e0b;
+  /* Brand — merchant leads with Orange, Purple as the secondary accent */
+  --portal-primary: #F97316; /* Merchant Orange */
+  --portal-primary-foreground: #FFFFFF;
+  --portal-secondary: #7357C7; /* EduConnect Purple */
+  --portal-accent: #7357C7;
 
-  --portal-success: #22c55e; /* NFC tap sukses */
-  --portal-warning: #eab308; /* limit warning */
-  --portal-danger: #ef4444; /* blocked / insufficient */
+  --portal-success: #10B981; /* NFC tap sukses */
+  --portal-warning: #F59E0B; /* limit warning */
+  --portal-danger: #EF4444; /* blocked / insufficient */
 
-  --portal-text: #fafafa;
-  --portal-text-muted: #a1a1aa;
+  --portal-text: #0F172A;
+  --portal-text-muted: #64748B;
 
   --portal-font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
   --portal-font-mono: var(--font-geist-mono, ui-monospace, monospace);
 
   --portal-radius: 0.75rem;
   --portal-radius-lg: 1rem;
-  --portal-glow: 0 0 32px -6px rgba(234, 88, 12, 0.5);
+  --portal-glow: 0 8px 24px -6px rgba(249, 115, 22, 0.28);
+  --portal-card-shadow: 0 4px 20px -2px rgba(15, 23, 42, 0.07), 0 2px 6px -1px rgba(15, 23, 42, 0.04);
+}
+
+/* The canteen sibling routes (/pos/menu, /pos/profile, /pos/settlement, /pos/ai)
+   style themselves with the GLOBAL semantic tokens (bg-card, bg-background,
+   bg-muted, .glass), which default to dark in :root. Re-point those tokens to
+   the light fintech palette inside the canteen scope so the whole POS portal
+   matches the white navbar instead of only the terminal itself. */
+[data-portal="canteen"] {
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 25 95% 53%; /* Merchant Orange #F97316 */
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 258 47% 56%; /* EduConnect Purple #7357C7 */
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 25 95% 53%;
+}
+
+/* badge-offline is tuned for dark surfaces — darken the text on the light POS. */
+[data-portal="canteen"] .badge-offline {
+  background: rgb(255 247 237);
+  color: rgb(194 65 12);
+  border: 1px solid rgb(254 215 170);
+}
+
+/* Native selects inherit a dark color-scheme globally — undo it inside the
+   light POS portal so dropdowns aren't dark-on-light. */
+[data-portal="canteen"] select {
+  color-scheme: light;
+  background-color: #FFFFFF;
+  color: #0F172A;
+}
+[data-portal="canteen"] select option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
 /* ---------------------------------------------------------------------
@@ -310,5 +362,14 @@
 /* Utility kecil: angka tabular untuk saldo/nominal (School & Canteen) */
 .tabular-figures {
   font-variant-numeric: tabular-nums;
+}
+
+/* Hide scrollbars on horizontal filter rails (POS category tabs) */
+.scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
 }
 

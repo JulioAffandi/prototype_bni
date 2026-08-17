@@ -16,6 +16,8 @@ interface NFCTriggerCardProps {
   items: MenuItem[];
   onSuccess?: (result: TransactionResult) => void;
   onError?: (error: string) => void;
+  /** "compact" trims padding so the reader fits inside the POS order sidebar. */
+  variant?: "default" | "compact";
 }
 
 interface TransactionResult {
@@ -41,14 +43,15 @@ export default function NFCTriggerCard({
   items,
   onSuccess,
   onError,
+  variant = "default",
 }: NFCTriggerCardProps) {
   const [txState, setTxState] = useState<TxState>("idle");
   const [showSimulator, setShowSimulator] = useState(false);
   const [result, setResult] = useState<TransactionResult | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-
   const simulatorEnabled = process.env.NEXT_PUBLIC_NFC_SIMULATOR_ENABLED === "true";
+  const isCompact = variant === "compact";
 
   function formatRupiah(amount: number) {
     return new Intl.NumberFormat("id-ID", {
@@ -164,54 +167,73 @@ export default function NFCTriggerCard({
     setShowSimulator(false);
   }
 
+  const isDisabled = txState === "processing" || totalAmount <= 0;
+
   return (
     <div className="relative">
       {/* ── Main NFC trigger card ── */}
       <button
+        type="button"
         id="nfc-trigger-card"
         onClick={handleCardTap}
-        disabled={txState === "processing" || totalAmount <= 0}
-        aria-label="Tempelkan Kartu KTP NFC Siswa"
-        className={`w-full rounded-2xl border-2 transition-all duration-300 overflow-hidden ${
+        disabled={isDisabled}
+        aria-label="Tempelkan Kartu KTA NFC Siswa"
+        className={`w-full overflow-hidden rounded-2xl border-2 transition-all duration-300 ${
           txState === "success"
-            ? "border-primary bg-primary/10"
-            : txState === "rejected"
-            ? "border-destructive bg-destructive/10"
-            : txState === "error"
-            ? "border-destructive/50 bg-destructive/5"
-            : "border-dashed border-primary/40 bg-primary/5 hover:border-primary hover:bg-primary/10 active:scale-[0.98]"
-        } ${totalAmount <= 0 ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+            ? "border-emerald-400 bg-emerald-50"
+            : txState === "rejected" || txState === "error"
+            ? "border-red-300 bg-red-50"
+            : totalAmount <= 0
+            ? "border-dashed border-slate-200 bg-slate-50"
+            : "cursor-pointer border-dashed border-orange-300 bg-orange-50/60 hover:border-orange-400 hover:bg-orange-50 active:scale-[0.99]"
+        } ${totalAmount <= 0 ? "cursor-not-allowed" : ""}`}
       >
-        <div className="p-8 flex flex-col items-center gap-4">
+        <div className={`flex flex-col items-center gap-3 ${isCompact ? "p-5" : "p-8"}`}>
           {/* NFC wave animation */}
           {(txState === "idle" || txState === "waiting") && (
-            <div className="relative flex items-center justify-center w-20 h-20">
-              {/* Wave rings */}
-              <div className="nfc-wave-ring w-20 h-20" />
-              <div className="nfc-wave-ring w-20 h-20" />
-              <div className="nfc-wave-ring w-20 h-20" />
+            <div
+              className={`relative flex items-center justify-center ${
+                isCompact ? "h-16 w-16" : "h-20 w-20"
+              } ${totalAmount <= 0 ? "text-slate-300" : "text-orange-400"}`}
+            >
+              {/* Wave rings — inherit currentColor */}
+              <div className={`nfc-wave-ring ${isCompact ? "h-16 w-16" : "h-20 w-20"}`} />
+              <div className={`nfc-wave-ring ${isCompact ? "h-16 w-16" : "h-20 w-20"}`} />
+              <div className={`nfc-wave-ring ${isCompact ? "h-16 w-16" : "h-20 w-20"}`} />
               {/* Center icon */}
-              <div className="absolute w-14 h-14 rounded-full bg-primary/20 border-2 border-primary/40 flex items-center justify-center nfc-pulse">
-                <Nfc className="w-7 h-7 text-primary" />
+              <div
+                className={`nfc-pulse absolute flex items-center justify-center rounded-full border-2 ${
+                  isCompact ? "h-12 w-12" : "h-14 w-14"
+                } ${
+                  totalAmount <= 0
+                    ? "border-slate-200 bg-slate-100"
+                    : "border-orange-300 bg-white shadow-sm"
+                }`}
+              >
+                <Nfc
+                  className={`${isCompact ? "h-6 w-6" : "h-7 w-7"} ${
+                    totalAmount <= 0 ? "text-slate-400" : "text-orange-500"
+                  }`}
+                />
               </div>
             </div>
           )}
 
           {txState === "processing" && (
-            <div className="w-14 h-14 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <Loader2 className="w-7 h-7 text-primary animate-spin" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-purple-200 bg-purple-50">
+              <Loader2 className="h-7 w-7 animate-spin text-[#7357C7]" />
             </div>
           )}
 
           {txState === "success" && (
-            <div className="w-14 h-14 rounded-full bg-primary/15 border border-primary/30 flex items-center justify-center">
-              <CheckCircle2 className="w-7 h-7 text-primary" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-emerald-200 bg-white">
+              <CheckCircle2 className="h-7 w-7 text-emerald-600" />
             </div>
           )}
 
           {(txState === "rejected" || txState === "error") && (
-            <div className="w-14 h-14 rounded-full bg-destructive/15 border border-destructive/30 flex items-center justify-center">
-              <XCircle className="w-7 h-7 text-destructive" />
+            <div className="flex h-14 w-14 items-center justify-center rounded-full border-2 border-red-200 bg-white">
+              <XCircle className="h-7 w-7 text-red-500" />
             </div>
           )}
 
@@ -219,53 +241,87 @@ export default function NFCTriggerCard({
           <div className="text-center">
             {txState === "idle" && (
               <>
-                <p className="font-semibold text-primary">Tempelkan Kartu KTP NFC Siswa</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Total: <span className="font-bold text-foreground">{formatRupiah(totalAmount)}</span>
+                <p
+                  className={`text-sm font-bold ${
+                    totalAmount <= 0 ? "text-slate-400" : "text-orange-600"
+                  }`}
+                >
+                  Tempelkan Kartu KTA NFC Siswa
+                </p>
+                <p className="mt-1 text-xs font-medium text-slate-500">
+                  {totalAmount > 0 ? (
+                    <>
+                      Siap memproses{" "}
+                      <span className="font-extrabold text-slate-900">
+                        {formatRupiah(totalAmount)}
+                      </span>
+                    </>
+                  ) : (
+                    "Pilih menu terlebih dahulu"
+                  )}
                 </p>
               </>
             )}
             {txState === "waiting" && (
-              <p className="font-semibold text-primary">Menunggu kartu...</p>
+              <p className="text-sm font-bold text-orange-600">Menunggu kartu...</p>
             )}
             {txState === "processing" && (
-              <p className="font-semibold">Memproses transaksi...</p>
+              <p className="text-sm font-bold text-[#7357C7]">Membaca Kartu NFC Siswa...</p>
             )}
             {txState === "success" && result && (
               <>
-                <p className="font-semibold text-primary">
+                <p className="text-sm font-bold text-emerald-700">
                   {result.status === "OFFLINE_QUEUED" ? "Antre Offline" : "Transaksi Berhasil"}
                 </p>
                 {result.is_emergency && (
-                  <p className="text-xs text-accent mt-0.5">Mode Darurat Digunakan</p>
-                )}
-                {result.sisa_pagu > 0 && (
-                  <p className="text-sm text-muted-foreground mt-1">
-                    Sisa pagu: <span className="font-semibold text-primary">{formatRupiah(result.sisa_pagu)}</span>
+                  <p className="mt-0.5 text-xs font-semibold text-amber-600">
+                    Mode Darurat Digunakan
                   </p>
                 )}
+                {result.sisa_pagu > 0 && (
+                  <p className="mt-1 text-xs text-slate-500">
+                    Sisa pagu:{" "}
+                    <span className="font-bold text-emerald-700">
+                      {formatRupiah(result.sisa_pagu)}
+                    </span>
+                  </p>
+                )}
+                <p className="mt-1 font-mono text-[10px] text-slate-400">
+                  {result.transaction_id.slice(0, 18)}
+                </p>
               </>
             )}
             {(txState === "rejected" || txState === "error") && (
               <>
-                <p className="font-semibold text-destructive">
+                <p className="text-sm font-bold text-red-600">
                   {txState === "rejected" ? "Transaksi Ditolak" : "Terjadi Kesalahan"}
                 </p>
-                <p className="text-sm text-muted-foreground mt-1">{errorMsg}</p>
+                <p className="mt-1 text-xs text-slate-500">{errorMsg}</p>
               </>
             )}
           </div>
 
           {/* Reset button */}
           {txState !== "idle" && txState !== "processing" && (
-            <button
-              id="nfc-reset-btn"
-              onClick={(e) => { e.stopPropagation(); reset(); }}
-              className="flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground border border-border rounded-full px-3 py-1.5 transition-colors"
+            <span
+              role="button"
+              tabIndex={0}
+              onClick={(e) => {
+                e.stopPropagation();
+                reset();
+              }}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  reset();
+                }
+              }}
+              className="flex cursor-pointer items-center gap-1.5 rounded-full border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-slate-900"
             >
-              <X className="w-3.5 h-3.5" />
+              <X className="h-3.5 w-3.5" />
               <span>Transaksi Baru</span>
-            </button>
+            </span>
           )}
         </div>
       </button>
@@ -275,42 +331,50 @@ export default function NFCTriggerCard({
         <>
           {/* Backdrop */}
           <div
-            className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
-            onClick={() => { setShowSimulator(false); setTxState("idle"); }}
+            className="fixed inset-0 z-40 bg-slate-900/40 backdrop-blur-sm"
+            onClick={() => {
+              setShowSimulator(false);
+              setTxState("idle");
+            }}
           />
 
           {/* Sheet */}
-          <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl bg-card border-t border-border p-6 animate-in slide-in-from-bottom duration-300">
-            <div className="w-10 h-1 rounded-full bg-muted mx-auto mb-5" />
-            <div className="flex items-center gap-2 mb-1">
-              <CreditCard className="w-5 h-5 text-accent" />
-              <h3 className="font-semibold">Pilih Siswa (Simulator)</h3>
+          <div className="fixed bottom-0 left-0 right-0 z-50 rounded-t-3xl border-t border-slate-200 bg-white p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+            <div className="mx-auto mb-5 h-1 w-10 rounded-full bg-slate-200" />
+            <div className="mb-1 flex items-center gap-2">
+              <CreditCard className="h-5 w-5 text-[#7357C7]" />
+              <h3 className="text-sm font-bold text-slate-900">Pilih Siswa (Simulator)</h3>
             </div>
-            <p className="text-xs text-muted-foreground mb-4">
+            <p className="mb-4 text-xs text-slate-500">
               Mode demo aktif. Fitur ini dinonaktifkan di produksi.
             </p>
-            <div className="space-y-2 max-h-64 overflow-y-auto">
+            <div className="max-h-64 space-y-2 overflow-y-auto">
               {DEMO_STUDENTS.map((student) => (
                 <button
+                  type="button"
                   key={student.uid_hash}
                   id={`sim-student-${student.uid_last4}`}
                   onClick={() => processTransaction(student.uid_hash)}
-                  className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary hover:bg-primary/5 transition-all text-left"
+                  className="flex w-full items-center gap-3 rounded-xl border border-slate-200 bg-white p-3 text-left transition-all hover:border-orange-300 hover:bg-orange-50/50"
                 >
-                  <div className="w-9 h-9 rounded-full bg-primary/15 border border-primary/25 flex items-center justify-center">
-                    <CreditCard className="w-4 h-4 text-primary" />
+                  <div className="flex h-9 w-9 items-center justify-center rounded-full border border-orange-200 bg-orange-50">
+                    <CreditCard className="h-4 w-4 text-orange-600" />
                   </div>
                   <div>
-                    <p className="font-medium text-sm">{student.name}</p>
-                    <p className="text-xs text-muted-foreground">UID: ****{student.uid_last4}</p>
+                    <p className="text-sm font-semibold text-slate-900">{student.name}</p>
+                    <p className="text-xs text-slate-500">UID: ****{student.uid_last4}</p>
                   </div>
                 </button>
               ))}
             </div>
             <button
+              type="button"
               id="sim-close-btn"
-              onClick={() => { setShowSimulator(false); setTxState("idle"); }}
-              className="w-full mt-4 py-2.5 rounded-xl border border-border text-sm text-muted-foreground hover:text-foreground transition-colors"
+              onClick={() => {
+                setShowSimulator(false);
+                setTxState("idle");
+              }}
+              className="mt-4 w-full rounded-xl border border-slate-200 py-2.5 text-sm font-semibold text-slate-500 transition-colors hover:text-slate-900"
             >
               Batal
             </button>

@@ -14,7 +14,7 @@ export async function PATCH(
   const dbStatus = is_locked ? "blocked" : "active";
 
   // 1. Update status in student_cards
-  let { error } = await service
+  const { error } = await service
     .from("student_cards")
     .update({
       status: dbStatus,

@@ -233,11 +233,11 @@ export default function MenuManagementClient({
         <select
           value={selectedCategory}
           onChange={(e) => setSelectedCategory(e.target.value)}
-          className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+          className="bg-white text-slate-900 border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
         >
-          <option value="ALL" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Semua Kategori</option>
+          <option value="ALL" className="bg-white text-slate-900">Semua Kategori</option>
           {categories.map((cat) => (
-            <option key={cat} value={cat} className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">
+            <option key={cat} value={cat} className="bg-white text-slate-900">
               {cat}
             </option>
           ))}
@@ -379,12 +379,12 @@ export default function MenuManagementClient({
                 <select
                   value={category}
                   onChange={(e) => setCategory(e.target.value)}
-                  className="w-full px-3.5 py-2 rounded-xl bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100 border border-slate-700 dark:border-slate-700 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
+                  className="w-full px-3.5 py-2 rounded-xl bg-white text-slate-900 border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 cursor-pointer"
                 >
-                  <option value="Makanan Berat" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Makanan Berat</option>
-                  <option value="Lauk" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Lauk Pauk</option>
-                  <option value="Minuman" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Minuman</option>
-                  <option value="Camilan" className="bg-slate-900 text-slate-100 dark:bg-slate-900 dark:text-slate-100">Camilan / Snack</option>
+                  <option value="Makanan Berat" className="bg-white text-slate-900">Makanan Berat</option>
+                  <option value="Lauk" className="bg-white text-slate-900">Lauk Pauk</option>
+                  <option value="Minuman" className="bg-white text-slate-900">Minuman</option>
+                  <option value="Camilan" className="bg-white text-slate-900">Camilan / Snack</option>
                 </select>
               </div>
 

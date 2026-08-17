@@ -54,9 +54,11 @@ export default async function CanteenLayout({
     : { data: null };
 
   return (
-    <div data-portal="canteen" className="min-h-screen flex flex-col">
+    <div data-portal="canteen" className="min-h-screen flex flex-col bg-slate-50 text-slate-900">
       <TopBar merchantName={merchant?.name ?? "Kantin"} />
-      <main className="flex-1 overflow-y-auto">
+      {/* No overflow container here — the document scrolls, so the POS order
+          sidebar can use `position: sticky` against the viewport. */}
+      <main className="flex-1">
         {children}
       </main>
       <AiAssistant persona="merchant" />
