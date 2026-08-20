@@ -1,10 +1,12 @@
+import { getRotatedGeminiApiKey } from "@/lib/ai/keys";
+
 export const runtime = "nodejs";
 
 export async function GET() {
   try {
-    const apiKey = (process.env.GOOGLE_GENERATIVE_AI_API_KEY || process.env.GEMINI_API_KEY || "").trim();
+    const apiKey = getRotatedGeminiApiKey();
 
-    if (!apiKey || apiKey.includes("your-api-key")) {
+    if (!apiKey) {
       return Response.json(
         {
           error: "MISSING_API_KEY",

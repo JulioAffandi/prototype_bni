@@ -56,6 +56,11 @@ export default function StudentUIDBindingModal({ schoolId, onClose, onSuccess }:
       return;
     }
 
+    if (rawNfcUid.trim().length < 4) {
+      setError("UID Kartu NFC harus minimal 4 karakter (misalnya: 0013 atau 1234).");
+      return;
+    }
+
     setLoading(true);
     try {
       const payload = {

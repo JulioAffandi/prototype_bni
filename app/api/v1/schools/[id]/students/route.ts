@@ -75,7 +75,13 @@ export async function POST(
   const parsed = RegisterStudentSchema.safeParse(body);
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "INVALID_PAYLOAD", detail: parsed.error.flatten() },
+      { 
+        error: "INVALID_PAYLOAD", 
+        message: "Data tidak valid: " + Object.entries(parsed.error.flatten().fieldErrors)
+          .map(([field, errs]) => `${field} (${errs?.join(", ")})`)
+          .join(", "),
+        detail: parsed.error.flatten() 
+      },
       { status: 400 },
     );
   }
