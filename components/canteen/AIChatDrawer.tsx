@@ -11,6 +11,7 @@ interface AIChatDrawerProps {
   persona: "merchant" | "treasury" | "parent";
   triggerLabel?: string;
   initialMessage?: string;
+  position?: "bottom-right" | "bottom-left";
 }
 
 const PERSONA_NAMES: Record<AIChatDrawerProps["persona"], string> = {
@@ -25,7 +26,12 @@ const PERSONA_HINTS: Record<AIChatDrawerProps["persona"], string[]> = {
   parent: ["Anak saya jajan apa saja minggu ini?", "Berapa saldo Vault-nya?", "Rekomendasi alokasi tabungan"],
 };
 
-export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChatDrawerProps) {
+export default function AIChatDrawer({
+  endpoint,
+  persona,
+  triggerLabel,
+  position = "bottom-right",
+}: AIChatDrawerProps) {
   const [isOpen, setIsOpen] = useState(false);
   const { messages, input, handleInputChange, handleSubmit, setInput, isLoading, error } = useChat({
     api: endpoint,
@@ -33,6 +39,11 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
 
   const personaName = PERSONA_NAMES[persona];
   const hints = PERSONA_HINTS[persona];
+
+  const posClass =
+    position === "bottom-left"
+      ? "fixed bottom-6 left-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl hover:bg-emerald-500 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 md:h-14 md:w-14"
+      : "fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl hover:bg-emerald-500 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 md:bottom-8 md:right-8 md:h-14 md:w-14";
 
   return (
     <>
@@ -42,7 +53,7 @@ export default function AIChatDrawer({ endpoint, persona, triggerLabel }: AIChat
         id="ai-chat-open-btn"
         onClick={() => setIsOpen(true)}
         aria-label="Buka AI Kantin Advisor"
-        className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-emerald-600 text-white shadow-2xl hover:bg-emerald-500 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-emerald-400/30 md:bottom-8 md:right-8 md:h-14 md:w-14"
+        className={posClass}
       >
         <Bot size={24} />
       </button>

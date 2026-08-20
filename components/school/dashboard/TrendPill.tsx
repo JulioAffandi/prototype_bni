@@ -5,21 +5,23 @@ interface TrendPillProps {
   deltaPct: number;
   comparisonLabel: string;
   invertPolarity?: boolean;
+  compact?: boolean;
 }
 
 export function TrendPill({
   deltaPct,
   comparisonLabel,
   invertPolarity = false,
+  compact = false,
 }: TrendPillProps) {
   if (isNaN(deltaPct) || deltaPct === 0) {
     return (
-      <div className="flex items-center gap-1.5 text-xs text-slate-400">
-        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded bg-slate-800 text-slate-400 font-medium">
-          <Minus size={12} />
-          <span>0,0%</span>
+      <div className="flex items-center gap-1 text-xs text-slate-500">
+        <span className="inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md bg-slate-100 text-slate-500 font-semibold border border-slate-200 text-[10px]">
+          <Minus size={10} />
+          <span>0%</span>
         </span>
-        <span className="text-[11px] text-slate-400 truncate">{comparisonLabel}</span>
+        {!compact && <span className="text-[10px] text-slate-400 truncate">{comparisonLabel}</span>}
       </div>
     );
   }
@@ -30,19 +32,19 @@ export function TrendPill({
   const isGood = invertPolarity ? !isPositive : isPositive;
 
   const bgClass = isGood
-    ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/20"
-    : "bg-rose-500/15 text-rose-400 border border-rose-500/20";
+    ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+    : "bg-rose-50 text-rose-700 border border-rose-200";
 
   const Icon = isPositive ? TrendingUp : TrendingDown;
   const absFormatted = Math.abs(deltaPct).toFixed(1).replace(".", ",");
 
   return (
-    <div className="flex items-center gap-1.5 text-xs">
-      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded text-[11px] font-semibold tabular-nums ${bgClass}`}>
-        <Icon size={12} />
+    <div className="flex items-center gap-1 text-xs">
+      <span className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold tabular-nums ${bgClass}`}>
+        <Icon size={10} />
         <span>{isPositive ? "+" : "-"}{absFormatted}%</span>
       </span>
-      <span className="text-[11px] text-slate-400 truncate">{comparisonLabel}</span>
+      {!compact && <span className="text-[10px] text-slate-400 truncate">{comparisonLabel}</span>}
     </div>
   );
 }

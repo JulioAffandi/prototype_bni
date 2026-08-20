@@ -6,7 +6,13 @@ import { useChat } from '@ai-sdk/react';
 import EduConnectLogo from '@/components/shared/EduConnectLogo';
 import { getMessageText } from '@/lib/ai/message-utils';
 
-export default function AiAssistant({ persona = 'parent' }: { persona?: string }) {
+export default function AiAssistant({
+  persona = 'parent',
+  position = 'bottom-right',
+}: {
+  persona?: string;
+  position?: 'bottom-right' | 'bottom-left';
+}) {
   const [mounted, setMounted] = useState(false);
   const [isOpen, setIsOpen] = useState(false);
 
@@ -21,22 +27,32 @@ export default function AiAssistant({ persona = 'parent' }: { persona?: string }
 
   if (!mounted) return null;
 
+  const btnPosClass =
+    position === 'bottom-left'
+      ? 'fixed bottom-6 left-6 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-portal-primary text-white shadow-portal-glow hover:opacity-95 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-portal-primary/30 md:h-14 md:w-14'
+      : 'fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-portal-primary text-white shadow-portal-glow hover:opacity-95 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-portal-primary/30 md:bottom-8 md:right-8 md:h-14 md:w-14';
+
+  const drawerPosClass =
+    position === 'bottom-left'
+      ? 'fixed bottom-24 left-6 z-50 sm:w-96 max-w-[calc(100vw-3rem)] rounded-2xl border border-portal-border bg-portal-surface shadow-2xl overflow-hidden flex flex-col h-[480px] max-h-[65vh] transition-all'
+      : 'fixed bottom-[140px] right-3 left-3 sm:left-auto sm:right-4 z-50 sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-portal-border bg-portal-surface shadow-2xl overflow-hidden flex flex-col h-[480px] max-h-[65vh] transition-all md:bottom-24 md:right-8';
+
   return (
     <>
-      {/* Floating Trigger Button in Bottom-Right */}
+      {/* Floating Trigger Button */}
       <button
         type="button"
         id="parent-ai-chat-btn"
         onClick={() => setIsOpen((prev) => !prev)}
         aria-label="Buka Asisten AI EduConnect"
-        className="fixed bottom-20 right-4 z-40 flex h-12 w-12 items-center justify-center rounded-full bg-portal-primary text-white shadow-portal-glow hover:opacity-95 transition-all hover:scale-105 active:scale-95 focus:outline-none focus:ring-4 focus:ring-portal-primary/30 md:bottom-8 md:right-8 md:h-14 md:w-14"
+        className={btnPosClass}
       >
         {isOpen ? <X size={22} /> : <Bot size={24} />}
       </button>
 
       {/* Slide-over Drawer / Chat Window */}
       {isOpen && (
-        <div className="fixed bottom-[140px] right-3 left-3 sm:left-auto sm:right-4 z-50 sm:w-96 max-w-[calc(100vw-1.5rem)] rounded-2xl border border-portal-border bg-portal-surface shadow-2xl overflow-hidden flex flex-col h-[480px] max-h-[65vh] transition-all md:bottom-24 md:right-8">
+        <div className={drawerPosClass}>
           {/* Header */}
           <div className="flex items-center justify-between border-b border-portal-border bg-portal-surface-alt px-4 py-3">
             <div className="flex items-center gap-2.5">

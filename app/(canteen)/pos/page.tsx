@@ -63,18 +63,5 @@ export default async function CanteenPOSPage() {
       }))
     : DEMO_MENU;
 
-  return (
-    <>
-      <PosTerminalClient merchantId={effectiveMerchantId} menuItems={menuItems} />
-
-      {/* Floating AI advisor button */}
-      <div className="fixed bottom-6 right-4 z-30">
-        <AIChatDrawer
-          endpoint="/api/v1/ai/merchant-advisor"
-          persona="merchant"
-          triggerLabel="AI Advisor"
-        />
-      </div>
-    </>
-  );
+  return <PosTerminalClient merchantId={effectiveMerchantId} menuItems={menuItems} />;
 }

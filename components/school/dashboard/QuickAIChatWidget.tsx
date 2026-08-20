@@ -24,14 +24,14 @@ export function QuickAIChatWidget({
       title="Treasury AI Assistant"
       subtitle="Konsultasi cepat proyeksi kas & risiko keuangan sekolah"
       headerSlot={
-        <span className="p-1.5 rounded-lg bg-indigo-500/15 text-indigo-400 border border-indigo-500/30">
+        <span className="p-1.5 rounded-lg bg-indigo-50 text-indigo-700 border border-indigo-100">
           <Bot size={18} />
         </span>
       }
     >
       <div className="space-y-3">
-        <p className="text-xs text-slate-300 flex items-center gap-1.5">
-          <Sparkles size={14} className="text-amber-400" />
+        <p className="text-xs text-slate-600 font-medium flex items-center gap-1.5">
+          <Sparkles size={14} className="text-amber-500" />
           <span>Pilih pertanyaan instan untuk Treasury AI:</span>
         </p>
 
@@ -41,14 +41,14 @@ export function QuickAIChatWidget({
               key={idx}
               type="button"
               onClick={() => setSelectedPrompt(q)}
-              className={`w-full text-left text-xs p-2.5 rounded-lg border transition-all flex items-center justify-between gap-2 ${
+              className={`w-full text-left text-xs p-2.5 rounded-xl border transition-all flex items-center justify-between gap-2 ${
                 selectedPrompt === q
-                  ? "bg-indigo-600/20 text-indigo-200 border-indigo-500/50 font-medium"
-                  : "bg-slate-900/80 text-slate-300 border-slate-800 hover:border-slate-700 hover:bg-slate-800/60"
+                  ? "bg-indigo-50 text-indigo-700 border-indigo-200 font-bold shadow-xs"
+                  : "bg-slate-50 text-slate-700 border-slate-200 hover:border-indigo-200 hover:bg-indigo-50/40 hover:text-indigo-900 font-medium"
               }`}
             >
               <span className="truncate">{q}</span>
-              <Send size={12} className="shrink-0 text-slate-400" />
+              <Send size={12} className={`shrink-0 ${selectedPrompt === q ? "text-indigo-600" : "text-slate-400"}`} />
             </button>
           ))}
         </div>

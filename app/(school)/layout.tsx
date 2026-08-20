@@ -54,10 +54,10 @@ export default async function SchoolLayout({
     : { data: null };
 
   return (
-    <div data-portal="school" className="min-h-screen flex">
+    <div data-portal="school" className="min-h-screen flex bg-slate-50 text-slate-900">
       <Sidebar schoolName={school?.name ?? "Sekolah"} />
-      <main className="flex-1 overflow-y-auto">
-        <div className="p-6 max-w-6xl mx-auto">
+      <main className="flex-1 overflow-y-auto bg-slate-50">
+        <div className="p-6 max-w-[1600px] mx-auto">
           {children}
         </div>
       </main>

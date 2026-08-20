@@ -31,21 +31,21 @@ export function DashboardFilters({
   };
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 bg-[var(--color-fin-card)] border border-[var(--color-fin-card-border)] rounded-[var(--radius-fin)] p-3">
-      <div className="flex items-center gap-2 text-xs text-slate-400">
-        <Filter size={14} className="text-[var(--color-fin-primary)]" />
-        <span className="font-semibold text-slate-200">Filter Analisis:</span>
+    <div className="flex flex-wrap items-center justify-between gap-3 bg-white border border-slate-200/80 rounded-2xl p-3 shadow-xs">
+      <div className="flex items-center gap-2 text-xs text-slate-500">
+        <Filter size={14} className="text-indigo-600" />
+        <span className="font-bold text-slate-800">Filter Analisis:</span>
       </div>
 
       <div className="flex flex-wrap items-center gap-3">
         {/* Academic Year Selector */}
         <div className="flex items-center gap-1.5 text-xs">
           <Calendar size={14} className="text-slate-400" />
-          <span className="text-slate-400 hidden sm:inline">Tahun Ajaran:</span>
+          <span className="text-slate-500 font-medium hidden sm:inline">Tahun Ajaran:</span>
           <select
             value={currentAy}
             onChange={(e) => handleAyChange(e.target.value)}
-            className="bg-slate-900 border border-slate-700 text-slate-100 rounded-md px-2.5 py-1 text-xs font-medium focus:outline-none focus:border-[var(--color-fin-primary)] cursor-pointer"
+            className="bg-slate-50 border border-slate-200 text-slate-800 rounded-xl px-3 py-1.5 text-xs font-semibold focus:outline-none focus:border-indigo-500 cursor-pointer transition-colors shadow-xs"
           >
             {academicYears.map((ay) => (
               <option key={ay} value={ay}>
@@ -56,7 +56,7 @@ export function DashboardFilters({
         </div>
 
         {/* Date Range Selector */}
-        <div className="flex items-center bg-slate-900 border border-slate-800 rounded-md p-0.5 text-xs font-medium">
+        <div className="flex items-center bg-slate-100 border border-slate-200/80 rounded-xl p-1 text-xs font-medium">
           {[
             { id: "7d", label: "7 Hari" },
             { id: "30d", label: "30 Hari" },
@@ -69,10 +69,10 @@ export function DashboardFilters({
                 key={r.id}
                 type="button"
                 onClick={() => handleRangeChange(r.id)}
-                className={`px-2.5 py-1 rounded text-xs font-medium transition-all ${
+                className={`px-3 py-1 rounded-lg text-xs transition-all ${
                   active
-                    ? "bg-[var(--color-fin-primary)] text-white shadow-sm font-semibold"
-                    : "text-slate-400 hover:text-slate-200"
+                    ? "bg-white text-indigo-700 font-bold shadow-xs border border-slate-200/60"
+                    : "text-slate-600 hover:text-slate-900 font-medium"
                 }`}
               >
                 {r.label}

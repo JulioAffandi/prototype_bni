@@ -1,16 +1,16 @@
 export const CHART_COLORS = {
-  INFLOW: "#5B4BDB",
-  INFLOW_SOFT: "rgba(91, 75, 219, 0.15)",
-  OUTFLOW: "#F97316",
-  OUTFLOW_SOFT: "rgba(249, 115, 22, 0.15)",
-  NET: "#84CC16",
-  NET_SOFT: "rgba(132, 204, 22, 0.15)",
-  CRITICAL: "#EF4444",
-  ATTENTION: "#F59E0B",
-  INFO: "#3B82F6",
-  GRID: "#1E293B",
-  TEXT_MUTED: "#94A3B8",
-  CARD_BG: "#161F30",
+  INFLOW: "#059669",
+  INFLOW_SOFT: "rgba(5, 150, 105, 0.12)",
+  OUTFLOW: "#EA580C",
+  OUTFLOW_SOFT: "rgba(234, 88, 12, 0.12)",
+  NET: "#4338CA",
+  NET_SOFT: "rgba(67, 56, 202, 0.12)",
+  CRITICAL: "#E11D48",
+  ATTENTION: "#D97706",
+  INFO: "#2563EB",
+  GRID: "#F1F5F9",
+  TEXT_MUTED: "#64748B",
+  CARD_BG: "#FFFFFF",
 } as const;
 
 export const CHART_CONFIG = {

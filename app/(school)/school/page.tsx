@@ -7,13 +7,10 @@ import { DashboardHeader } from "@/components/school/dashboard/DashboardHeader";
 import { DashboardFilters } from "@/components/school/dashboard/DashboardFilters";
 import { KPIRow } from "@/components/school/dashboard/KPIRow";
 import { CashflowChart } from "@/components/school/dashboard/CashflowChart";
-import { TuitionCollectionWidget } from "@/components/school/dashboard/TuitionCollectionWidget";
-import { TuitionAgingWidget } from "@/components/school/dashboard/TuitionAgingWidget";
-import { FinancialAlertsPanel } from "@/components/school/dashboard/FinancialAlertsPanel";
-import { PaymentForecastChart } from "@/components/school/dashboard/PaymentForecastChart";
+import { TuitionManagementCard } from "@/components/school/dashboard/TuitionManagementCard";
 import { BudgetUtilizationWidget } from "@/components/school/dashboard/BudgetUtilizationWidget";
-import { QuickAIChatWidget } from "@/components/school/dashboard/QuickAIChatWidget";
 import { RecentActivityTable } from "@/components/school/dashboard/RecentActivityTable";
+import { FinancialAlertsPanel } from "@/components/school/dashboard/FinancialAlertsPanel";
 
 import {
   getCashflowSeries,
@@ -100,58 +97,55 @@ export default async function SchoolDashboardPage({ searchParams }: PageProps) {
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header */}
+      {/* Header & Filter Bar */}
       <DashboardHeader schoolName={school?.name ?? "SMA BNI Harapan Bangsa"} lastUpdated={lastUpdatedStr} />
-
-      {/* Filters */}
       <DashboardFilters
         academicYears={["2024/2025", "2023/2024", "2025/2026"]}
         currentAy={currentAy}
         currentRange={currentRange}
       />
 
-      {/* Row 1: Top 5 KPIs with Sparklines */}
+      {/* ROW 1: 5 Summary KPI Cards (Uniform Height: 115px) */}
       <KPIRow metrics={kpiData.metrics} />
 
-      {/* Row 2: Visualizations (Grid 12) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-5 flex flex-col">
-          <CashflowChart series={cashflowSeries} />
+      {/* ROW 2: Primary Analytics (Equalized Height: 430px) */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left (7 Cols): Cashflow Trend Line Chart */}
+        <div className="lg:col-span-7 h-[430px] min-h-0">
+          <CashflowChart series={cashflowSeries} className="h-full flex flex-col" />
         </div>
-        <div className="lg:col-span-4 flex flex-col space-y-5">
-          <TuitionCollectionWidget
+
+        {/* Right (5 Cols): SPP Collection & Aging Tabs/Dual Panel */}
+        <div className="lg:col-span-5 h-[430px] min-h-0">
+          <TuitionManagementCard
             totalBilling={kpiData.totalBilling}
             collectedAmount={kpiData.collectedAmount}
             outstandingAmount={kpiData.outstandingAmount}
             overdueAmount={kpiData.overdueAmount}
             collectionRatePct={kpiData.collectionRatePct}
+            buckets={agingData.buckets}
+            className="h-full flex flex-col"
           />
-          <TuitionAgingWidget buckets={agingData.buckets} />
-        </div>
-        <div className="lg:col-span-3 flex flex-col">
-          <FinancialAlertsPanel alerts={alerts} />
         </div>
       </div>
 
-      {/* Row 3: Operations & AI (Grid 12) */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
-        <div className="lg:col-span-4 flex flex-col">
-          <PaymentForecastChart
-            points={forecastData.points}
-            expectedNext30Days={forecastData.expectedNext30Days}
-            confidenceLevel={forecastData.confidenceLevel}
-          />
+      {/* ROW 3: Secondary Operations & Feeds (Equalized Height: 380px) */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-12 gap-5 items-stretch">
+        {/* Left (4 Cols): Budget vs Actual Utilization */}
+        <div className="lg:col-span-4 h-[380px] min-h-0">
+          <BudgetUtilizationWidget rows={budgetRows} fiscalYear={currentAy} className="h-full flex flex-col" />
         </div>
-        <div className="lg:col-span-5 flex flex-col">
-          <BudgetUtilizationWidget rows={budgetRows} fiscalYear={currentAy} />
+
+        {/* Middle (5 Cols): Recent Live Transactions */}
+        <div className="lg:col-span-5 h-[380px] min-h-0">
+          <RecentActivityTable rows={activityRows} className="h-full flex flex-col" />
         </div>
-        <div className="lg:col-span-3 flex flex-col">
-          <QuickAIChatWidget />
+
+        {/* Right (3 Cols): Financial Alerts & AI Assistant Trigger */}
+        <div className="lg:col-span-3 h-[380px] min-h-0">
+          <FinancialAlertsPanel alerts={alerts} className="h-full flex flex-col" />
         </div>
       </div>
-
-      {/* Row 4: Recent Activity Table */}
-      <RecentActivityTable rows={activityRows} />
     </div>
   );
 }

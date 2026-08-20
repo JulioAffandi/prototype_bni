@@ -217,50 +217,82 @@
 }
 
 /* =====================================================================
-   SCHOOL — "Institutional Authority, Enterprise Treasury"
-   Obsidian Slate · Royal Navy/Cyan · BNI Orange callout · crisp tables
+   SCHOOL — "BNI wondr Modern Light Fintech Theme · Enterprise Treasury"
+   Soft Slate #F8FAFC · Crisp White cards · Deep Indigo #4338CA & Teal #00828C
    ===================================================================== */
 [data-portal="school"] {
-  --portal-bg: #0b0f19;
-  --portal-surface: #161f30;
-  --portal-surface-alt: #1b2540;
-  --portal-border: #1e293b;
+  --portal-bg: #F8FAFC;
+  --portal-surface: #FFFFFF;
+  --portal-surface-alt: #F1F5F9;
+  --portal-border: #E2E8F0;
 
-  --portal-primary: #0284c7; /* sky-600 */
-  --portal-primary-foreground: #f8fafc;
-  --portal-secondary: #0369a1;
-  --portal-accent: #f15a24; /* BNI brand orange — treasury callout */
+  --portal-primary: #4338CA; /* Deep Indigo 700 / BNI wondr */
+  --portal-primary-foreground: #FFFFFF;
+  --portal-secondary: #00828C; /* BNI Teal */
+  --portal-accent: #EA580C; /* BNI brand orange */
 
-  /* Ledger status colors — jangan diubah tanpa audit compliance */
-  --portal-success: #10b981; /* Paid */
-  --portal-warning: #f59e0b; /* Pending */
-  --portal-danger: #f43f5e; /* Dispute/Audit */
+  /* Ledger status colors */
+  --portal-success: #059669; /* Emerald */
+  --portal-warning: #D97706; /* Amber */
+  --portal-danger: #E11D48; /* Rose */
 
-  --portal-text: #f1f5f9;
-  --portal-text-muted: #94a3b8;
+  --portal-text: #0F172A; /* Charcoal Navy */
+  --portal-text-muted: #64748B;
 
   --portal-font-sans: var(--font-inter, ui-sans-serif, system-ui, sans-serif);
   --portal-font-mono: var(--font-geist-mono, ui-monospace, monospace);
 
-  --portal-radius: 0.5rem; /* rounded-lg, crisp/formal */
-  --portal-radius-lg: 0.75rem;
+  --portal-radius: 1rem;
+  --portal-radius-lg: 1.25rem;
   --portal-glow: none;
 
-  /* Executive Financial Redesign (EduConnect Style) Tokens */
-  --color-fin-sidebar-from: #4b3bc4;
-  --color-fin-sidebar-to: #3b2fa0;
-  --color-fin-primary: #5b4bdb;
-  --color-fin-primary-soft: rgba(91, 75, 219, 0.12);
-  --color-fin-outflow: #f97316;
-  --color-fin-outflow-soft: rgba(249, 115, 22, 0.12);
-  --color-fin-net: #84cc16;
-  --color-fin-net-soft: rgba(132, 204, 22, 0.14);
-  --color-fin-critical: #ef4444;
-  --color-fin-attention: #f59e0b;
-  --color-fin-info: #3b82f6;
-  --color-fin-card: #161f30;
-  --color-fin-card-border: #1e293b;
-  --radius-fin: 0.875rem;
+  /* Executive Financial Redesign Tokens */
+  --color-fin-sidebar-from: #FFFFFF;
+  --color-fin-sidebar-to: #FFFFFF;
+  --color-fin-primary: #4338CA;
+  --color-fin-primary-soft: rgba(67, 56, 202, 0.08);
+  --color-fin-outflow: #EA580C;
+  --color-fin-outflow-soft: rgba(234, 88, 12, 0.08);
+  --color-fin-net: #059669;
+  --color-fin-net-soft: rgba(5, 150, 105, 0.08);
+  --color-fin-critical: #E11D48;
+  --color-fin-attention: #D97706;
+  --color-fin-info: #2563EB;
+  --color-fin-card: #FFFFFF;
+  --color-fin-card-border: #E2E8F0;
+  --radius-fin: 1rem;
+
+  /* Semantic tailwind variables override for light theme */
+  --background: 210 40% 98%;
+  --foreground: 222 47% 11%;
+  --card: 0 0% 100%;
+  --card-foreground: 222 47% 11%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 222 47% 11%;
+  --primary: 243 75% 59%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 210 40% 96%;
+  --secondary-foreground: 222 47% 11%;
+  --muted: 210 40% 96%;
+  --muted-foreground: 215 16% 47%;
+  --accent: 25 95% 53%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 214 32% 91%;
+  --input: 214 32% 91%;
+  --ring: 243 75% 59%;
+}
+
+[data-portal="school"] select {
+  color-scheme: light;
+  background-color: #FFFFFF;
+  color: #0F172A;
+}
+
+[data-portal="school"] select option {
+  background-color: #FFFFFF !important;
+  color: #0F172A !important;
 }
 
 /* =====================================================================

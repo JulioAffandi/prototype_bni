@@ -31,16 +31,16 @@ export function TuitionCollectionWidget({
         {/* Main Rate Display */}
         <div className="flex items-end justify-between">
           <div>
-            <div className="text-3xl font-extrabold text-white tracking-tight tabular-nums">
+            <div className="text-3xl font-extrabold text-slate-900 tracking-tight tabular-nums">
               {boundedRate.toFixed(1).replace(".", ",")}%
             </div>
-            <p className="text-xs text-slate-400 mt-0.5">
-              Terkumpul: <span className="font-semibold text-emerald-400">{formatCompactIDR(collectedAmount)}</span> dari {formatCompactIDR(totalBilling)}
+            <p className="text-xs text-slate-500 font-medium mt-0.5">
+              Terkumpul: <span className="font-bold text-emerald-600">{formatCompactIDR(collectedAmount)}</span> dari {formatCompactIDR(totalBilling)}
             </p>
           </div>
           <div className="text-right">
-            <span className="text-xs text-slate-400">Tunggakan SPP</span>
-            <p className="text-sm font-semibold text-rose-400 tabular-nums">
+            <span className="text-xs text-slate-500 font-medium">Tunggakan SPP</span>
+            <p className="text-sm font-bold text-rose-600 tabular-nums">
               {formatCompactIDR(outstandingAmount)}
             </p>
           </div>
@@ -48,18 +48,18 @@ export function TuitionCollectionWidget({
 
         {/* Progress bar */}
         <div className="space-y-1.5">
-          <div className="h-3.5 w-full rounded-full bg-slate-800 p-0.5 overflow-hidden border border-slate-700/60">
+          <div className="h-3.5 w-full rounded-full bg-slate-100 p-0.5 overflow-hidden border border-slate-200/80">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-[var(--color-fin-primary)] to-[var(--color-fin-net)] transition-all duration-500"
+              className="h-full rounded-full bg-gradient-to-r from-indigo-600 to-emerald-500 transition-all duration-500"
               style={{ width: `${boundedRate}%` }}
             />
           </div>
-          <div className="flex justify-between text-[11px] text-slate-400">
-            <span className="flex items-center gap-1 text-emerald-400">
+          <div className="flex justify-between text-[11px]">
+            <span className="flex items-center gap-1 text-emerald-600 font-semibold">
               <CheckCircle2 size={12} />
               <span>{boundedRate.toFixed(1)}% Lunas</span>
             </span>
-            <span className="flex items-center gap-1 text-rose-400">
+            <span className="flex items-center gap-1 text-rose-600 font-semibold">
               <AlertCircle size={12} />
               <span>Overdue: {formatCompactIDR(overdueAmount)}</span>
             </span>

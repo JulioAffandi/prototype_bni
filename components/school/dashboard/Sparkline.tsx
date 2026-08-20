@@ -19,7 +19,13 @@ export function Sparkline({
     return <div style={{ height }} className="w-full" />;
   }
 
-  const chartData = data.map((val, idx) => ({ idx, val }));
+  let chartData = data.map((val, idx) => ({ idx, val }));
+  if (data.length === 1) {
+    chartData = [
+      { idx: 0, val: data[0] },
+      { idx: 1, val: data[0] },
+    ];
+  }
 
   return (
     <div style={{ height }} className="w-full">

@@ -7,67 +7,73 @@ import type { ActivityRow } from "@/lib/school/dashboard-types";
 
 interface RecentActivityTableProps {
   rows: ActivityRow[];
+  className?: string;
 }
 
-export function RecentActivityTable({ rows }: RecentActivityTableProps) {
+export function RecentActivityTable({ rows, className = "" }: RecentActivityTableProps) {
   return (
     <DashboardCard
-      title="Aktivitas Transaksi Keuangan Terbaru"
-      subtitle="10 transaksi jurnal ledger terdaftar dengan referensi BNI H2H"
+      title="Aktivitas Transaksi Ledger"
+      subtitle="10 transaksi jurnal ledger real-time BNI H2H"
       actionUrl="/school/audit"
-      actionLabel="Lihat Semua Audit Log"
+      actionLabel="Audit Log"
+      className={className}
+      footerSlot={
+        <div className="flex items-center justify-between text-xs pt-0.5">
+          <span className="text-[11px] text-slate-500">Menampilkan {rows.length} transaksi terakhir</span>
+          <span className="text-[11px] font-semibold text-emerald-600 flex items-center gap-1">
+            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+            <span>Sinkronisasi Otomatis Active</span>
+          </span>
+        </div>
+      }
     >
       {rows.length === 0 ? (
-        <div className="p-8 text-center text-xs text-slate-400">
+        <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-xs text-slate-500">
           Belum ada aktivitas transaksi pada periode ini.
         </div>
       ) : (
-        <div className="overflow-x-auto scrollbar-thin">
+        <div className="flex-1 min-h-0 overflow-y-auto rounded-xl border border-slate-100 scrollbar-thin">
           <table className="w-full text-left text-xs">
-            <thead>
-              <tr className="border-b border-slate-800 text-slate-400 font-semibold uppercase text-[10px] tracking-wider">
-                <th className="py-2.5 px-3">Tanggal</th>
-                <th className="py-2.5 px-3">Kategori</th>
-                <th className="py-2.5 px-3">Deskripsi Transaksi</th>
-                <th className="py-2.5 px-3">Referensi BNI / Akun</th>
-                <th className="py-2.5 px-3 text-right">Nominal</th>
-                <th className="py-2.5 px-3 text-center">Status</th>
+            <thead className="sticky top-0 z-10 bg-slate-50 shadow-xs">
+              <tr className="border-b border-slate-200 text-slate-500 font-bold uppercase text-[10px] tracking-wider">
+                <th className="py-2 px-2.5">Waktu</th>
+                <th className="py-2 px-2.5">Kategori</th>
+                <th className="py-2 px-2.5">Deskripsi</th>
+                <th className="py-2 px-2.5 text-right">Nominal</th>
+                <th className="py-2 px-2 text-center">Status</th>
               </tr>
             </thead>
-            <tbody className="divide-y divide-slate-800/60">
+            <tbody className="divide-y divide-slate-100 bg-white">
               {rows.map((row) => {
                 const isIncome = row.isIncome;
                 const sign = isIncome ? "+" : "-";
-                const amountColor = isIncome ? "text-emerald-400" : "text-slate-200";
+                const amountColor = isIncome ? "text-emerald-600 font-bold" : "text-slate-900 font-bold";
                 const Icon = isIncome ? ArrowDownLeft : ArrowUpRight;
-                const iconColor = isIncome ? "text-emerald-400 bg-emerald-500/10" : "text-orange-400 bg-orange-500/10";
+                const iconColor = isIncome
+                  ? "text-emerald-700 bg-emerald-50 border border-emerald-200/80"
+                  : "text-orange-700 bg-orange-50 border border-orange-200/80";
 
                 return (
-                  <tr key={row.id} className="hover:bg-slate-900/60 transition-colors">
-                    <td className="py-3 px-3 text-slate-300 font-medium whitespace-nowrap">
+                  <tr key={row.id} className="hover:bg-slate-50/80 transition-colors">
+                    <td className="py-2 px-2.5 text-slate-500 text-[11px] whitespace-nowrap">
                       {formatDateID(row.date)}
                     </td>
-                    <td className="py-3 px-3 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1.5 font-semibold text-slate-200">
-                        <span className={`p-1 rounded ${iconColor}`}>
-                          <Icon size={12} />
+                    <td className="py-2 px-2.5 whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1 font-semibold text-slate-800 text-[11px]">
+                        <span className={`p-0.5 rounded ${iconColor}`}>
+                          <Icon size={11} />
                         </span>
-                        {row.category}
+                        <span>{row.category}</span>
                       </span>
                     </td>
-                    <td className="py-3 px-3 text-slate-300 max-w-xs truncate">
+                    <td className="py-2 px-2.5 text-slate-600 max-w-[140px] truncate text-[11px]" title={row.description}>
                       {row.description}
                     </td>
-                    <td className="py-3 px-3 font-mono text-[11px] text-slate-400 whitespace-nowrap">
-                      <span className="inline-flex items-center gap-1 text-slate-300">
-                        <FileText size={12} className="text-slate-500 shrink-0" />
-                        <span>{row.reference || "BNI-H2H-STD"}</span>
-                      </span>
-                    </td>
-                    <td className={`py-3 px-3 text-right font-semibold font-mono text-xs tabular-nums whitespace-nowrap ${amountColor}`}>
+                    <td className={`py-2 px-2.5 text-right font-mono text-[11px] tabular-nums whitespace-nowrap ${amountColor}`}>
                       {sign}{formatCompactIDR(row.amount)}
                     </td>
-                    <td className="py-3 px-3 text-center whitespace-nowrap">
+                    <td className="py-2 px-2 text-center whitespace-nowrap">
                       <StatusBadge status={row.status} />
                     </td>
                   </tr>

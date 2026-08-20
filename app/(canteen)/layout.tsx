@@ -61,7 +61,7 @@ export default async function CanteenLayout({
       <main className="flex-1">
         {children}
       </main>
-      <AiAssistant persona="merchant" />
+      <AiAssistant persona="merchant" position="bottom-left" />
     </div>
   );
 }
